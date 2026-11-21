@@ -75,7 +75,7 @@ class LinkFetchWorker(
                 title = cleaned.displayTitle,
                 displayTitle = cleaned.displayTitle,
                 authorHandle = cleaned.authorHandle,
-                caption = cleaned.caption,
+                caption = MetadataCleaner.cleanForDisplay(cleaned.caption),
                 likesText = cleaned.likesText,
                 commentsText = cleaned.commentsText,
                 postedAt = cleaned.postedAt,

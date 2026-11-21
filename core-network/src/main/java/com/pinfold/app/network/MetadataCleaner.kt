@@ -15,6 +15,21 @@ object MetadataCleaner {
         """([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},\s*\d{4})\s*:\s*"([\s\S]*)"""",
     )
     private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
+    private val PUNCTUATION_ONLY = Regex("^[\\s.\\-–—·•,;:!?…]+$")
+
+    /** Drops dot-only lines, collapses blank runs and removes trailing hashtag-only lines. */
+    fun cleanForDisplay(caption: String): String {
+        val lines = caption.lineSequence()
+            .map { it.trimEnd() }
+            .filterNot { it.isBlank() || PUNCTUATION_ONLY.matches(it.trim()) }
+            .toList()
+        var end = lines.size
+        while (end > 0 && lines[end - 1].let { line -> line.startsWith("#") && HASHTAG.findAll(line).count() >= 2 }) {
+            end--
+        }
+        val result = lines.take(end).joinToString("\n")
+        return result.replace(Regex("\\n{3,}"), "\n\n")
+    }
 
     fun clean(
         title: String,
