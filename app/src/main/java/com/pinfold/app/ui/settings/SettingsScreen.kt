@@ -4,19 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,17 +13,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.pinfold.app.ui.glass.GlassBackButton
+import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.GlassSettings
-import com.pinfold.app.ui.glass.GlassStyle
 import com.pinfold.app.ui.glass.MotionSettings
-import com.pinfold.app.ui.glass.MotionStyle
+import com.pinfold.app.ui.glass.theme.Candy
+import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
@@ -48,140 +35,145 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) viewModel.importBackup(uri) { importResult = it }
     }
+    val glass = GlassSettings.style
+    val motion = MotionSettings.style
 
-    Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        GlassBackButton(onBack = { viewModel.selectTab(com.pinfold.app.ui.home.HomeTab.HOME) })
-        SectionTitle("Liquid glass", com.pinfold.app.ui.components.AppIcons.Liquid, MaterialTheme.typography.headlineMedium)
-        val style = GlassSettings.style
-        com.pinfold.app.ui.components.GlassDropdown(
-            label = "Glass style",
-            options = GlassStyle.Named.map { it.first },
-            selected = GlassStyle.Named.firstOrNull { it.second == style }?.first ?: "Liquid",
-            onSelect = { name -> GlassStyle.Named.firstOrNull { it.first == name }?.second?.let { GlassSettings.update(context, it) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        FineSlider("Blur", style.blur, 0f..4f) { GlassSettings.update(context, style.copy(blur = it)) }
-        FineSlider("Refraction height", style.refractionHeight, 0f..3f) { GlassSettings.update(context, style.copy(refractionHeight = it)) }
-        FineSlider("Refraction amount", style.refractionAmount, 0f..3f) { GlassSettings.update(context, style.copy(refractionAmount = it)) }
-        FineSlider("Saturation", style.saturation, 0f..3f) { GlassSettings.update(context, style.copy(saturation = it)) }
-        FineSlider("Brightness", style.brightness, -1f..1f) { GlassSettings.update(context, style.copy(brightness = it)) }
-        FineSlider("Tint", style.tint, 0f..3f) { GlassSettings.update(context, style.copy(tint = it)) }
-        FineSlider("Highlight", style.highlight, 0f..2f) { GlassSettings.update(context, style.copy(highlight = it)) }
-        SettingRow("Depth effect", style.depthEffect) { GlassSettings.update(context, style.copy(depthEffect = it)) }
-        SettingRow("Chromatic aberration", style.chromaticAberration) { GlassSettings.update(context, style.copy(chromaticAberration = it)) }
-        SettingRow("Reduce transparency", settings.reduceTransparency) { viewModel.setReduceTransparency(it) }
-
-        Divider()
-        SectionTitle("Motion", com.pinfold.app.ui.components.AppIcons.Motion, MaterialTheme.typography.headlineMedium)
-        val motion = MotionSettings.style
-        com.pinfold.app.ui.components.GlassDropdown(
-            label = "Button motion",
-            options = MotionStyle.Presets.map { it.label },
-            selected = motion.label,
-            onSelect = { name -> MotionStyle.Presets.firstOrNull { it.label == name }?.let { MotionSettings.update(context, it) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text("Glass spring fine tune", style = MaterialTheme.typography.titleMedium)
-        FineSlider("Bounce", motion.bounce, 0f..1f) { MotionSettings.update(context, motion.copy(bounce = it)) }
-        FineSlider("Speed", motion.speed, 0.4f..2.5f) { MotionSettings.update(context, motion.copy(speed = it)) }
-        FineSlider("Press", motion.press, 0f..2f) { MotionSettings.update(context, motion.copy(press = it)) }
-        FineSlider("Wobble", motion.wobble, 0f..3f) { MotionSettings.update(context, motion.copy(wobble = it)) }
-        FineSlider("Stretch", motion.stretch, 0f..2f) { MotionSettings.update(context, motion.copy(stretch = it)) }
-        FineSlider("Bloom", motion.bloom, 0f..2f) { MotionSettings.update(context, motion.copy(bloom = it)) }
-        FineSlider("Animation speed", settings.animationSpeed, 0.3f..3f) { viewModel.setAnimationSpeed(it) }
-        SettingRow("Reduce motion", settings.reduceMotion) { viewModel.setReduceMotion(it) }
-        SettingRow("Haptics on", settings.haptics != "OFF") {
-            viewModel.setHaptics(if (it) "LIGHT" else "OFF")
+    SettingsScaffold("Settings", onBack = { viewModel.selectTab(HomeTab.HOME) }) {
+        SettingsSection("LOOK AND FEEL") {
+            SettingsCard {
+                Text("Theme", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = com.pinfold.app.ui.glass.theme.clear.ink)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf("AUTO" to "Auto", "LIGHT" to "Light", "DARK" to "Dark").forEach { (value, label) ->
+                        ChoiceTile(label = label, selected = settings.themeMode == value, onClick = { viewModel.setSetting("themeMode", value) },
+                            preview = { com.pinfold.app.ui.components.AppIcons.Icon(if (value == "DARK") AppIcons.Dark else if (value == "LIGHT") AppIcons.Light else AppIcons.Appearance, null, tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 24.dp) })
+                    }
+                }
+                SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
+                SettingsRow(AppIcons.Language, Candy.Sky, "App language", settings.language, onClick = { viewModel.setSetting("language", "English") })
+                SettingsRow(AppIcons.Haptics, Candy.Mint, "Haptic feedback", trailing = {
+                    GlassSwitch(settings.haptics != "OFF") { viewModel.setHaptics(if (it) "LIGHT" else "OFF") }
+                })
+            }
         }
 
-        Divider()
-        SectionTitle("Cards", com.pinfold.app.ui.components.AppIcons.Card, MaterialTheme.typography.headlineSmall)
-        Text("Columns: ${settings.cardColumns}", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            (1..4).forEach { count ->
-                Button(onClick = { viewModel.setCardColumns(count) }, modifier = Modifier.padding(horizontal = 2.dp)) {
-                    Text(if (settings.cardColumns == count) "✓ $count" else "$count")
+        SettingsSection("LIBRARY") {
+            SettingsCard {
+                SettingsRow(AppIcons.Card, Candy.Sky, "Default view", settings.defaultView) { viewModel.setSetting("defaultView", if (settings.defaultView == "CARD") "COMPACT" else "CARD") }
+                SettingsRow(AppIcons.Filter, Candy.Grape, "Columns", settings.cardColumns.toString()) {
+                    viewModel.setCardColumns(if (settings.cardColumns >= 4) 1 else settings.cardColumns + 1)
+                }
+                SettingsRow(AppIcons.Compact, Candy.Bubblegum, "Card caption", settings.cardCaptionStyle) {
+                    val values = listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY")
+                    viewModel.setCardCaptionStyle(values[(values.indexOf(settings.cardCaptionStyle) + 1) % values.size])
+                }
+                SettingsRow(AppIcons.Select, Candy.Tangerine, "Tap on a bookmark", settings.tapAction) {
+                    val values = listOf("OPEN", "DETAILS", "ASK")
+                    viewModel.setSetting("tapAction", values[(values.indexOf(settings.tapAction) + 1) % values.size])
+                }
+                SettingsRow(AppIcons.Sort, Candy.Lime, "Sort order", settings.sortOrder) {
+                    viewModel.setSetting("sortOrder", if (settings.sortOrder == "NEWEST") "OLDEST" else "NEWEST")
+                }
+                SettingsRow(AppIcons.Delete, Candy.Tomato, "Trash retention", "${settings.trashRetentionDays} days") {
+                    viewModel.setSetting("trashRetentionDays", 30)
                 }
             }
         }
-        com.pinfold.app.ui.components.GlassDropdown(
-            label = "Card spacing",
-            options = listOf("TIGHT", "NORMAL", "ROOMY"),
-            selected = settings.cardSpacing,
-            onSelect = viewModel::setCardSpacing,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        com.pinfold.app.ui.components.GlassDropdown(
-            label = "Caption style",
-            options = listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY"),
-            selected = settings.cardCaptionStyle,
-            onSelect = viewModel::setCardCaptionStyle,
-            modifier = Modifier.fillMaxWidth(),
-        )
 
-        Divider()
-        SectionTitle("Privacy & network", com.pinfold.app.ui.components.AppIcons.Lock, MaterialTheme.typography.headlineSmall)
-        SettingRow("Lock with biometrics", settings.biometricLock) { viewModel.setBiometricLock(it) }
-        SettingRow("Offline mode", settings.offlineMode) { viewModel.setOffline(it) }
-        SettingRow("Third-party proxies (opt-in)", settings.proxiesEnabled) { viewModel.setProxies(it) }
-        Text("Network transparency — ${networkLog.size} recent requests", style = MaterialTheme.typography.titleMedium)
-        networkLog.take(10).forEach { entry ->
-            Text("${entry.host} · ${entry.purpose} · ${entry.status}", style = MaterialTheme.typography.bodySmall)
+        SettingsSection("LINKS AND PREVIEWS") {
+            SettingsCard {
+                SettingsRow(AppIcons.Open, Candy.Sky, "Open links in", settings.openLinksIn) {
+                    viewModel.setSetting("openLinksIn", if (settings.openLinksIn == "NATIVE") "BROWSER" else "NATIVE")
+                }
+                SettingsRow(AppIcons.Biometric, Candy.Grape, "Preview identity", settings.previewIdentity) {
+                    viewModel.setSetting("previewIdentity", if (settings.previewIdentity == "MOBILE") "CRAWLER" else "MOBILE")
+                }
+                SettingsRow(AppIcons.Warning, Candy.Tangerine, "Third-party preview helpers", trailing = {
+                    GlassSwitch(settings.previewHelpers) { viewModel.setProxies(it) }
+                })
+                SettingsRow(AppIcons.Refetch, Candy.Mint, "Refetch missing previews", trailing = {
+                    GlassSwitch(settings.refetchMissing) { viewModel.setSetting("refetchMissing", it) }
+                })
+                SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Image quality", settings.imageQuality) {
+                    val values = listOf("QUALITY", "BALANCED", "DATA_SAVER")
+                    viewModel.setSetting("imageQuality", values[(values.indexOf(settings.imageQuality) + 1) % values.size])
+                }
+            }
         }
-        OutlinedTextField(
-            value = settings.proxyTemplate,
-            onValueChange = viewModel::setProxyTemplate,
-            label = { Text("Proxy URL template (use {url})") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = settings.previewUserAgent,
-            onValueChange = viewModel::setUserAgent,
-            label = { Text("Preview User-Agent") },
-            modifier = Modifier.fillMaxWidth(),
-        )
 
-        Divider()
-        SectionTitle("Backup", com.pinfold.app.ui.components.AppIcons.Export, MaterialTheme.typography.headlineSmall)
-        Button(onClick = { exportLauncher.launch("savelin-backup.zip") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Export backup")
+        SettingsSection("REMINDERS") {
+            SettingsCard {
+                SettingsRow(AppIcons.Reminder, Candy.Tangerine, "Notifications", trailing = {
+                    GlassSwitch(settings.notifications) { viewModel.setSetting("notifications", it) }
+                })
+                SettingsRow(AppIcons.Snooze, Candy.Lime, "Default snooze", "${settings.defaultSnoozeMinutes} min") {
+                    viewModel.setSetting("defaultSnoozeMinutes", 60)
+                }
+                SettingsRow(AppIcons.Hide, Candy.Grape, "Hide details on lock screen", trailing = {
+                    GlassSwitch(settings.hideDetailsOnLockScreen) { viewModel.setSetting("hideDetailsOnLockScreen", it) }
+                })
+            }
         }
-        Button(onClick = { importLauncher.launch("application/zip") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Import backup")
+
+        SettingsSection("PRIVACY AND SECURITY") {
+            SettingsCard {
+                SettingsRow(AppIcons.Lock, Candy.Sky, "App lock", trailing = {
+                    GlassSwitch(settings.biometricLock) { viewModel.setBiometricLock(it) }
+                })
+                SettingsRow(AppIcons.Hide, Candy.Grape, "Private vault", trailing = {
+                    GlassSwitch(settings.privateVault) { viewModel.setSetting("privateVault", it) }
+                })
+                SettingsRow(AppIcons.Warning, Candy.Tomato, "Block screenshots", trailing = {
+                    GlassSwitch(settings.blockScreenshots) { viewModel.setSetting("blockScreenshots", it) }
+                })
+                SettingsRow(AppIcons.Paste, Candy.Mint, "Clipboard link suggestion", trailing = {
+                    GlassSwitch(settings.enableClipboardChip) { viewModel.setSetting("enableClipboardChip", it) }
+                })
+                SettingsRow(AppIcons.Offline, Candy.Tangerine, "Offline mode", trailing = {
+                    GlassSwitch(settings.offlineMode) { viewModel.setOffline(it) }
+                })
+                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Network transparency log", "${networkLog.size} recent")
+            }
         }
-        importResult?.let { Text("Imported $it new bookmarks", style = MaterialTheme.typography.bodyMedium) }
-        Text(
-            "Savelin contacts only the host of a link you save (and optionally an image host). " +
-                "No account, analytics or cloud. Private and login-walled posts may never produce a preview.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
-}
 
-@Composable
-private fun FineSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
-    Text("$label: ${((value * 100).roundToInt() / 100f)}", style = MaterialTheme.typography.bodyMedium)
-    Slider(value = value.coerceIn(range), onValueChange = onChange, valueRange = range, modifier = Modifier.fillMaxWidth())
-}
+        SettingsSection("DATA") {
+            SettingsCard {
+                SettingsRow(AppIcons.Export, Candy.Sky, "Backup and export") { exportLauncher.launch("savelin-backup.zip") }
+                SettingsRow(AppIcons.Import, Candy.Mint, "Import") { importLauncher.launch("application/zip") }
+                importResult?.let { Text("Imported $it new bookmarks", color = com.pinfold.app.ui.glass.theme.clear.ink) }
+            }
+        }
 
-@Composable
-private fun SettingRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, modifier = Modifier.fillMaxWidth(0.75f), style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
-}
+        SettingsSection("ACCESSIBILITY AND PERFORMANCE") {
+            SettingsCard {
+                SettingsRow(AppIcons.Motion, Candy.Bubblegum, "Reduce motion", trailing = {
+                    GlassSwitch(settings.reduceMotion) { viewModel.setReduceMotion(it) }
+                })
+                SettingsRow(AppIcons.Appearance, Candy.Sky, "Reduce transparency", trailing = {
+                    GlassSwitch(settings.reduceTransparency) { viewModel.setReduceTransparency(it) }
+                })
+                SettingsRow(AppIcons.Tags, Candy.Lemon, "Icon labels", settings.iconLabels) {
+                    val values = listOf("ICONS_ONLY", "SELECTED", "ALWAYS")
+                    viewModel.setSetting("iconLabels", values[(values.indexOf(settings.iconLabels) + 1) % values.size])
+                }
+                SettingsRow(AppIcons.Motion, Candy.Grape, "Performance mode", settings.performanceMode) {
+                    val values = listOf("AUTO", "QUALITY", "BALANCED", "BATTERY")
+                    viewModel.setSetting("performanceMode", values[(values.indexOf(settings.performanceMode) + 1) % values.size])
+                }
+                SettingsRow(AppIcons.Expand, Candy.Tangerine, "Immersive mode", trailing = {
+                    GlassSwitch(settings.immersiveMode) { viewModel.setSetting("immersiveMode", it) }
+                })
+                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Show frame time overlay", trailing = {
+                    GlassSwitch(settings.frameOverlay) { viewModel.setFrameOverlay(it) }
+                })
+            }
+        }
 
-@Composable
-private fun SectionTitle(label: String, icon: Int, style: androidx.compose.ui.text.TextStyle) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        com.pinfold.app.ui.components.AppIcons.Icon(icon, null, tint = MaterialTheme.colorScheme.primary, size = 22.dp)
-        Text(label, style = style)
+        SettingsSection("ABOUT") {
+            SettingsCard {
+                SettingsRow(AppIcons.Licences, Candy.Sky, "Open source licences")
+                SettingsRow(AppIcons.Lock, Candy.Mint, "Privacy promises")
+                SettingsRow(AppIcons.Info, Candy.Grape, "Version", "1.1.0")
+            }
+        }
     }
 }

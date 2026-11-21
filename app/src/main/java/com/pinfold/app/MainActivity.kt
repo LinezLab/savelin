@@ -10,7 +10,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
+import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.ui.App
 import com.pinfold.app.ui.glass.theme.SavelinTheme
 
@@ -34,7 +39,18 @@ class MainActivity : FragmentActivity() {
         val shared = intent?.takeIf { it.action == Intent.ACTION_SEND }
             ?.getStringExtra(Intent.EXTRA_TEXT)
         setContent {
-            SavelinTheme {
+            val darkState = remember { mutableStateOf(isSystemInDarkTheme()) }
+            val repository = remember { SettingsRepository(applicationContext) }
+            LaunchedEffect(Unit) {
+                repository.settings.collect { settings ->
+                    darkState.value = when (settings.themeMode) {
+                        "LIGHT" -> false
+                        "DARK" -> true
+                        else -> isSystemInDarkTheme()
+                    }
+                }
+            }
+            SavelinTheme(dark = darkState.value) {
                 App(sharedText = shared)
             }
         }

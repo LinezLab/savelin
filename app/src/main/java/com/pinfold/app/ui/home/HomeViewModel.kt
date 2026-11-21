@@ -43,6 +43,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val query = MutableStateFlow("")
     private val tab = MutableStateFlow(HomeTab.HOME)
+    private val settingsPageState = MutableStateFlow("HOME")
+    val settingsPage: StateFlow<String> = settingsPageState.asStateFlow()
     private val searchActiveState = MutableStateFlow(false)
     private val navVisibleState = MutableStateFlow(true)
     private val importantOnly = MutableStateFlow(false)
@@ -80,6 +82,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun onQueryChange(value: String) {
         query.value = value
     }
+
+    fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
+    fun closeSettingsPage() { settingsPageState.value = "HOME" }
 
     fun setSearchActive(value: Boolean) {
         searchActiveState.value = value
@@ -124,6 +129,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setCardShowAuthorLine(value: Boolean) = viewModelScope.launch { settingsRepository.setCardShowAuthorLine(value) }
     fun setLimitTallImages(value: Boolean) = viewModelScope.launch { settingsRepository.setLimitTallImages(value) }
     fun setTrueBlack(value: Boolean) = viewModelScope.launch { settingsRepository.setTrueBlack(value) }
+    fun setSetting(name: String, value: Any) = viewModelScope.launch { settingsRepository.set(name, value) }
     fun setBiometricLock(value: Boolean) = viewModelScope.launch { settingsRepository.setBiometricLock(value) }
 
     fun exportBackup(target: Uri) = viewModelScope.launch(Dispatchers.IO) {

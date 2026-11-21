@@ -55,6 +55,7 @@ fun App(sharedText: String? = null) {
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
     val navVisible by viewModel.navVisible.collectAsState()
+    val settingsPage by viewModel.settingsPage.collectAsState()
 
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
@@ -80,7 +81,11 @@ fun App(sharedText: String? = null) {
                     Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
                 ) {
                     if (tab == HomeTab.SETTINGS) {
-                        SettingsScreen(viewModel)
+                        if (settingsPage == "GLASS_MOTION") {
+                            com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
+                        } else {
+                            SettingsScreen(viewModel)
+                        }
                     } else {
                         HomeScreen(viewModel, onOpen = { detail = it })
                     }

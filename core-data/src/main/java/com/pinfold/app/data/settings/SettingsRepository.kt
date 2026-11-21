@@ -44,6 +44,28 @@ data class AppSettings(
     val cardShowAuthorLine: Boolean = false,
     val limitTallImages: Boolean = false,
     val trueBlack: Boolean = false,
+    val themeMode: String = "AUTO",
+    val language: String = "System",
+    val defaultView: String = "CARD",
+    val tapAction: String = "OPEN",
+    val sortOrder: String = "NEWEST",
+    val trashRetentionDays: Int = 30,
+    val openLinksIn: String = "NATIVE",
+    val previewIdentity: String = "MOBILE",
+    val previewHelpers: Boolean = false,
+    val refetchMissing: Boolean = true,
+    val imageQuality: String = "BALANCED",
+    val notifications: Boolean = true,
+    val defaultSnoozeMinutes: Int = 60,
+    val privateVault: Boolean = false,
+    val blockScreenshots: Boolean = false,
+    val iconLabels: String = "ICONS_ONLY",
+    val performanceMode: String = "AUTO",
+    val immersiveMode: Boolean = false,
+    val adaptiveLuminance: Boolean = false,
+    val holdEffect: Boolean = true,
+    val transitionType: String = "GLASS_MORPH",
+    val transitionCurve: String = "DRAWER",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -78,6 +100,28 @@ class SettingsRepository(private val context: Context) {
             cardShowAuthorLine = p[Keys.cardShowAuthorLine] ?: false,
             limitTallImages = p[Keys.limitTallImages] ?: false,
             trueBlack = p[Keys.trueBlack] ?: false,
+            themeMode = p[Keys.themeMode] ?: "AUTO",
+            language = p[Keys.language] ?: "System",
+            defaultView = p[Keys.defaultView] ?: "CARD",
+            tapAction = p[Keys.tapAction] ?: "OPEN",
+            sortOrder = p[Keys.sortOrder] ?: "NEWEST",
+            trashRetentionDays = p[Keys.trashRetentionDays] ?: 30,
+            openLinksIn = p[Keys.openLinksIn] ?: "NATIVE",
+            previewIdentity = p[Keys.previewIdentity] ?: "MOBILE",
+            previewHelpers = p[Keys.previewHelpers] ?: false,
+            refetchMissing = p[Keys.refetchMissing] ?: true,
+            imageQuality = p[Keys.imageQuality] ?: "BALANCED",
+            notifications = p[Keys.notifications] ?: true,
+            defaultSnoozeMinutes = p[Keys.defaultSnoozeMinutes] ?: 60,
+            privateVault = p[Keys.privateVault] ?: false,
+            blockScreenshots = p[Keys.blockScreenshots] ?: false,
+            iconLabels = p[Keys.iconLabels] ?: "ICONS_ONLY",
+            performanceMode = p[Keys.performanceMode] ?: "AUTO",
+            immersiveMode = p[Keys.immersiveMode] ?: false,
+            adaptiveLuminance = p[Keys.adaptiveLuminance] ?: false,
+            holdEffect = p[Keys.holdEffect] ?: true,
+            transitionType = p[Keys.transitionType] ?: "GLASS_MORPH",
+            transitionCurve = p[Keys.transitionCurve] ?: "DRAWER",
         )
     }
 
@@ -110,6 +154,15 @@ class SettingsRepository(private val context: Context) {
     suspend fun setHideDetailsOnLockScreen(value: Boolean) = put(Keys.hideDetailsOnLockScreen, value)
     suspend fun setBiometricLock(value: Boolean) = put(Keys.biometricLock, value)
     suspend fun setEnableClipboardChip(value: Boolean) = put(Keys.enableClipboardChip, value)
+
+    suspend fun set(name: String, value: Any) {
+        when (value) {
+            is Boolean -> put(booleanPreferencesKey(name), value)
+            is String -> put(stringPreferencesKey(name), value)
+            is Int -> put(intPreferencesKey(name), value)
+            is Float -> put(floatPreferencesKey(name), value)
+        }
+    }
 
     private suspend fun put(key: Preferences.Key<Boolean>, value: Boolean) =
         context.settingsStore.edit { it[key] = value }
@@ -152,6 +205,28 @@ class SettingsRepository(private val context: Context) {
         val cardTitleLines = intPreferencesKey("card_title_lines")
         val cardShowAuthorLine = booleanPreferencesKey("card_show_author")
         val limitTallImages = booleanPreferencesKey("limit_tall_images")
-        val trueBlack = booleanPreferencesKey("true_black")
+        val trueBlack = booleanPreferencesKey("trueBlack")
+        val themeMode = stringPreferencesKey("themeMode")
+        val language = stringPreferencesKey("language")
+        val defaultView = stringPreferencesKey("defaultView")
+        val tapAction = stringPreferencesKey("tapAction")
+        val sortOrder = stringPreferencesKey("sortOrder")
+        val trashRetentionDays = intPreferencesKey("trashRetentionDays")
+        val openLinksIn = stringPreferencesKey("openLinksIn")
+        val previewIdentity = stringPreferencesKey("previewIdentity")
+        val previewHelpers = booleanPreferencesKey("previewHelpers")
+        val refetchMissing = booleanPreferencesKey("refetchMissing")
+        val imageQuality = stringPreferencesKey("imageQuality")
+        val notifications = booleanPreferencesKey("notifications")
+        val defaultSnoozeMinutes = intPreferencesKey("defaultSnoozeMinutes")
+        val privateVault = booleanPreferencesKey("privateVault")
+        val blockScreenshots = booleanPreferencesKey("blockScreenshots")
+        val iconLabels = stringPreferencesKey("iconLabels")
+        val performanceMode = stringPreferencesKey("performanceMode")
+        val immersiveMode = booleanPreferencesKey("immersiveMode")
+        val adaptiveLuminance = booleanPreferencesKey("adaptiveLuminance")
+        val holdEffect = booleanPreferencesKey("holdEffect")
+        val transitionType = stringPreferencesKey("transitionType")
+        val transitionCurve = stringPreferencesKey("transitionCurve")
     }
 }
