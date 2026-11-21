@@ -25,3 +25,5 @@ rootProject.name = "Pinfold"
 include(":app")
 include(":backdrop")
 include(":core-ui-glass")
+include(":core-data")
+include(":core-network")

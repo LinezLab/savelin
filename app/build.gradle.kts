@@ -67,6 +67,8 @@ android {
 dependencies {
     implementation(project(":backdrop"))
     implementation(project(":core-ui-glass"))
+    implementation(project(":core-data"))
+    implementation(project(":core-network"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
