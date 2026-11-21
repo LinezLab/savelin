@@ -102,6 +102,37 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         }
 
         Divider()
+        Text("Cards", style = MaterialTheme.typography.headlineSmall)
+        Text("Columns: ${settings.cardColumns}", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (1..4).forEach { count ->
+                Button(onClick = { viewModel.setCardColumns(count) }, modifier = Modifier.padding(horizontal = 2.dp)) {
+                    Text(if (settings.cardColumns == count) "✓ $count" else "$count")
+                }
+            }
+        }
+        Text("Spacing: ${settings.cardSpacing}", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("TIGHT", "NORMAL", "ROOMY").forEach { value ->
+                Button(onClick = { viewModel.setCardSpacing(value) }, modifier = Modifier.padding(horizontal = 2.dp)) {
+                    Text(if (settings.cardSpacing == value) "✓ $value" else value)
+                }
+            }
+        }
+        Text("Caption style: ${settings.cardCaptionStyle}", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY").forEach { value ->
+                Button(onClick = { viewModel.setCardCaptionStyle(value) }, modifier = Modifier.padding(horizontal = 2.dp)) {
+                    Text(if (settings.cardCaptionStyle == value) "✓ $value" else value)
+                }
+            }
+        }
+        FineSlider("Caption lines", settings.cardTitleLines.toFloat(), 0f..2f) { viewModel.setCardTitleLines(it.roundToInt()) }
+        SettingRow("Show author line", settings.cardShowAuthorLine) { viewModel.setCardShowAuthorLine(it) }
+        SettingRow("Limit very tall images", settings.limitTallImages) { viewModel.setLimitTallImages(it) }
+        SettingRow("True black background", settings.trueBlack) { viewModel.setTrueBlack(it) }
+
+        Divider()
         Text("Privacy & network", style = MaterialTheme.typography.headlineSmall)
         SettingRow("Lock with biometrics", settings.biometricLock) { viewModel.setBiometricLock(it) }
         SettingRow("Offline mode", settings.offlineMode) { viewModel.setOffline(it) }

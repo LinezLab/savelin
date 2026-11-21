@@ -2,6 +2,7 @@ package com.pinfold.app.ui.home
 
 import android.app.Application
 import android.net.Uri
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
@@ -33,6 +34,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
+    val gridState = LazyStaggeredGridState()
     private val db = PinfoldDatabase.get(application)
     private val repository = BookmarkRepository(db.bookmarkDao(), db.tagDao())
     private val settingsRepository = SettingsRepository(application)
@@ -115,6 +117,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setUserAgent(value: String) = viewModelScope.launch { settingsRepository.setPreviewUserAgent(value) }
     fun setProxies(value: Boolean) = viewModelScope.launch { settingsRepository.setProxiesEnabled(value) }
     fun setProxyTemplate(value: String) = viewModelScope.launch { settingsRepository.setProxyTemplate(value) }
+    fun setCardColumns(value: Int) = viewModelScope.launch { settingsRepository.setCardColumns(value) }
+    fun setCardSpacing(value: String) = viewModelScope.launch { settingsRepository.setCardSpacing(value) }
+    fun setCardCaptionStyle(value: String) = viewModelScope.launch { settingsRepository.setCardCaptionStyle(value) }
+    fun setCardTitleLines(value: Int) = viewModelScope.launch { settingsRepository.setCardTitleLines(value) }
+    fun setCardShowAuthorLine(value: Boolean) = viewModelScope.launch { settingsRepository.setCardShowAuthorLine(value) }
+    fun setLimitTallImages(value: Boolean) = viewModelScope.launch { settingsRepository.setLimitTallImages(value) }
+    fun setTrueBlack(value: Boolean) = viewModelScope.launch { settingsRepository.setTrueBlack(value) }
     fun setBiometricLock(value: Boolean) = viewModelScope.launch { settingsRepository.setBiometricLock(value) }
 
     fun exportBackup(target: Uri) = viewModelScope.launch(Dispatchers.IO) {

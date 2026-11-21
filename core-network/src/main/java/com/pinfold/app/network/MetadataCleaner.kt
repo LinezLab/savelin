@@ -14,7 +14,7 @@ object MetadataCleaner {
     private val INSTAGRAM_DESCRIPTION = Regex(
         """([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},\s*\d{4})\s*:\s*"([\s\S]*)"""",
     )
-    private val HASHTAG = Regex("#[\p{L}\p{N}_]+")
+    private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
 
     fun clean(
         title: String,

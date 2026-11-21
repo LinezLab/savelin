@@ -1,5 +1,6 @@
 package com.pinfold.app.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,10 +11,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -45,8 +46,15 @@ fun HomeScreen(
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
-    val gridState = rememberLazyStaggeredGridState()
+    val gridState = viewModel.gridState
+    val spacing = when (settings.cardSpacing) {
+        "NORMAL" -> 8.dp
+        "ROOMY" -> 12.dp
+        else -> 5.dp
+    }
+    var quickMenu by remember { mutableStateOf<BookmarkWithTags?>(null) }
 
     val lastScroll = remember { intArrayOf(0) }
     LaunchedEffect(gridState.firstVisibleItemScrollOffset, gridState.firstVisibleItemIndex) {
@@ -102,16 +110,23 @@ fun HomeScreen(
         }
         LazyVerticalStaggeredGrid(
             state = gridState,
-            columns = StaggeredGridCells.Adaptive(160.dp),
-            modifier = Modifier.fillMaxSize().weight(1f),
-            contentPadding = PaddingValues(16.dp),
-            verticalItemSpacing = 12.dp,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            columns = StaggeredGridCells.Fixed(settings.cardColumns.coerceIn(1, 4)),
+            modifier = Modifier.fillMaxSize().weight(1f).background(
+                if (settings.trueBlack) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.background,
+            ),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+            verticalItemSpacing = spacing,
+            horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
                     item = item,
                     hasReminder = item.bookmark.id in reminderIds,
+                    titleLines = settings.cardTitleLines,
+                    showAuthorLine = settings.cardShowAuthorLine,
+                    captionStyle = settings.cardCaptionStyle,
+                    limitTall = settings.limitTallImages,
+                    onMore = { quickMenu = item },
                     onClick = {
                         viewModel.recordOpen(item.bookmark)
                         onOpen(item)
@@ -126,6 +141,41 @@ fun HomeScreen(
                 )
             }
         }
+        quickMenu?.let { chosen ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { quickMenu = null },
+                title = { Text(chosen.bookmark.displayTitle.ifBlank { chosen.bookmark.title }) },
+                text = {
+                    Column {
+                        listOf("Open", "Details", "Important", "Reminder", "Share", "Delete").forEach { action ->
+                            Text(
+                                action,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    when (action) {
+                                        "Open" -> context.startActivity(
+                                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)),
+                                        )
+                                        "Details" -> onOpen(chosen)
+                                        "Important" -> viewModel.toggleImportant(chosen.bookmark)
+                                        "Reminder" -> viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L)
+                                        "Share" -> {
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
+                                            }
+                                            context.startActivity(android.content.Intent.createChooser(intent, "Share"))
+                                        }
+                                        "Delete" -> viewModel.delete(chosen.bookmark)
+                                    }
+                                    quickMenu = null
+                                }.padding(vertical = 10.dp),
+                            )
+                        }
+                    }
+                },
+                confirmButton = { androidx.compose.material3.TextButton(onClick = { quickMenu = null }) { Text("Close") } },
+            )
+        }
     }
 }
 
@@ -133,66 +183,77 @@ fun HomeScreen(
 private fun BookmarkCard(
     item: BookmarkWithTags,
     hasReminder: Boolean,
+    titleLines: Int,
+    showAuthorLine: Boolean,
+    captionStyle: String,
+    limitTall: Boolean,
+    onMore: () -> Unit,
     onClick: () -> Unit,
     imageModel: () -> Any?,
 ) {
     val bookmark = item.bookmark
     val model = imageModel()
-    Box(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick),
-    ) {
-        if (model != null) {
-            AsyncImage(
-                model = model,
-                contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f),
-            )
-        } else {
-            FallbackTile(bookmark.platform.ifBlank { "Web" }, bookmark.displayTitle.ifBlank { bookmark.title })
+    val ratio = when {
+        bookmark.imageWidth > 0 && bookmark.imageHeight > 0 -> {
+            val raw = bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()
+            if (limitTall && raw < 0.4f) 0.4f else if (limitTall && raw > 4f) 4f else raw
         }
-        Row(
-            Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Box(
-                Modifier.clip(RoundedCornerShape(12.dp))
-                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f))
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
-            ) {
-                Text(bookmark.platform.ifBlank { "Web" }, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+        else -> 0.8f
+    }
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
+            if (model != null) {
+                AsyncImage(
+                    model = model,
+                    contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(ratio),
+                )
+            } else {
+                FallbackTile(bookmark.platform.ifBlank { "Web" }, bookmark.displayTitle.ifBlank { bookmark.title })
             }
-            if (bookmark.isImportant || hasReminder) {
-                Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(6.dp)) {
-                    Text(
-                        listOfNotNull(if (bookmark.isImportant) "★" else null, if (hasReminder) "●" else null).joinToString(""),
-                        color = androidx.compose.ui.graphics.Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
+            Row(
+                Modifier.fillMaxWidth().padding(6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Box(
+                    Modifier.clip(RoundedCornerShape(10.dp))
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text(bookmark.platform.ifBlank { "Web" }, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+                }
+                if (bookmark.isImportant || hasReminder) {
+                    Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(6.dp)) {
+                        Text(
+                            listOfNotNull(if (bookmark.isImportant) "★" else null, if (hasReminder) "●" else null).joinToString(""),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
                 }
             }
         }
-        Column(
-            Modifier.fillMaxWidth().align(Alignment.BottomStart)
-                .background(androidx.compose.ui.graphics.Brush.verticalGradient(
-                    listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f)),
-                ))
-                .padding(12.dp),
-        ) {
-            Text(
-                bookmark.displayTitle.ifBlank { bookmark.title.ifBlank { bookmark.url } },
-                color = androidx.compose.ui.graphics.Color.White,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val subtitle = if (bookmark.authorHandle.isNotBlank()) "@${bookmark.authorHandle}" else bookmark.url.substringAfter("://").substringBefore('/')
-            Text(subtitle, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            val tags = (item.tags.map { it.name } + bookmark.hashtags.split(',').filter { it.isNotBlank() }).take(2)
-            if (tags.isNotEmpty()) {
-                Text(tags.joinToString("  "), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        if (captionStyle != "IMAGE_ONLY") {
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.fillMaxWidth(0.85f)) {
+                    if (titleLines > 0) {
+                        Text(
+                            bookmark.displayTitle.ifBlank { bookmark.title.ifBlank { bookmark.url } },
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = titleLines,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (showAuthorLine) {
+                        val subtitle = if (bookmark.authorHandle.isNotBlank()) "@${bookmark.authorHandle}" else bookmark.url.substringAfter("://").substringBefore('/')
+                        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    }
+                }
+                Box(Modifier.size(40.dp).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
+                    Text("⋯", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }
@@ -207,7 +268,7 @@ private fun FallbackTile(platform: String, title: String) {
         else -> listOf(androidx.compose.ui.graphics.Color(0xFF5E5CE6), androidx.compose.ui.graphics.Color(0xFF0A84FF))
     }
     Box(
-        Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+        Modifier.fillMaxWidth().aspectRatio(4f / 5f)
             .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors)),
         contentAlignment = Alignment.Center,
     ) {

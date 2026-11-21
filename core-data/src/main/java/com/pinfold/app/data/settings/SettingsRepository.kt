@@ -37,6 +37,13 @@ data class AppSettings(
     val previewUserAgent: String = "facebookexternalhit/1.1",
     val proxiesEnabled: Boolean = false,
     val proxyTemplate: String = "",
+    val cardColumns: Int = 2,
+    val cardSpacing: String = "TIGHT",
+    val cardCaptionStyle: String = "BELOW",
+    val cardTitleLines: Int = 1,
+    val cardShowAuthorLine: Boolean = false,
+    val limitTallImages: Boolean = false,
+    val trueBlack: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -64,6 +71,13 @@ class SettingsRepository(private val context: Context) {
             previewUserAgent = p[Keys.previewUserAgent] ?: "facebookexternalhit/1.1",
             proxiesEnabled = p[Keys.proxiesEnabled] ?: false,
             proxyTemplate = p[Keys.proxyTemplate] ?: "",
+            cardColumns = p[Keys.cardColumns] ?: 2,
+            cardSpacing = p[Keys.cardSpacing] ?: "TIGHT",
+            cardCaptionStyle = p[Keys.cardCaptionStyle] ?: "BELOW",
+            cardTitleLines = p[Keys.cardTitleLines] ?: 1,
+            cardShowAuthorLine = p[Keys.cardShowAuthorLine] ?: false,
+            limitTallImages = p[Keys.limitTallImages] ?: false,
+            trueBlack = p[Keys.trueBlack] ?: false,
         )
     }
 
@@ -85,6 +99,13 @@ class SettingsRepository(private val context: Context) {
     suspend fun setPreviewUserAgent(value: String) = put(Keys.previewUserAgent, value)
     suspend fun setProxiesEnabled(value: Boolean) = put(Keys.proxiesEnabled, value)
     suspend fun setProxyTemplate(value: String) = put(Keys.proxyTemplate, value)
+    suspend fun setCardColumns(value: Int) = put(Keys.cardColumns, value)
+    suspend fun setCardSpacing(value: String) = put(Keys.cardSpacing, value)
+    suspend fun setCardCaptionStyle(value: String) = put(Keys.cardCaptionStyle, value)
+    suspend fun setCardTitleLines(value: Int) = put(Keys.cardTitleLines, value)
+    suspend fun setCardShowAuthorLine(value: Boolean) = put(Keys.cardShowAuthorLine, value)
+    suspend fun setLimitTallImages(value: Boolean) = put(Keys.limitTallImages, value)
+    suspend fun setTrueBlack(value: Boolean) = put(Keys.trueBlack, value)
     suspend fun setAllowHttpLinks(value: Boolean) = put(Keys.allowHttpLinks, value)
     suspend fun setHideDetailsOnLockScreen(value: Boolean) = put(Keys.hideDetailsOnLockScreen, value)
     suspend fun setBiometricLock(value: Boolean) = put(Keys.biometricLock, value)
@@ -125,5 +146,12 @@ class SettingsRepository(private val context: Context) {
         val previewUserAgent = stringPreferencesKey("preview_user_agent")
         val proxiesEnabled = booleanPreferencesKey("proxies_enabled")
         val proxyTemplate = stringPreferencesKey("proxy_template")
+        val cardColumns = intPreferencesKey("card_columns")
+        val cardSpacing = stringPreferencesKey("card_spacing")
+        val cardCaptionStyle = stringPreferencesKey("card_caption_style")
+        val cardTitleLines = intPreferencesKey("card_title_lines")
+        val cardShowAuthorLine = booleanPreferencesKey("card_show_author")
+        val limitTallImages = booleanPreferencesKey("limit_tall_images")
+        val trueBlack = booleanPreferencesKey("true_black")
     }
 }
