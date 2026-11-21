@@ -134,8 +134,10 @@ jobs:
           echo "| --- | --- | ---: | --- |" >> release-body.md
           for apk in dist/*.apk; do
             name="$(basename "$apk")"
-            abi="${name##*-}"
-            abi="${abi%.apk}"
+            abi="universal"
+            for candidate in arm64-v8a armeabi-v7a x86_64 x86 universal; do
+              case "$name" in *"-$candidate.apk") abi="$candidate";; esac
+            done
             size="$(du -h "$apk" | cut -f1)"
             sum="$(sha256sum "$apk" | cut -d' ' -f1)"
             echo "| \`$abi\` | [$name](https://github.com/LinezLab/savelin/releases/download/$TAG/$name) | $size | \`$sum\` |" >> release-body.md
