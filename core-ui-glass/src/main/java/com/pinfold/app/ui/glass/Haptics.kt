@@ -54,6 +54,7 @@ class Haptics internal constructor(context: Context, private val view: View) {
     private val thud: Boolean = rich && supports(PRIMITIVE_THUD)
     private var last = 0L
 
+    @android.annotation.SuppressLint("WrongConstant")
     private fun supports(vararg primitives: Int): Boolean {
         val v = vibrator ?: return false
         if (Build.VERSION.SDK_INT < 30 || !v.hasVibrator()) return false
