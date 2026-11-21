@@ -11,7 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.pinfold.app.ui.App
-import com.pinfold.app.ui.glass.theme.ProvideGlassTheme
+import com.pinfold.app.ui.glass.theme.SavelinTheme
 
 class MainActivity : FragmentActivity() {
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -27,7 +27,7 @@ class MainActivity : FragmentActivity() {
         val shared = intent?.takeIf { it.action == Intent.ACTION_SEND }
             ?.getStringExtra(Intent.EXTRA_TEXT)
         setContent {
-            ProvideGlassTheme {
+            SavelinTheme {
                 App(sharedText = shared)
             }
         }

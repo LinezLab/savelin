@@ -1,6 +1,9 @@
 package com.pinfold.app.ui.glass.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -95,6 +98,57 @@ val clear: ClearColors @Composable get() = LocalClearColors.current
 @Composable
 fun ProvideGlassTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     androidx.compose.runtime.CompositionLocalProvider(LocalClearColors provides if (dark) DarkClear else LightClear, content = content)
+}
+
+/**
+ * The single theme entry point for the app: glass colours and Material 3 colours share the same
+ * ink, so text on cards, fields, dialogs and toggles stays legible over the aurora in both themes.
+ */
+@Composable
+fun SavelinTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    val colors = if (dark) DarkClear else LightClear
+    val scheme = if (dark) {
+        darkColorScheme(
+            primary = Candy.Sky,
+            onPrimary = Color.White,
+            secondary = Candy.Mint,
+            onSecondary = Color.White,
+            tertiary = Candy.Grape,
+            onTertiary = Color.White,
+            background = colors.wall[colors.wall.lastIndex],
+            onBackground = colors.ink,
+            surface = colors.frost,
+            onSurface = colors.ink,
+            surfaceVariant = colors.glass,
+            onSurfaceVariant = colors.inkSoft,
+            outline = colors.line,
+            outlineVariant = colors.line,
+            error = Candy.Tomato,
+            onError = Color.White,
+        )
+    } else {
+        lightColorScheme(
+            primary = Candy.Sky,
+            onPrimary = Color.White,
+            secondary = Candy.Mint,
+            onSecondary = Color.White,
+            tertiary = Candy.Grape,
+            onTertiary = Color.White,
+            background = colors.wall[colors.wall.lastIndex],
+            onBackground = colors.ink,
+            surface = colors.frost,
+            onSurface = colors.ink,
+            surfaceVariant = colors.glass,
+            onSurfaceVariant = colors.inkSoft,
+            outline = colors.line,
+            outlineVariant = colors.line,
+            error = Candy.Tomato,
+            onError = Color.White,
+        )
+    }
+    androidx.compose.runtime.CompositionLocalProvider(LocalClearColors provides colors) {
+        MaterialTheme(colorScheme = scheme, content = content)
+    }
 }
 
 private val type: TextStyle
