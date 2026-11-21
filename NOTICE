@@ -1,0 +1,25 @@
+Pinfold
+Copyright 2026 The Pinfold contributors
+
+This product includes software developed by third parties.
+
+Artefact (https://github.com/Chethan616/Artefact)
+Copyright the Artefact contributors. Licensed under MIT OR Apache-2.0.
+The glass design system and motion engine in core-ui-glass are adapted from
+Artefact's android/app/src/main/java/com/chethan616/clearpdf/ui/glass package.
+See third_party/ARTEFACT-MIT.txt and third_party/ARTEFACT-APACHE.txt.
+
+AndroidLiquidGlass / Backdrop (https://github.com/Kyant0/AndroidLiquidGlass)
+Copyright Kyant0. Licensed under Apache-2.0. Vendored as the :backdrop module.
+See third_party/BACKDROP-APACHE.txt.
+
+Kyant Shapes (io.github.kyant0:shapes), Apache-2.0.
+
+PostVault (https://github.com/Asta39/postvault)
+Copyright Asta39. Licensed under MIT. The resolver request pattern, author/caption
+parsing and the local image copy + refetch approach are ported from its
+lib/services/metadata.dart and lib/services/image_store.dart.
+See third_party/POSTVAULT-MIT.txt.
+
+The full licence texts are in third_party/. The Android app also ships an
+Open source licences screen in Settings.
