@@ -45,6 +45,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64, x86, universal]
     steps:
@@ -73,7 +74,15 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease -Pabi=${{ matrix.abi }} --stacktrace
+        run: |
+          for attempt in 1 2 3; do
+            if ./gradlew assembleRelease -Pabi=${{ matrix.abi }} --stacktrace; then
+              exit 0
+            fi
+            echo "::warning::Build attempt $attempt failed; retrying in 30s (transient 429s happen under parallel matrix load)"
+            sleep 30
+          done
+          exit 1
       - name: Name APK with ABI
         run: |
           for f in app/build/outputs/apk/release/*.apk; do
