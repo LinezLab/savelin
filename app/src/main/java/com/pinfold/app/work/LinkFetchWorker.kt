@@ -84,7 +84,6 @@ class LinkFetchWorker(
                 siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
                 platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
                 author = preview.author,
-                caption = preview.caption,
                 remoteImageUrl = preview.imageUrls.firstOrNull(),
                 imagePath = stored?.path ?: current.imagePath,
                 imageWidth = stored?.width ?: current.imageWidth,

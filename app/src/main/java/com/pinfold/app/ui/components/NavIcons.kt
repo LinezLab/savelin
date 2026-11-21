@@ -21,7 +21,7 @@ private fun ImageVector.Builder.line(pathData: androidx.compose.ui.graphics.Path
         strokeLineJoin = StrokeJoin.Round,
         strokeLineMiter = 4f,
         pathFillType = PathFillType.NonZero,
-        build = pathData,
+        pathBuilder = pathData,
     )
 }
 

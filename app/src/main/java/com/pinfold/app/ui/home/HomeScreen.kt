@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -226,11 +227,12 @@ private fun BookmarkCard(
                     Text(bookmark.platform.ifBlank { "Web" }, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
                 }
                 if (bookmark.isImportant || hasReminder) {
-                    Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(6.dp)) {
-                        Text(
-                            listOfNotNull(if (bookmark.isImportant) "★" else null, if (hasReminder) "●" else null).joinToString(""),
-                            color = androidx.compose.ui.graphics.Color.White,
-                            style = MaterialTheme.typography.labelSmall,
+                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(5.dp)) {
+                        if (bookmark.isImportant) com.pinfold.app.ui.components.AppIcons.Icon(
+                            com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = androidx.compose.ui.graphics.Color.White, size = 14.dp,
+                        )
+                        if (hasReminder) com.pinfold.app.ui.components.AppIcons.Icon(
+                            com.pinfold.app.ui.components.AppIcons.Reminder, "Reminder", tint = androidx.compose.ui.graphics.Color.White, size = 14.dp,
                         )
                     }
                 }
@@ -254,7 +256,11 @@ private fun BookmarkCard(
                     }
                 }
                 Box(Modifier.size(40.dp).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
-                    Text("⋯", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                    com.pinfold.app.ui.components.AppIcons.Icon(
+                        com.pinfold.app.ui.components.AppIcons.More,
+                        "More options",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
             }
         }

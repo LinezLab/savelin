@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
-import com.pinfold.app.ui.components.NavIcons
+import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassBackButton
 import com.pinfold.app.ui.glass.GlassCircle
@@ -117,10 +117,10 @@ fun DetailsScreen(
                     putExtra(Intent.EXTRA_TEXT, bookmark.url)
                 }
                 GlassCircle(onClick = { context.startActivity(Intent.createChooser(share, "Share")) }, size = 44.dp, label = "Share") {
-                    Text("↗", color = glass.ink)
+                    AppIcons.Icon(AppIcons.Share, "Share", tint = glass.ink)
                 }
                 GlassCircle(onClick = { moreMenu = true }, size = 44.dp, label = "More") {
-                    Text("⋯", color = glass.ink)
+                    AppIcons.Icon(AppIcons.More, "More", tint = glass.ink)
                 }
             }
 
@@ -142,7 +142,7 @@ fun DetailsScreen(
                             modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
                             size = 44.dp,
                             label = "Image options",
-                        ) { Text("◉", color = glass.ink) }
+                        ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = glass.ink) }
                     }
                 }
             } else {
@@ -204,8 +204,8 @@ fun DetailsScreen(
                 }
                 if (bookmark.likesText.isNotBlank() || bookmark.commentsText.isNotBlank()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (bookmark.likesText.isNotBlank()) GlassChipButton("♥ ${bookmark.likesText}") {}
-                        if (bookmark.commentsText.isNotBlank()) GlassChipButton("💬 ${bookmark.commentsText}") {}
+                        if (bookmark.likesText.isNotBlank()) GlassChipButton(bookmark.likesText) {}
+                        if (bookmark.commentsText.isNotBlank()) GlassChipButton(bookmark.commentsText) {}
                     }
                 }
                 if (bookmark.fetchStatus != com.pinfold.app.data.model.FetchStatus.OK) {
@@ -263,13 +263,13 @@ fun DetailsScreen(
                 context.startActivity(intent)
             }
             GlassCircle(onClick = { viewModel.toggleImportant(bookmark) }, size = 42.dp, label = "Important") {
-                Text(if (bookmark.isImportant) "★" else "☆", color = glass.ink)
+                AppIcons.Icon(AppIcons.Important, "Important", tint = if (bookmark.isImportant) Candy.Lemon else glass.ink)
             }
             GlassCircle(onClick = { viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L) }, size = 42.dp, label = "Reminder") {
-                Text("🔔", color = glass.ink)
+                AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = glass.ink)
             }
             GlassCircle(onClick = { moreMenu = true }, size = 42.dp, label = "More") {
-                Text("⋯", color = glass.ink)
+                AppIcons.Icon(AppIcons.More, "More", tint = glass.ink)
             }
         }
     }

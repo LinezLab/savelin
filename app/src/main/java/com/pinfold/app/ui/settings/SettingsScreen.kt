@@ -54,7 +54,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         GlassBackButton(onBack = { viewModel.selectTab(com.pinfold.app.ui.home.HomeTab.HOME) })
-        Text("Liquid glass", style = MaterialTheme.typography.headlineMedium)
+        SectionTitle("Liquid glass", com.pinfold.app.ui.components.AppIcons.Liquid, MaterialTheme.typography.headlineMedium)
         val style = GlassSettings.style
         Text("Glass style", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -77,7 +77,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         SettingRow("Reduce transparency", settings.reduceTransparency) { viewModel.setReduceTransparency(it) }
 
         Divider()
-        Text("Motion", style = MaterialTheme.typography.headlineMedium)
+        SectionTitle("Motion", com.pinfold.app.ui.components.AppIcons.Motion, MaterialTheme.typography.headlineMedium)
         val motion = MotionSettings.style
         Text("Button motion", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -102,7 +102,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         }
 
         Divider()
-        Text("Cards", style = MaterialTheme.typography.headlineSmall)
+        SectionTitle("Cards", com.pinfold.app.ui.components.AppIcons.Card, MaterialTheme.typography.headlineSmall)
         Text("Columns: ${settings.cardColumns}", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (1..4).forEach { count ->
@@ -133,7 +133,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         SettingRow("True black background", settings.trueBlack) { viewModel.setTrueBlack(it) }
 
         Divider()
-        Text("Privacy & network", style = MaterialTheme.typography.headlineSmall)
+        SectionTitle("Privacy & network", com.pinfold.app.ui.components.AppIcons.Lock, MaterialTheme.typography.headlineSmall)
         SettingRow("Lock with biometrics", settings.biometricLock) { viewModel.setBiometricLock(it) }
         SettingRow("Offline mode", settings.offlineMode) { viewModel.setOffline(it) }
         SettingRow("Third-party proxies (opt-in)", settings.proxiesEnabled) { viewModel.setProxies(it) }
@@ -155,7 +155,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         )
 
         Divider()
-        Text("Backup", style = MaterialTheme.typography.headlineSmall)
+        SectionTitle("Backup", com.pinfold.app.ui.components.AppIcons.Export, MaterialTheme.typography.headlineSmall)
         Button(onClick = { exportLauncher.launch("savelin-backup.zip") }, modifier = Modifier.fillMaxWidth()) {
             Text("Export backup")
         }
@@ -185,5 +185,13 @@ private fun SettingRow(label: String, checked: Boolean, onChange: (Boolean) -> U
     ) {
         Text(label, modifier = Modifier.fillMaxWidth(0.75f), style = MaterialTheme.typography.bodyLarge)
         Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
+private fun SectionTitle(label: String, icon: Int, style: androidx.compose.ui.text.TextStyle) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        com.pinfold.app.ui.components.AppIcons.Icon(icon, null, tint = MaterialTheme.colorScheme.primary, size = 22.dp)
+        Text(label, style = style)
     }
 }

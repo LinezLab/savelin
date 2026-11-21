@@ -21,5 +21,11 @@ parsing and the local image copy + refetch approach are ported from its
 lib/services/metadata.dart and lib/services/image_store.dart.
 See third_party/POSTVAULT-MIT.txt.
 
+Lucide icons (https://lucide.dev/)
+Copyright Lucide Icons and Contributors. Licensed under ISC. Only the icons
+actually used are bundled, as Android vector drawables under app/src/main/res/drawable.
+See third_party/LUCIDE-ISC.txt. Note: fingerprint-pattern is Lucide's name for
+the biometric glyph, and ellipsis replaces the old more-horizontal.
+
 The full licence texts are in third_party/. The Android app also ships an
 Open source licences screen in Settings.

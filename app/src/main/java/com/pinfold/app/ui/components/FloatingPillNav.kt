@@ -1,10 +1,12 @@
 package com.pinfold.app.ui.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,27 +21,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule
-import com.pinfold.app.ui.glass.GlassMotion
 import com.pinfold.app.ui.glass.glass
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
@@ -65,12 +64,10 @@ fun FloatingPillNav(
 ) {
     val colors = clear
     val density = LocalDensity.current
-    var coords: LayoutCoordinates? = remember { null }
-    val pressed = remember { Animatable(-1f) }
-    val lens = remember { Animatable(1f) }
-
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, GlassMotion.settle(), label = "navAlpha")
-
+    var coords: LayoutCoordinates? by remember { mutableStateOf(null) }
+    var pressedSlot by remember { mutableIntStateOf(-1) }
+    var lensSlot by remember { mutableIntStateOf(1) }
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 300f), label = "navAlpha")
     val width: Dp by animateDpAsState(
         targetValue = if (searchActive) 360.dp else 288.dp,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
@@ -93,9 +90,9 @@ fun FloatingPillNav(
                 if (searchActive) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    val slot = coords?.let { slotAt(down.position, it.size.width) } ?: SLOT_PLUS
-                    pressed.snapTo(slot.toFloat())
-                    lens.snapTo(slot.toFloat())
+                    val slot = coords?.let { slotAt(down.position.x, it.size.width) } ?: SLOT_PLUS
+                    pressedSlot = slot
+                    lensSlot = slot
                     var longFired = false
                     var moved = false
                     var current = slot
@@ -113,20 +110,19 @@ fun FloatingPillNav(
                         }
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         x = change.position.x
-                        coords?.let { current = slotAt(Offset(x, 0f), it.size.width) }
+                        coords?.let { current = slotAt(x, it.size.width) }
                         if (abs(x - down.position.x) > with(density) { 10.dp.toPx() }) moved = true
                         if (!change.pressed) break
                     }
                     if (!longFired) {
-                        val target = if (moved) current else slot
-                        when (target) {
+                        when (if (moved) current else slot) {
                             SLOT_SEARCH -> onSearchToggle()
                             SLOT_PLUS -> onAdd()
                             SLOT_SETTINGS -> onSettings()
                         }
                     }
-                    pressed.animateTo(-1f, GlassMotion.settle())
-                    lens.animateTo(1f, GlassMotion.fold())
+                    pressedSlot = -1
+                    lensSlot = 1
                 }
             },
         contentAlignment = Alignment.Center,
@@ -140,38 +136,14 @@ fun FloatingPillNav(
                 modifier = Modifier.fillMaxSize(),
             )
             Box(
-                Modifier.align(Alignment.CenterEnd).size(40.dp).clickable { onSearchToggle() },
+                Modifier.align(Alignment.CenterEnd).size(48.dp).clickable { onSearchToggle() },
                 contentAlignment = Alignment.Center,
-            ) { Text("×", color = colors.ink) }
+            ) { AppIcons.Icon(AppIcons.Close, "Close search", tint = colors.ink) }
         } else {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                NavButton(
-                    icon = NavIcons.Search,
-                    label = "Search",
-                    slot = SLOT_SEARCH,
-                    pressed = pressed.value,
-                    tint = colors.ink,
-                    modifier = Modifier.fillMaxWidth(0.33f),
-                )
-                Box(Modifier.width(4.dp))
-                NavButton(
-                    icon = NavIcons.Plus,
-                    label = "Add link",
-                    slot = SLOT_PLUS,
-                    pressed = pressed.value,
-                    tint = com.pinfold.app.ui.glass.theme.Candy.Sky,
-                    emphasised = true,
-                    modifier = Modifier.fillMaxWidth(0.33f),
-                )
-                Box(Modifier.width(4.dp))
-                NavButton(
-                    icon = NavIcons.Settings,
-                    label = "Settings",
-                    slot = SLOT_SETTINGS,
-                    pressed = pressed.value,
-                    tint = colors.ink,
-                    modifier = Modifier.fillMaxWidth(0.33f),
-                )
+                NavButton(AppIcons.Search, "Search", SLOT_SEARCH, pressedSlot, colors.ink, Modifier.fillMaxWidth(0.33f))
+                NavButton(AppIcons.Add, "Add link", SLOT_PLUS, pressedSlot, Candy.Sky, Modifier.fillMaxWidth(0.33f), emphasised = true)
+                NavButton(AppIcons.Settings, "Settings", SLOT_SETTINGS, pressedSlot, colors.ink, Modifier.fillMaxWidth(0.33f))
             }
         }
     }
@@ -179,30 +151,32 @@ fun FloatingPillNav(
 
 @Composable
 private fun NavButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: Int,
     label: String,
     slot: Int,
-    pressed: Float,
-    tint: Color,
-    modifier: Modifier = Modifier,
+    pressedSlot: Int,
+    tint: androidx.compose.ui.graphics.Color,
+    modifier: Modifier,
     emphasised: Boolean = false,
 ) {
-    val active = pressed == slot.toFloat()
+    val active = pressedSlot == slot || (slot == SLOT_PLUS && pressedSlot == SLOT_PLUS)
     val scale = if (active) 1.18f else 1f
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (emphasised) {
             Box(
-                Modifier.size(40.dp).clip(CircleShape).graphicsLayer { scaleX = scale; scaleY = scale },
+                Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
+                    .graphicsLayer { scaleX = scale; scaleY = scale },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, label, tint = tint, modifier = Modifier.size(24.dp))
+                AppIcons.Icon(icon, label, tint = tint, size = 24.dp)
             }
         } else {
-            Icon(
+            AppIcons.Icon(
                 icon,
                 label,
                 tint = tint,
-                modifier = Modifier.size(24.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+                size = 24.dp,
+                modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
             )
         }
     }
