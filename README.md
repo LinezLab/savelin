@@ -1,4 +1,4 @@
-# Pinfold
+# Savelin
 
 A local-only Android app: share a link from any app and it appears as a Pinterest-style preview tile. No account, no analytics, no cloud. Liquid-glass UI with a floating pill navigation bar and a full Appearance & Motion settings screen.
 
@@ -18,7 +18,7 @@ The app declares `INTERNET`, unlike Artefact: link previews require it. This is 
 
 ## Honest limits
 
-No account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. When a real preview cannot be fetched, Pinfold generates a local fallback tile and offers "Add custom image" / "Refetch image". It does not promise that every link gets a real image. Instagram/Facebook CDN image URLs are signed and expire, so image bytes are downloaded at save time and stored locally — the remote URL is never relied on afterwards.
+No account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. When a real preview cannot be fetched, Savelin generates a local fallback tile and offers "Add custom image" / "Refetch image". It does not promise that every link gets a real image. Instagram/Facebook CDN image URLs are signed and expire, so image bytes are downloaded at save time and stored locally — the remote URL is never relied on afterwards.
 
 An optional third-party embed proxy may be offered off by default with a clear warning; it is the only place the privacy promise bends and requires per-platform opt-in.
 
