@@ -55,7 +55,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
                 color = clear.inkSoft,
             )
             SettingsRow(icon = AppIcons.Haptics, tileColor = Candy.Mint, title = "Touch and hold effects", trailing = {
-                GlassSwitch(checked = settings.holdEffect, onChange = { viewModel.setSetting("holdEffect", it) })
+                GlassSwitch(checked = settings.touchHoldEffect, onChange = { viewModel.setSetting("touchHoldEffect", it) })
             })
         }
 

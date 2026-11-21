@@ -63,7 +63,7 @@ data class AppSettings(
     val performanceMode: String = "AUTO",
     val immersiveMode: Boolean = false,
     val adaptiveLuminance: Boolean = false,
-    val holdEffect: Boolean = true,
+    val touchHoldEffect: Boolean = true,
     val transitionType: String = "GLASS_MORPH",
     val transitionCurve: String = "DRAWER",
 )
@@ -119,7 +119,7 @@ class SettingsRepository(private val context: Context) {
             performanceMode = p[Keys.performanceMode] ?: "AUTO",
             immersiveMode = p[Keys.immersiveMode] ?: false,
             adaptiveLuminance = p[Keys.adaptiveLuminance] ?: false,
-            holdEffect = p[Keys.holdEffect] ?: true,
+            touchHoldEffect = p[Keys.touchHoldEffect] ?: true,
             transitionType = p[Keys.transitionType] ?: "GLASS_MORPH",
             transitionCurve = p[Keys.transitionCurve] ?: "DRAWER",
         )
@@ -225,7 +225,7 @@ class SettingsRepository(private val context: Context) {
         val performanceMode = stringPreferencesKey("performanceMode")
         val immersiveMode = booleanPreferencesKey("immersiveMode")
         val adaptiveLuminance = booleanPreferencesKey("adaptiveLuminance")
-        val holdEffect = booleanPreferencesKey("holdEffect")
+        val touchHoldEffect = booleanPreferencesKey("touchHoldEffect")
         val transitionType = stringPreferencesKey("transitionType")
         val transitionCurve = stringPreferencesKey("transitionCurve")
     }
