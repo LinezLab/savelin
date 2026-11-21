@@ -79,15 +79,15 @@ fun HomeScreen(
             ) {
                 com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.setSearchActive(true) }, height = 36.dp) {
                     com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Search, null, size = 16.dp)
-                    Text("Search")
+                    Text("Search", color = com.pinfold.app.ui.glass.theme.clear.ink)
                 }
                 com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleImportantFilter() }, height = 36.dp) {
                     com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Important, null, size = 16.dp)
-                    Text("Important")
+                    Text("Important", color = com.pinfold.app.ui.glass.theme.clear.ink)
                 }
                 com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleReminderFilter() }, height = 36.dp) {
                     com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Reminder, null, size = 16.dp)
-                    Text("Due")
+                    Text("Due", color = com.pinfold.app.ui.glass.theme.clear.ink)
                 }
             }
         }

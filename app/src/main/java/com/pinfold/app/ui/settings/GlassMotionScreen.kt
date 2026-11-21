@@ -43,11 +43,11 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     SettingsScaffold("Liquid glass & motion", onBack = viewModel::closeSettingsPage) {
         SettingsCard {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GlassChip(onClick = {}, height = 40.dp) { Text("Press me") }
+                GlassChip(onClick = {}, height = 40.dp) { Text("Press me", color = clear.ink) }
                 GlassCircle(onClick = {}, size = 40.dp, label = "Preview") {
                     AppIcons.Icon(AppIcons.Normal, null, tint = clear.ink)
                 }
-                GlassChip(onClick = {}, height = 40.dp) { Text("Outlined chip") }
+                GlassChip(onClick = {}, height = 40.dp) { Text("Outlined chip", color = clear.ink) }
             }
             Text(
                 "These buttons move the way you set them below. Press and hold them.",

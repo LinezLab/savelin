@@ -307,7 +307,8 @@ fun DetailsScreen(
         }
 
         Row(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 14.dp)
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
+                .padding(horizontal = 14.dp, vertical = 14.dp)
                 .glass(
                     Capsule,
                     glass.glass,
@@ -316,6 +317,7 @@ fun DetailsScreen(
                     lensAmount = GlassSettings.style.refractionAmount.dp,
                 ).clip(Capsule).padding(6.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             PillButton(AppIcons.Back, "Back", onClick = onBack)
             Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, Candy.Sky.copy(alpha = 0.5f), RoundedCornerShape(12.dp))) {
@@ -363,8 +365,8 @@ fun DetailsScreen(
 }
 
 @Composable
-private fun PillButton(icon: Int, label: String, active: Boolean = false, onClick: () -> Unit) {
-    GlassCircle(onClick = onClick, size = 48.dp, label = label) {
+private fun PillButton(icon: Int, label: String, active: Boolean = false, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+    GlassCircle(onClick = onClick, onLongClick = onLongClick, size = 48.dp, label = label) {
         AppIcons.Icon(icon, label, tint = if (active) Candy.Lemon else clear.ink)
     }
 }
@@ -373,14 +375,14 @@ private fun PillButton(icon: Int, label: String, active: Boolean = false, onClic
 private fun GlassChipLabel(label: String, icon: Int?) {
     com.pinfold.app.ui.glass.GlassChip(onClick = {}, height = 34.dp, label = label) {
         if (icon != null) AppIcons.Icon(icon, null, size = 16.dp)
-        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = clear.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun GlassChipButton(label: String, onClick: () -> Unit) {
     com.pinfold.app.ui.glass.GlassChip(onClick = onClick, height = 34.dp, label = label) {
-        Text(label, maxLines = 1)
+        Text(label, color = clear.ink, maxLines = 1)
     }
 }
 
