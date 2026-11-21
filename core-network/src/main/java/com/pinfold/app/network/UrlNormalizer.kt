@@ -6,7 +6,7 @@ object UrlNormalizer {
     private val TRACKING_EXACT = setOf(
         "fbclid", "gclid", "gclsrc", "igsh", "igshid", "si", "ref", "ref_src", "ref_url",
         "mibextid", "spm", "scm", "utm", "mc_cid", "mc_eid", "vero_id", "oly_enc_id",
-        "s_kwcid", "dclid", "msclkid", "twclid", "tt_from", "source", "share_id",
+        "s_kwcid", "dclid", "msclkid", "twclid", "tt_from", "source", "share_id", "feature",
     )
     private val TRACKING_PREFIXES = listOf("utm_", "mc_", "pk_", "hsa_", "dsm_")
     private val SHORTENERS = setOf("t.co", "bit.ly", "tinyurl.com", "goo.gl", "ow.ly", "buff.ly")
