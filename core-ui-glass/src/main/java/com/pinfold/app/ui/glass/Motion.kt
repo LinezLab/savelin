@@ -34,6 +34,15 @@ data class MotionStyle(
     val stretch: Float = 1f,
     val bloom: Float = 1f,
 ) {
+    val label: String
+        get() = when (this) {
+            Calm -> "Calm"
+            Normal -> "Normal"
+            Bouncy -> "Bouncy"
+            Jelly -> "Jelly"
+            else -> "Custom"
+        }
+
     companion object {
         val Normal = MotionStyle()
         val Calm = MotionStyle(bounce = 0.2f, speed = 1.45f, press = 0.6f, wobble = 0f, stretch = 0.5f, bloom = 0.5f)

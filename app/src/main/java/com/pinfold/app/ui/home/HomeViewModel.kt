@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,12 +41,34 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val query = MutableStateFlow("")
     private val tab = MutableStateFlow(HomeTab.HOME)
+    private val searchActiveState = MutableStateFlow(false)
+    private val navVisibleState = MutableStateFlow(true)
+    private val importantOnly = MutableStateFlow(false)
+    private val reminderOnly = MutableStateFlow(false)
 
-    val items: StateFlow<List<BookmarkWithTags>> = query.debounce(200)
+    val searchActive: StateFlow<Boolean> = searchActiveState.asStateFlow()
+    val navVisible: StateFlow<Boolean> = navVisibleState.asStateFlow()
+
+    private val reminderIds = db.reminderDao().observeAll()
+        .combine(importantOnly) { reminders, _ -> reminders.map { it.bookmarkId }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    private val baseItems = query.debounce(150)
         .flatMapLatest { text ->
             if (text.isBlank()) repository.observeAll() else repository.search(text)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val items: StateFlow<List<BookmarkWithTags>> = combine(
+        baseItems,
+        importantOnly,
+        reminderOnly,
+        reminderIds,
+    ) { list, important, reminders, ids ->
+        list.filter { item ->
+            (!important || item.bookmark.isImportant) &&
+                (!reminders || item.bookmark.id in ids)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val currentTab: StateFlow<HomeTab> = tab.asStateFlow()
     val searchQuery: StateFlow<String> = query.asStateFlow()
@@ -54,6 +77,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onQueryChange(value: String) {
         query.value = value
+    }
+
+    fun setSearchActive(value: Boolean) {
+        searchActiveState.value = value
+        navVisibleState.value = true
+        if (!value) {
+            query.value = ""
+            importantOnly.value = false
+            reminderOnly.value = false
+        }
+    }
+
+    fun setNavVisible(value: Boolean) {
+        navVisibleState.value = value || searchActiveState.value
+    }
+
+    fun toggleImportantFilter() {
+        importantOnly.value = !importantOnly.value
+    }
+
+    fun toggleReminderFilter() {
+        reminderOnly.value = !reminderOnly.value
     }
 
     fun selectTab(value: HomeTab) {

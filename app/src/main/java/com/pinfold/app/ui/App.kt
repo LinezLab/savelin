@@ -3,6 +3,7 @@ package com.pinfold.app.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -22,12 +23,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.first
 import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
-import com.pinfold.app.ui.glass.Capsule
-import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassStage
-import com.pinfold.app.ui.glass.GlassTab
-import com.pinfold.app.ui.glass.GlassTabs
-import com.pinfold.app.ui.glass.theme.Candy
+import com.pinfold.app.ui.components.FloatingPillNav
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
@@ -44,6 +41,9 @@ fun App(sharedText: String? = null) {
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     var locked by remember { mutableStateOf(false) }
     val tab by viewModel.currentTab.collectAsState()
+    val searchActive by viewModel.searchActive.collectAsState()
+    val query by viewModel.searchQuery.collectAsState()
+    val navVisible by viewModel.navVisible.collectAsState()
 
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
@@ -76,27 +76,18 @@ fun App(sharedText: String? = null) {
             }
         },
         chrome = {
-            Box(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-                GlassCircle(
-                    onClick = { showAdd = true },
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    size = 60.dp,
-                    tint = Candy.Sky,
-                    label = "Add link",
-                ) {
-                    Text("+", color = androidx.compose.ui.graphics.Color.White)
-                }
-                GlassTabs(
-                    tabs = listOf(
-                        GlassTab("Home", null, Candy.Sky),
-                        GlassTab("Saved", null, Candy.Grape),
-                        GlassTab("Due", null, Candy.Tangerine),
-                        GlassTab("Starred", null, Candy.Lemon),
-                        GlassTab("Settings", null, Candy.Mint),
-                    ),
-                    selected = tab.ordinal,
-                    onSelect = { viewModel.selectTab(HomeTab.entries[it]) },
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(end = 72.dp),
+            Box(Modifier.fillMaxSize().imePadding()) {
+                FloatingPillNav(
+                    searchActive = searchActive,
+                    query = query,
+                    visible = navVisible && detail == null && !showAdd && tab != HomeTab.SETTINGS,
+                    onSearchToggle = { viewModel.setSearchActive(!searchActive) },
+                    onQueryChange = viewModel::onQueryChange,
+                    onAdd = { showAdd = true },
+                    onAddLong = { showAdd = true },
+                    onSettings = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                    onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         },
