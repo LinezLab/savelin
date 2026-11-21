@@ -86,7 +86,7 @@ jobs:
       - name: Name APK with ABI
         run: |
           for f in app/build/outputs/apk/release/*.apk; do
-            mv "$f" "$(dirname "$f")/pinfold-${{ github.ref_name }}-${{ matrix.abi }}.apk"
+            mv "$f" "$(dirname "$f")/savelin-${{ github.ref_name }}-${{ matrix.abi }}.apk"
           done
       - uses: actions/upload-artifact@v7
         with:
@@ -103,12 +103,69 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v7
         with:
           pattern: apk-*
           merge-multiple: true
           path: dist
+      - name: Build release notes
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          PREVIOUS="$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n 1 || true)"
+          if [ -n "$PREVIOUS" ]; then
+            RANGE="${PREVIOUS}..${TAG}"
+            COMPARE="Full changelog: \`${PREVIOUS}...${TAG}\`"
+          else
+            RANGE="$(git rev-list --max-parents=0 HEAD)..${TAG}"
+            COMPARE="First tagged release."
+          fi
+
+          echo "# Savelin $TAG" > release-body.md
+          echo "" >> release-body.md
+          echo "A private, local-only visual bookmark app. Share a link, get a beautiful preview tile — no account, no analytics, no cloud." >> release-body.md
+          echo "" >> release-body.md
+          echo "## Downloads" >> release-body.md
+          echo "" >> release-body.md
+          echo "| ABI | File | Size | SHA-256 |" >> release-body.md
+          echo "| --- | --- | ---: | --- |" >> release-body.md
+          for apk in dist/*.apk; do
+            name="$(basename "$apk")"
+            abi="${name##*-}"
+            abi="${abi%.apk}"
+            size="$(du -h "$apk" | cut -f1)"
+            sum="$(sha256sum "$apk" | cut -d' ' -f1)"
+            echo "| \`$abi\` | [$name](https://github.com/LinezLab/savelin/releases/download/$TAG/$name) | $size | \`$sum\` |" >> release-body.md
+          done
+          echo "" >> release-body.md
+          echo "Pick \`universal\` if unsure. \`arm64-v8a\` is for most modern phones, \`armeabi-v7a\` for older 32-bit ARM devices, and the x86 builds are for emulators." >> release-body.md
+          echo "" >> release-body.md
+          echo "## Changelog" >> release-body.md
+          echo "" >> release-body.md
+          echo "$COMPARE" >> release-body.md
+          echo "" >> release-body.md
+
+          features="$(git log --pretty=format:'- %s (%h)' "$RANGE" | grep -iE '^- (feat|add|implement)|- Add ' || true)"
+          fixes="$(git log --pretty=format:'- %s (%h)' "$RANGE" | grep -iE '^- (fix|correct|suppress)|- Fix ' || true)"
+          other="$(git log --pretty=format:'- %s (%h)' "$RANGE" | grep -viE '^- (feat|fix|add|implement|correct|suppress)|- (Add|Fix) ' || true)"
+
+          if [ -n "$features" ]; then echo "### Features" >> release-body.md; echo >> release-body.md; echo "$features" >> release-body.md; echo >> release-body.md; fi
+          if [ -n "$fixes" ]; then echo "### Fixes" >> release-body.md; echo >> release-body.md; echo "$fixes" >> release-body.md; echo >> release-body.md; fi
+          if [ -n "$other" ]; then echo "### Maintenance" >> release-body.md; echo >> release-body.md; echo "$other" >> release-body.md; echo >> release-body.md; fi
+
+          echo "## Verify" >> release-body.md
+          echo "" >> release-body.md
+          echo '```sh' >> release-body.md
+          echo 'sha256sum savelin-*.apk' >> release-body.md
+          echo '```' >> release-body.md
+          echo "" >> release-body.md
+          echo "APKs are signed with the repository's release keystore. No preview is sent to any server unless you save a link, and you can turn network access off entirely in Settings." >> release-body.md
+          cat release-body.md
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*.apk
-          generate_release_notes: true
+          body_path: release-body.md
+          generate_release_notes: false

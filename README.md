@@ -1,41 +1,71 @@
 # Savelin
 
-A local-only Android app: share a link from any app and it appears as a Pinterest-style preview tile. No account, no analytics, no cloud. Liquid-glass UI with a floating pill navigation bar and a full Appearance & Motion settings screen.
+A local-only Android app: share a link from any app and it appears as a Pinterest-style preview tile. No account, no analytics, no cloud, no tracking. Liquid-glass UI with a floating pill navigation bar and a full Appearance & Motion settings screen.
 
-> Status: early skeleton. Gradle wrapper, vendored glass module, glass design system, CI workflow and recon notes are in place. Feature screens and the resolver pipeline are being built next.
+## What it does
 
-## Privacy guarantees (must remain true)
+- **Share to save.** Android's share sheet sends `text/plain` links (plus captions) straight into Savelin. Paste a link with **+** as well. The first URL in shared text is extracted, normalised and de-duplicated.
+- **Real previews when possible.** Reads public link-preview metadata (Open Graph / Twitter cards) with a mobile User-Agent first, then a crawler-identity retry. Instagram author/caption parsing follows PostVault's proven pattern. YouTube and Reddit have fast paths.
+- **Images stay on the device.** The preview image is downloaded, re-encoded as WebP (max 1080 px), stored in app-private storage with a blurhash, and never referenced by its expiring remote URL again.
+- **Graceful fallbacks.** If a login wall or empty tags block the preview, Savelin shows a generated tile with **Refetch image** and **Add custom image** actions. An opt-in proxy template is available in Settings for the hard cases.
+- **Organise.** Important, archived, tags, collections, notes, search (SQLite FTS), and reminders with notifications.
+- **Appearance & Motion.** Five glass presets, five motion styles, transition picker, animation speed, haptics, hold-to-preview delay/effect, reduce-transparency/reduce-motion, low-end device mode and an FPS overlay.
+- **Privacy controls.** Offline mode, a network-transparency log of every host contacted, biometric lock, and ZIP backup/export/import that keeps your data on your device.
+
+> Honest limit: no account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. Savelin reduces failures with extra fallbacks and manual images, but cannot guarantee a real image for every link.
+
+## Privacy guarantees
 
 1. No account, login, or sign-in with any provider.
 2. No analytics, crash reporters, ads, or third-party SDKs that phone home.
-3. All data is stored on the device. There is no backend.
-4. The only network traffic is fetching pages the user bookmarked (and optionally an image from that page). A Network transparency screen logs every host contacted and why; Offline mode disables fetches entirely.
-5. Tracking parameters are stripped from saved URLs.
+3. All data is stored on-device. There is no backend.
+4. The only network traffic is fetching pages you save (and optionally an image from that page). Every host is logged in **Settings → Network transparency**; **Offline mode** disables fetches entirely.
+5. Tracking parameters (`utm_*`, `fbclid`, `igsh`, …) are stripped from saved URLs.
+6. Android cloud auto-backup is disabled (`allowBackup=false`), cleartext traffic is denied, no cookies are stored, and redirects are capped.
 
-Android cloud auto-backup is disabled (`allowBackup=false`). Cleartext traffic is denied by default. No cookies are stored.
-
-The app declares `INTERNET`, unlike Artefact: link previews require it. This is compensated for by the transparency log, Offline mode, and the rule that no traffic happens unless a link is being fetched.
-
-## Honest limits
-
-No account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. When a real preview cannot be fetched, Savelin generates a local fallback tile and offers "Add custom image" / "Refetch image". It does not promise that every link gets a real image. Instagram/Facebook CDN image URLs are signed and expire, so image bytes are downloaded at save time and stored locally — the remote URL is never relied on afterwards.
-
-An optional third-party embed proxy may be offered off by default with a clear warning; it is the only place the privacy promise bends and requires per-platform opt-in.
-
-## Build (GitHub Actions only)
-
-The developer machine is low-end; **never build locally**. Every build, test, lint and packaging step runs in CI (`.github/workflows/android.yml`):
-
-- `check` job: `lintDebug testDebugUnitTest`.
-- `build` jobs: one per ABI — `arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`, `universal` — using `-Pabi=<abi>`.
-- Tagged `v*` builds publish a GitHub release.
-
-The wrapper (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) was copied from Artefact and uses Gradle 9.8.2. Versions are pinned in `gradle/libs.versions.toml`. ABI filters only change APK contents when native libraries are bundled; with pure-Kotlin dependencies the APKs are functionally identical, but all five are produced as requested.
-
-Debug-signed APKs from CI are for testing only. To ship signed releases, add the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD` repository secrets; without them the release build falls back to the debug key and must be labelled as such.
+`INTERNET` is declared because link previews require it. This is compensated for by the transparency log, Offline mode, and the rule that no traffic happens unless a link is being fetched. An optional third-party proxy is off by default with a clear warning.
 
 ## Architecture
 
-Kotlin, Jetpack Compose, Material 3, Navigation Compose, MVVM/UDF, single activity. Modules: `app`, `backdrop` (vendored Kyant0 library), `core-ui-glass`, and planned `core-data`, `core-network`, and `feature-*` modules. Room + FTS for storage, OkHttp + Jsoup for parsing, Coil 3 for images, WorkManager for fetch, AlarmManager for reminders.
+Kotlin, Jetpack Compose, Material 3, MVVM/UDF, single activity. Modules:
 
-See `docs/RECON.md` (Artefact visual/motion findings), `docs/POSTVAULT.md` and `docs/POSTVAULT-RECON.md` (preview reference), and `NOTICE` for licences.
+| Module | Purpose |
+| --- | --- |
+| `app` | Screens, share target, WorkManager workers, alarms, backup, DI-free ViewModels |
+| `backdrop` | Vendored Kyant0 liquid-glass backdrop library (Apache-2.0) |
+| `core-ui-glass` | Glass design system, motion engine, aurora wallpaper, tabs, buttons, overlays |
+| `core-data` | Room entities/DAOs/FTS, DataStore settings, repositories |
+| `core-network` | URL normaliser, platform detection, resolvers, image store + blurhash |
+
+Storage is Room + FTS4; settings are DataStore Preferences; images are WebP files in app-private storage. Fetching runs in WorkManager; reminders use AlarmManager + notifications.
+
+## Build (GitHub Actions only)
+
+The developer machine is low-end; **never build locally**. Every lint, test and packaging step runs in [`.github/workflows/android.yml`](.github/workflows/android.yml):
+
+- `check` — `lintDebug testDebugUnitTest`.
+- `build` — one release APK per ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`, `universal` (`-Pabi=<abi>`). The matrix is throttled and retries transient Maven 429s.
+- `release` — on `v*` tags only, publishes all five APKs with a generated release body containing a download table, sizes, SHA-256 checksums, and a grouped changelog.
+
+The Gradle wrapper (Gradle 9.8.2) and all dependency versions are pinned in `gradle/libs.versions.toml`. Compile SDK 37, min SDK 29, Java 21 in CI (toolchain 17 bytecode).
+
+### Signing
+
+Release builds are signed in CI with a keystore supplied through repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `KEYSTORE_BASE64` | base64 of the release `.jks` |
+| `KEYSTORE_PASSWORD` | store password |
+| `KEY_ALIAS` | key alias |
+| `KEY_PASSWORD` | key password |
+
+The keystore itself lives in the untracked `secrets/` directory and is **never committed**. Without these secrets CI falls back to a debug-signed APK, which is not suitable for distribution.
+
+## Install
+
+Download the APK for your device from the Releases page. `universal` works everywhere; `arm64-v8a` is the usual choice for modern phones. Verify with `sha256sum savelin-*.apk` against the checksums in the release notes.
+
+## Licences and references
+
+See [`NOTICE`](NOTICE) and [`third_party/`](third_party/) for Artefact (MIT/Apache-2.0), AndroidLiquidGlass (Apache-2.0) and PostVault (MIT) licences. Design and motion findings are in [`docs/RECON.md`](docs/RECON.md); the PostVault study and code recon are in [`docs/POSTVAULT.md`](docs/POSTVAULT.md) and [`docs/POSTVAULT-RECON.md`](docs/POSTVAULT-RECON.md).
