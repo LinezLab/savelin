@@ -7,13 +7,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.DpOffset
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -50,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -124,7 +126,7 @@ fun DetailsScreen(
                 model = ImageRequest.Builder(context).data(File(imagePath)).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().androidx.compose.ui.draw.blur(28.dp),
+                modifier = Modifier.fillMaxSize().blur(28.dp),
             )
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.55f), Color.Black.copy(0.78f)))))
         } else {
