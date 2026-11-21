@@ -1,7 +1,7 @@
 package com.pinfold.app.ui.home
 
 import android.app.Application
-import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
@@ -13,6 +13,8 @@ import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.network.UrlNormalizer
+import com.pinfold.app.network.image.ImageStore
+import com.pinfold.app.network.resolvers.HttpClientFactory
 import com.pinfold.app.work.LinkFetchWorker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -29,7 +31,8 @@ import kotlinx.coroutines.launch
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val db = PinfoldDatabase.get(application)
     private val repository = BookmarkRepository(db.bookmarkDao(), db.tagDao())
-    val settings = SettingsRepository(application).settings
+    private val settingsRepository = SettingsRepository(application)
+    val settings = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.pinfold.app.data.settings.AppSettings())
 
     private val query = MutableStateFlow("")
@@ -52,6 +55,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         tab.value = value
     }
 
+    fun setOffline(value: Boolean) = viewModelScope.launch { settingsRepository.setOfflineMode(value) }
+    fun setGlassPreset(value: String) = viewModelScope.launch { settingsRepository.setGlassPreset(value) }
+    fun setMotionPreset(value: String) = viewModelScope.launch { settingsRepository.setMotionPreset(value) }
+    fun setReduceMotion(value: Boolean) = viewModelScope.launch { settingsRepository.setReduceMotion(value) }
+    fun setReduceTransparency(value: Boolean) = viewModelScope.launch { settingsRepository.setReduceTransparency(value) }
+    fun setHaptics(value: String) = viewModelScope.launch { settingsRepository.setHaptics(value) }
+    fun setUserAgent(value: String) = viewModelScope.launch { settingsRepository.setPreviewUserAgent(value) }
+    fun setProxies(value: Boolean) = viewModelScope.launch { settingsRepository.setProxiesEnabled(value) }
+
     fun saveLink(raw: String) {
         val url = extractUrl(raw) ?: return
         val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
@@ -65,7 +77,43 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun delete(item: Bookmark) = viewModelScope.launch {
+        ImageStore(getApplication(), HttpClientFactory.create()).remove(item.id)
         db.bookmarkDao().delete(item.id)
+    }
+
+    fun setArchived(item: Bookmark, archived: Boolean) = viewModelScope.launch {
+        db.bookmarkDao().setArchived(item.id, archived)
+    }
+
+    fun refetch(item: Bookmark) {
+        val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
+            .setInputData(workDataOf(LinkFetchWorker.KEY_URL to item.url))
+            .build()
+        WorkManager.getInstance(getApplication<Application>()).enqueue(request)
+    }
+
+    fun attachImage(item: Bookmark, uri: Uri) = viewModelScope.launch {
+        val context = getApplication<Application>()
+        val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@launch
+        val store = ImageStore(context, HttpClientFactory.create())
+        val file = java.io.File(store.pathFor(item.id))
+        file.outputStream().use { it.write(bytes) }
+        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
+        db.bookmarkDao().updateImage(
+            id = item.id,
+            path = file.absolutePath,
+            width = options.outWidth,
+            height = options.outHeight,
+            blurhash = null,
+            remoteUrl = item.remoteImageUrl,
+            status = com.pinfold.app.data.model.FetchStatus.OK,
+        )
+        db.bookmarkDao().update(db.bookmarkDao().findById(item.id)!!.copy(customImage = true))
+    }
+
+    fun setReminder(item: Bookmark, triggerAt: Long) = viewModelScope.launch {
+        db.reminderDao().insert(com.pinfold.app.data.model.Reminder(bookmarkId = item.id, triggerAt = triggerAt))
     }
 
     fun recordOpen(item: Bookmark) = viewModelScope.launch {

@@ -36,12 +36,16 @@ import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
 import com.pinfold.app.ui.home.HomeScreen
+import com.pinfold.app.ui.details.DetailsScreen
+import com.pinfold.app.ui.settings.SettingsScreen
+import com.pinfold.app.data.model.BookmarkWithTags
 
 @Composable
 fun App(sharedText: String? = null) {
     val viewModel: HomeViewModel = viewModel()
     var showAdd by remember { mutableState(false) }
     var draft by remember { mutableState("") }
+    var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     val tab by viewModel.currentTab.collectAsState()
 
     LaunchedEffect(sharedText) {
@@ -55,7 +59,14 @@ fun App(sharedText: String? = null) {
         wallpaper = { Aurora(AuroraMoods.Desk) },
         screens = {
             Box(Modifier.fillMaxSize().padding(bottom = 88.dp)) {
-                HomeScreen(viewModel)
+                if (tab == HomeTab.SETTINGS) {
+                    SettingsScreen(viewModel)
+                } else {
+                    HomeScreen(viewModel, onOpen = { detail = it })
+                }
+            }
+            detail?.let { item ->
+                DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
             }
         },
         chrome = {
