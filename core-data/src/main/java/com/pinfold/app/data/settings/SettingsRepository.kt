@@ -20,6 +20,7 @@ data class AppSettings(
     val preferNativeApp: Boolean = true,
     val browserMode: String = "SYSTEM",
     val hideDetailsOnLockScreen: Boolean = true,
+    val biometricLock: Boolean = false,
     val allowHttpLinks: Boolean = false,
     val enableClipboardChip: Boolean = false,
     val reduceTransparency: Boolean = false,
@@ -35,6 +36,7 @@ data class AppSettings(
     val frameOverlay: Boolean = false,
     val previewUserAgent: String = "facebookexternalhit/1.1",
     val proxiesEnabled: Boolean = false,
+    val proxyTemplate: String = "",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -45,6 +47,7 @@ class SettingsRepository(private val context: Context) {
             preferNativeApp = p[Keys.preferNativeApp] ?: true,
             browserMode = p[Keys.browserMode] ?: "SYSTEM",
             hideDetailsOnLockScreen = p[Keys.hideDetailsOnLockScreen] ?: true,
+            biometricLock = p[Keys.biometricLock] ?: false,
             allowHttpLinks = p[Keys.allowHttpLinks] ?: false,
             enableClipboardChip = p[Keys.enableClipboardChip] ?: false,
             reduceTransparency = p[Keys.reduceTransparency] ?: false,
@@ -60,6 +63,7 @@ class SettingsRepository(private val context: Context) {
             frameOverlay = p[Keys.frameOverlay] ?: false,
             previewUserAgent = p[Keys.previewUserAgent] ?: "facebookexternalhit/1.1",
             proxiesEnabled = p[Keys.proxiesEnabled] ?: false,
+            proxyTemplate = p[Keys.proxyTemplate] ?: "",
         )
     }
 
@@ -80,8 +84,10 @@ class SettingsRepository(private val context: Context) {
     suspend fun setFrameOverlay(value: Boolean) = put(Keys.frameOverlay, value)
     suspend fun setPreviewUserAgent(value: String) = put(Keys.previewUserAgent, value)
     suspend fun setProxiesEnabled(value: Boolean) = put(Keys.proxiesEnabled, value)
+    suspend fun setProxyTemplate(value: String) = put(Keys.proxyTemplate, value)
     suspend fun setAllowHttpLinks(value: Boolean) = put(Keys.allowHttpLinks, value)
     suspend fun setHideDetailsOnLockScreen(value: Boolean) = put(Keys.hideDetailsOnLockScreen, value)
+    suspend fun setBiometricLock(value: Boolean) = put(Keys.biometricLock, value)
     suspend fun setEnableClipboardChip(value: Boolean) = put(Keys.enableClipboardChip, value)
 
     private suspend fun put(key: Preferences.Key<Boolean>, value: Boolean) =
@@ -102,6 +108,7 @@ class SettingsRepository(private val context: Context) {
         val preferNativeApp = booleanPreferencesKey("prefer_native_app")
         val browserMode = stringPreferencesKey("browser_mode")
         val hideDetailsOnLockScreen = booleanPreferencesKey("hide_details_lock")
+        val biometricLock = booleanPreferencesKey("biometric_lock")
         val allowHttpLinks = booleanPreferencesKey("allow_http")
         val enableClipboardChip = booleanPreferencesKey("clipboard_chip")
         val reduceTransparency = booleanPreferencesKey("reduce_transparency")
@@ -117,5 +124,6 @@ class SettingsRepository(private val context: Context) {
         val frameOverlay = booleanPreferencesKey("frame_overlay")
         val previewUserAgent = stringPreferencesKey("preview_user_agent")
         val proxiesEnabled = booleanPreferencesKey("proxies_enabled")
+        val proxyTemplate = stringPreferencesKey("proxy_template")
     }
 }

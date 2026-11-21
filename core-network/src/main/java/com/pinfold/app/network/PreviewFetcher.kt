@@ -12,7 +12,7 @@ class PreviewFetcher(
     private val client: OkHttpClient,
     private val onHost: (host: String, purpose: String) -> Unit = { _, _ -> },
 ) {
-    suspend fun fetch(rawUrl: String, userAgent: String): Preview {
+    suspend fun fetch(rawUrl: String, userAgent: String, proxyTemplate: String = ""): Preview {
         val expanded = expandShortener(rawUrl.trim(), userAgent)
         val url = UrlNormalizer.normalize(expanded)
         val context = ResolverContext(client = client, userAgent = userAgent)
@@ -22,6 +22,12 @@ class PreviewFetcher(
         PlatformFastPaths().resolve(url, context)?.let(results::add)
         OpenGraphResolver(userAgentOverride = MOBILE_UA).resolve(url, context)?.let(results::add)
         OpenGraphResolver(userAgentOverride = context.crawlerUserAgent).resolve(url, context)?.let(results::add)
+
+        if (results.none { it.hasImage } && proxyTemplate.isNotBlank() && proxyTemplate.contains("{url}")) {
+            val proxyUrl = proxyTemplate.replace("{url}", java.net.URLEncoder.encode(url, "UTF-8"))
+            onHost(runCatching { URI.create(proxyUrl).host.orEmpty() }.getOrDefault(""), "opt-in proxy")
+            OpenGraphResolver(userAgentOverride = userAgent).resolve(proxyUrl, context)?.let(results::add)
+        }
 
         val merged = merge(results)
         return merged.copy(url = url, platform = merged.platform.ifBlank { PlatformDetector.platform(url) })

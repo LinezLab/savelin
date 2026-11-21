@@ -39,7 +39,8 @@ class LinkFetchWorker(
                 db.networkLogDao().insert(NetworkLogEntry(host = host, purpose = purpose, status = "OK"))
             }
         }
-        val preview = runCatching { fetcher.fetch(normalized, userAgent) }.getOrElse {
+        val proxyTemplate = if (currentSettings.proxiesEnabled) currentSettings.proxyTemplate else ""
+        val preview = runCatching { fetcher.fetch(normalized, userAgent, proxyTemplate) }.getOrElse {
             return Result.failure()
         }
 

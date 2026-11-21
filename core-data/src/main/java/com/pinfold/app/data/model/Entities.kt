@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Fts4
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 object FetchStatus {
     const val PENDING = "PENDING"
@@ -19,6 +20,7 @@ object TapAction {
     const val ASK = "ASK"
 }
 
+@Serializable
 @Entity(
     tableName = "bookmarks",
     indices = [Index(value = ["normalizedUrl"], unique = true), Index("collectionId"), Index("createdAt")],

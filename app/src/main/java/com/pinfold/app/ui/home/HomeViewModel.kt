@@ -17,6 +17,7 @@ import com.pinfold.app.network.UrlNormalizer
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.resolvers.HttpClientFactory
 import com.pinfold.app.work.LinkFetchWorker
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,6 +49,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     val currentTab: StateFlow<HomeTab> = tab.asStateFlow()
     val searchQuery: StateFlow<String> = query.asStateFlow()
+    val networkLog = db.networkLogDao().observeRecent()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onQueryChange(value: String) {
         query.value = value
@@ -64,6 +68,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setHaptics(value: String) = viewModelScope.launch { settingsRepository.setHaptics(value) }
     fun setUserAgent(value: String) = viewModelScope.launch { settingsRepository.setPreviewUserAgent(value) }
     fun setProxies(value: Boolean) = viewModelScope.launch { settingsRepository.setProxiesEnabled(value) }
+    fun setProxyTemplate(value: String) = viewModelScope.launch { settingsRepository.setProxyTemplate(value) }
+    fun setBiometricLock(value: Boolean) = viewModelScope.launch { settingsRepository.setBiometricLock(value) }
+
+    fun exportBackup(target: Uri) = viewModelScope.launch(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        val source = com.pinfold.app.backup.BackupManager(context).export()
+        context.contentResolver.openInputStream(source)?.use { input ->
+            context.contentResolver.openOutputStream(target)?.use { output -> input.copyTo(output) }
+        }
+    }
+
+    fun importBackup(source: Uri, onResult: (Int) -> Unit) = viewModelScope.launch(Dispatchers.IO) {
+        val added = com.pinfold.app.backup.BackupManager(getApplication()).import(source)
+        withContext(Dispatchers.Main) { onResult(added) }
+    }
 
     fun saveLink(raw: String) {
         val url = extractUrl(raw) ?: return

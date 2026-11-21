@@ -41,7 +41,17 @@ fun App(sharedText: String? = null) {
     var showAdd by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
+    var locked by remember { mutableStateOf(false) }
     val tab by viewModel.currentTab.collectAsState()
+
+    LaunchedEffect(Unit) {
+        locked = kotlinx.coroutines.flow.first(viewModel.settings).biometricLock
+    }
+
+    if (locked) {
+        BiometricGate(onUnlock = { locked = false })
+        return
+    }
 
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {

@@ -92,5 +92,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.koin.core)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment.ktx)
     testImplementation(libs.junit)
 }

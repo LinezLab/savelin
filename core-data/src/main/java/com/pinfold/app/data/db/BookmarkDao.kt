@@ -33,6 +33,9 @@ interface BookmarkDao {
     """)
     fun search(query: String): Flow<List<BookmarkWithTags>>
 
+    @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
+    suspend fun getAll(): List<Bookmark>
+
     @Query("SELECT * FROM bookmarks WHERE normalizedUrl = :url LIMIT 1")
     suspend fun findByNormalizedUrl(url: String): Bookmark?
 
