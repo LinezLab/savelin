@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.first
 import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.Capsule
@@ -45,7 +46,7 @@ fun App(sharedText: String? = null) {
     val tab by viewModel.currentTab.collectAsState()
 
     LaunchedEffect(Unit) {
-        locked = kotlinx.coroutines.flow.first(viewModel.settings).biometricLock
+        locked = viewModel.settings.first().biometricLock
     }
 
     if (locked) {
