@@ -65,6 +65,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":backdrop"))
     implementation(project(":core-ui-glass"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
