@@ -4,11 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.filled.Bookmark as BookmarkIcon
-import androidx.compose.material.icons.filled.Home as HomeIcon
-import androidx.compose.material.icons.filled.Notifications as NotificationsIcon
-import androidx.compose.material.icons.filled.Settings as SettingsIcon
-import androidx.compose.material.icons.filled.Star as StarIcon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -81,11 +76,11 @@ fun App(sharedText: String? = null) {
                 }
                 GlassTabs(
                     tabs = listOf(
-                        GlassTab("Home", HomeIcon, Candy.Sky),
-                        GlassTab("Saved", BookmarkIcon, Candy.Grape),
-                        GlassTab("Due", NotificationsIcon, Candy.Tangerine),
-                        GlassTab("Starred", StarIcon, Candy.Lemon),
-                        GlassTab("Settings", SettingsIcon, Candy.Mint),
+                        GlassTab("Home", null, Candy.Sky),
+                        GlassTab("Saved", null, Candy.Grape),
+                        GlassTab("Due", null, Candy.Tangerine),
+                        GlassTab("Starred", null, Candy.Lemon),
+                        GlassTab("Settings", null, Candy.Mint),
                     ),
                     selected = tab.ordinal,
                     onSelect = { viewModel.selectTab(HomeTab.entries[it]) },
