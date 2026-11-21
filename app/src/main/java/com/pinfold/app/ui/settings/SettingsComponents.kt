@@ -154,9 +154,9 @@ fun ChoiceTile(
 
 @Composable
 fun ExpandableRow(title: String, icon: Int, expanded: Boolean, onToggle: () -> Unit) {
-    SettingsRow(icon = icon, tileColor = Candy.Grape, title = title, onClick = onToggle) {
+    SettingsRow(icon = icon, tileColor = Candy.Grape, title = title, onClick = onToggle, trailing = {
         AppIcons.Icon(AppIcons.Expand, null, tint = clear.inkSoft, size = 18.dp)
-    }
+    })
 }
 
 @Composable

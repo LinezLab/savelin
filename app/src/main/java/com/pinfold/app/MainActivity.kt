@@ -39,14 +39,15 @@ class MainActivity : FragmentActivity() {
         val shared = intent?.takeIf { it.action == Intent.ACTION_SEND }
             ?.getStringExtra(Intent.EXTRA_TEXT)
         setContent {
-            val darkState = remember { mutableStateOf(isSystemInDarkTheme()) }
+            val systemDark = isSystemInDarkTheme()
+            val darkState = remember { mutableStateOf(systemDark) }
             val repository = remember { SettingsRepository(applicationContext) }
             LaunchedEffect(Unit) {
                 repository.settings.collect { settings ->
                     darkState.value = when (settings.themeMode) {
                         "LIGHT" -> false
                         "DARK" -> true
-                        else -> isSystemInDarkTheme()
+                        else -> systemDark
                     }
                 }
             }
