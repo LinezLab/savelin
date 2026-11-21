@@ -45,16 +45,14 @@ class PlatformFastPaths : Resolver {
         val fetched = HtmlFetcher.get(jsonUrl, context, context.userAgent) ?: return null
         val text = fetched.first
         val root = runCatching { Json.parseToJsonElement(text) }.getOrNull() ?: return null
-        val post = (root as? JsonArray)
-            ?.firstOrNull() as? JsonObject
-            ?.get("data") as? JsonObject
-            ?.get("children") as? JsonArray
-            ?.firstOrNull() as? JsonObject
-            ?.get("data") as? JsonObject
-            ?: return null
+        val listing = (root as? JsonArray)?.firstOrNull() as? JsonObject
+        val listingData = listing?.get("data") as? JsonObject
+        val children = listingData?.get("children") as? JsonArray
+        val child = children?.firstOrNull() as? JsonObject
+        val post = child?.get("data") as? JsonObject ?: return null
 
-        val title = post["title"].asText()
-        val selftext = post["selftext"].asText()
+        val title = post["title"]?.asText().orEmpty()
+        val selftext = post["selftext"]?.asText().orEmpty()
         val images = mutableListOf<String>()
         val previewImages = post["preview"] as? JsonObject
         val imagesArray = previewImages?.get("images") as? JsonArray
