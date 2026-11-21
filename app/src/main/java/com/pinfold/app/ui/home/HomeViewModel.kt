@@ -111,6 +111,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setReduceMotion(value: Boolean) = viewModelScope.launch { settingsRepository.setReduceMotion(value) }
     fun setReduceTransparency(value: Boolean) = viewModelScope.launch { settingsRepository.setReduceTransparency(value) }
     fun setHaptics(value: String) = viewModelScope.launch { settingsRepository.setHaptics(value) }
+    fun setAnimationSpeed(value: Float) = viewModelScope.launch { settingsRepository.setAnimationSpeed(value) }
     fun setUserAgent(value: String) = viewModelScope.launch { settingsRepository.setPreviewUserAgent(value) }
     fun setProxies(value: Boolean) = viewModelScope.launch { settingsRepository.setProxiesEnabled(value) }
     fun setProxyTemplate(value: String) = viewModelScope.launch { settingsRepository.setProxyTemplate(value) }
