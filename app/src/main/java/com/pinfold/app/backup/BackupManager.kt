@@ -54,10 +54,12 @@ class BackupManager(private val context: Context) {
                         val text = zip.bufferedReader().readText()
                         val backup = runCatching { json.decodeFromString<BackupFile>(text) }.getOrNull()
                             ?: continue
-                        for (bookmark in backup.bookmarks) {
-                            if (db.bookmarkDao().findByNormalizedUrl(bookmark.normalizedUrl) != null) continue
-                            db.bookmarkDao().insert(bookmark.copy(id = 0))
-                            added++
+                        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                            for (bookmark in backup.bookmarks) {
+                                if (db.bookmarkDao().findByNormalizedUrl(bookmark.normalizedUrl) != null) continue
+                                db.bookmarkDao().insert(bookmark.copy(id = 0))
+                                added++
+                            }
                         }
                     }
                     entry!!.name.startsWith("images/") -> {
