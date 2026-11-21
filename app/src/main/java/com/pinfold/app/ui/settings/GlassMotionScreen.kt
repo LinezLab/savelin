@@ -69,14 +69,11 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
                             onClick = { GlassSettings.update(context, preset) },
                             preview = {
                                 androidx.compose.foundation.layout.Box(
-                                    Modifier.fillMaxWidth().height(64.dp)
-                                        .background(
-                                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                                listOf(Candy.Bubblegum, Candy.Grape, Candy.Tangerine),
-                                            ),
-                                            androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                                        ),
-                                )
+                                    Modifier.fillMaxWidth().height(64.dp),
+                                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                                ) {
+                                    AppIcons.Icon(AppIcons.Appearance, null, tint = clear.ink, size = 24.dp)
+                                }
                             },
                         )
                     }

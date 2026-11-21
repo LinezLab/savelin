@@ -91,9 +91,9 @@ fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(32.dp).background(tileColor, RoundedCornerShape(9.dp)),
+            Modifier.size(32.dp).glass(RoundedCornerShape(9.dp), clear.glass, blur = 2.dp),
             contentAlignment = Alignment.Center,
-        ) { AppIcons.Icon(icon, null, tint = Color.White, size = 18.dp) }
+        ) { AppIcons.Icon(icon, null, tint = clear.ink, size = 18.dp) }
         Spacer(Modifier.size(12.dp))
         Column(Modifier.fillMaxWidth(0.78f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = clear.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -137,7 +137,7 @@ fun ChoiceTile(
             .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.height(64.dp).fillMaxWidth().background(clear.line, RoundedCornerShape(10.dp))) { preview() }
+        Box(Modifier.height(64.dp).fillMaxWidth()) { preview() }
         Spacer(Modifier.size(4.dp))
         Text(
             label,

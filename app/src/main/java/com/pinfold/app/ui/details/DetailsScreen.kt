@@ -195,7 +195,7 @@ fun DetailsScreen(
                     GlassChipLabel(bookmark.platform.ifBlank { "Web" }, icon = AppIcons.Browser)
                     if (bookmark.authorHandle.isNotBlank()) GlassChipLabel("@${bookmark.authorHandle}", icon = null)
                     if (bookmark.postedAt.isNotBlank()) GlassChipLabel(bookmark.postedAt, icon = null)
-                    if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = Candy.Lemon, size = 16.dp)
+                    if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.ink, size = 16.dp)
                 }
 
                 var titleExpanded by remember { mutableStateOf(false) }
@@ -261,7 +261,7 @@ fun DetailsScreen(
                         Modifier.size(40.dp).clickable { expandedCaption = !expandedCaption },
                         contentAlignment = Alignment.Center,
                     ) {
-                        AppIcons.Icon(if (expandedCaption) AppIcons.Expand else AppIcons.Expand, "Expand caption", tint = Candy.Sky)
+                        AppIcons.Icon(if (expandedCaption) AppIcons.Expand else AppIcons.Expand, "Expand caption", tint = clear.ink)
                     }
                 }
 
@@ -321,7 +321,7 @@ fun DetailsScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             PillButton(AppIcons.Back, "Back", onClick = onBack)
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, Candy.Sky.copy(alpha = 0.5f), RoundedCornerShape(12.dp))) {
+            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, clear.line, RoundedCornerShape(12.dp))) {
                 Box {
                     GlassCircle(onClick = { openLink(context, bookmark.url, target.packageName) }, onLongClick = { openMenu = true }, size = 48.dp, label = "Open link") {
                         val icon: ImageBitmap? = target.icon
@@ -368,7 +368,7 @@ fun DetailsScreen(
 @Composable
 private fun PillButton(icon: Int, label: String, active: Boolean = false, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     GlassCircle(onClick = onClick, onLongClick = onLongClick, size = 48.dp, label = label) {
-        AppIcons.Icon(icon, label, tint = if (active) Candy.Lemon else clear.ink)
+        AppIcons.Icon(icon, label, tint = clear.ink)
     }
 }
 

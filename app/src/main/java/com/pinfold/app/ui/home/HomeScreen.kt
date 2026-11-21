@@ -226,18 +226,18 @@ private fun BookmarkCard(
             ) {
                 Box(
                     Modifier.clip(RoundedCornerShape(10.dp))
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f))
+                        .glass(androidx.compose.foundation.shape.RoundedCornerShape(10.dp), com.pinfold.app.ui.glass.theme.clear.glass, blur = 2.dp)
                         .padding(horizontal = 7.dp, vertical = 3.dp),
                 ) {
-                    Text(bookmark.platform.ifBlank { "Web" }, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+                    Text(bookmark.platform.ifBlank { "Web" }, color = com.pinfold.app.ui.glass.theme.clear.ink, style = MaterialTheme.typography.labelSmall)
                 }
                 if (bookmark.isImportant || hasReminder) {
-                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(5.dp)) {
+                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).glass(androidx.compose.foundation.shape.CircleShape, com.pinfold.app.ui.glass.theme.clear.glass, blur = 2.dp).padding(5.dp)) {
                         if (bookmark.isImportant) com.pinfold.app.ui.components.AppIcons.Icon(
-                            com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = androidx.compose.ui.graphics.Color.White, size = 14.dp,
+                            com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
                         )
                         if (hasReminder) com.pinfold.app.ui.components.AppIcons.Icon(
-                            com.pinfold.app.ui.components.AppIcons.Reminder, "Reminder", tint = androidx.compose.ui.graphics.Color.White, size = 14.dp,
+                            com.pinfold.app.ui.components.AppIcons.Reminder, "Reminder", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
                         )
                     }
                 }

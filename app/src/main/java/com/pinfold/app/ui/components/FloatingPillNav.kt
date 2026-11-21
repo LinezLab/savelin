@@ -72,7 +72,11 @@ fun FloatingPillNav(
                 }
             }
         } else {
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly,
+            ) {
                 Box(Modifier.fillMaxWidth(0.33f)) {
                     GlassCircle(
                         onClick = onSearchToggle,
@@ -81,16 +85,15 @@ fun FloatingPillNav(
                         label = "Search",
                     ) { AppIcons.Icon(AppIcons.Search, "Search", tint = colors.ink) }
                 }
-                Box(Modifier.fillMaxWidth(0.5f)) {
+                Box(Modifier.fillMaxWidth(0.33f)) {
                     GlassCircle(
                         onClick = onAdd,
                         onLongClick = onAddLong,
-                        size = 52.dp,
+                        size = 48.dp,
                         label = "Add link",
-                        tint = Candy.Sky,
                     ) { AppIcons.Icon(AppIcons.Add, "Add link", tint = colors.ink) }
                 }
-                Box(Modifier.fillMaxWidth(1f)) {
+                Box(Modifier.fillMaxWidth(0.33f)) {
                     GlassCircle(
                         onClick = onSettings,
                         onLongClick = onSettingsLong,
