@@ -9,6 +9,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +38,8 @@ import com.pinfold.app.data.model.BookmarkWithTags
 @Composable
 fun App(sharedText: String? = null) {
     val viewModel: HomeViewModel = viewModel()
-    var showAdd by remember { mutableState(false) }
-    var draft by remember { mutableState("") }
+    var showAdd by remember { mutableStateOf(false) }
+    var draft by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     val tab by viewModel.currentTab.collectAsState()
 
