@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -43,6 +44,7 @@ fun HomeScreen(
     val items by viewModel.items.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
+    val reminderIds by viewModel.reminderIds.collectAsState()
     val context = LocalContext.current
     val gridState = rememberLazyStaggeredGridState()
 
@@ -109,6 +111,7 @@ fun HomeScreen(
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
                     item = item,
+                    hasReminder = item.bookmark.id in reminderIds,
                     onClick = {
                         viewModel.recordOpen(item.bookmark)
                         onOpen(item)
@@ -129,43 +132,96 @@ fun HomeScreen(
 @Composable
 private fun BookmarkCard(
     item: BookmarkWithTags,
+    hasReminder: Boolean,
     onClick: () -> Unit,
     imageModel: () -> Any?,
 ) {
     val bookmark = item.bookmark
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    val model = imageModel()
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick),
     ) {
-        val model = imageModel()
         if (model != null) {
             AsyncImage(
                 model = model,
-                contentDescription = bookmark.title,
+                contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f),
             )
         } else {
+            FallbackTile(bookmark.platform.ifBlank { "Web" }, bookmark.displayTitle.ifBlank { bookmark.title })
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             Box(
-                Modifier.fillMaxWidth().aspectRatio(4f / 3f),
-                contentAlignment = Alignment.Center,
+                Modifier.clip(RoundedCornerShape(12.dp))
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
-                Text(bookmark.platform.ifBlank { "Web" }, style = MaterialTheme.typography.labelLarge)
+                Text(bookmark.platform.ifBlank { "Web" }, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+            }
+            if (bookmark.isImportant || hasReminder) {
+                Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)).padding(6.dp)) {
+                    Text(
+                        listOfNotNull(if (bookmark.isImportant) "★" else null, if (hasReminder) "●" else null).joinToString(""),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
-        Column(Modifier.padding(12.dp)) {
+        Column(
+            Modifier.fillMaxWidth().align(Alignment.BottomStart)
+                .background(androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f)),
+                ))
+                .padding(12.dp),
+        ) {
             Text(
-                bookmark.title.ifBlank { bookmark.url },
+                bookmark.displayTitle.ifBlank { bookmark.title.ifBlank { bookmark.url } },
+                color = androidx.compose.ui.graphics.Color.White,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            if (item.tags.isNotEmpty()) {
-                Text(
-                    item.tags.joinToString(" · ") { it.name },
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+            val subtitle = if (bookmark.authorHandle.isNotBlank()) "@${bookmark.authorHandle}" else bookmark.url.substringAfter("://").substringBefore('/')
+            Text(subtitle, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            val tags = (item.tags.map { it.name } + bookmark.hashtags.split(',').filter { it.isNotBlank() }).take(2)
+            if (tags.isNotEmpty()) {
+                Text(tags.joinToString("  "), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
+        }
+    }
+}
+
+@Composable
+private fun FallbackTile(platform: String, title: String) {
+    val colors = when (platform.lowercase()) {
+        "instagram" -> listOf(androidx.compose.ui.graphics.Color(0xFFF9CE34), androidx.compose.ui.graphics.Color(0xFFEE2A7B), androidx.compose.ui.graphics.Color(0xFF6228D7))
+        "youtube" -> listOf(androidx.compose.ui.graphics.Color(0xFFFF0000), androidx.compose.ui.graphics.Color(0xFF7F0000))
+        "tiktok" -> listOf(androidx.compose.ui.graphics.Color(0xFF25F4EE), androidx.compose.ui.graphics.Color(0xFFFE2C55))
+        else -> listOf(androidx.compose.ui.graphics.Color(0xFF5E5CE6), androidx.compose.ui.graphics.Color(0xFF0A84FF))
+    }
+    Box(
+        Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(platform, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.headlineMedium)
+            Text(
+                title,
+                color = androidx.compose.ui.graphics.Color.White,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            Text("No preview. Add image", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelSmall)
         }
     }
 }

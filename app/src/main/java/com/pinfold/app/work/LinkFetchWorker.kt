@@ -8,6 +8,7 @@ import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.FetchStatus
 import com.pinfold.app.data.model.NetworkLogEntry
 import com.pinfold.app.data.settings.SettingsRepository
+import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.PlatformDetector
 import com.pinfold.app.network.UrlNormalizer
@@ -60,11 +61,25 @@ class LinkFetchWorker(
             runCatching { store.store(id, url) }.getOrNull()
         }
 
-        val title = preview.title.ifBlank { preview.author.ifBlank { PlatformDetector.siteName(normalized) } }
+        val cleaned = MetadataCleaner.clean(
+            title = preview.title,
+            description = preview.description,
+            author = preview.author,
+            siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
+            platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
+            fallbackTitle = PlatformDetector.siteName(normalized),
+        )
         val current = db.bookmarkDao().findById(id) ?: return Result.success()
         db.bookmarkDao().update(
             current.copy(
-                title = title,
+                title = cleaned.displayTitle,
+                displayTitle = cleaned.displayTitle,
+                authorHandle = cleaned.authorHandle,
+                caption = cleaned.caption,
+                likesText = cleaned.likesText,
+                commentsText = cleaned.commentsText,
+                postedAt = cleaned.postedAt,
+                hashtags = cleaned.hashtags.joinToString(","),
                 description = preview.description,
                 siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
                 platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
@@ -80,6 +95,11 @@ class LinkFetchWorker(
                 updatedAt = System.currentTimeMillis(),
             ),
         )
+        cleaned.hashtags.forEach { tag ->
+            val existing = db.tagDao().findByName(tag)
+            val tagId = existing?.id ?: db.tagDao().insert(com.pinfold.app.data.model.Tag(name = tag))
+            if (tagId > 0) db.tagDao().link(com.pinfold.app.data.model.BookmarkTag(id, tagId))
+        }
         return Result.success()
     }
 

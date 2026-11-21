@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkFts
 import com.pinfold.app.data.model.BookmarkTag
@@ -22,7 +24,7 @@ import com.pinfold.app.data.model.Tag
         Reminder::class,
         NetworkLogEntry::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class PinfoldDatabase : RoomDatabase() {
@@ -41,7 +43,17 @@ abstract class PinfoldDatabase : RoomDatabase() {
                 context.applicationContext,
                 PinfoldDatabase::class.java,
                 "pinfold.db",
-            ).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "displayTitle", "authorHandle", "likesText", "commentsText", "postedAt", "hashtags",
+                ).forEach { column ->
+                    db.execSQL("ALTER TABLE bookmarks ADD COLUMN $column TEXT NOT NULL DEFAULT ''")
+                }
+            }
+        }
         }
     }
 }

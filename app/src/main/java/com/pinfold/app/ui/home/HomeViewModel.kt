@@ -49,7 +49,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val searchActive: StateFlow<Boolean> = searchActiveState.asStateFlow()
     val navVisible: StateFlow<Boolean> = navVisibleState.asStateFlow()
 
-    private val reminderIds = db.reminderDao().observeAll()
+    val reminderIds = db.reminderDao().observeAll()
         .combine(importantOnly) { reminders, _ -> reminders.map { it.bookmarkId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
@@ -149,6 +149,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setArchived(item: Bookmark, archived: Boolean) = viewModelScope.launch {
         db.bookmarkDao().setArchived(item.id, archived)
+    }
+
+    fun setNotes(item: Bookmark, notes: String) = viewModelScope.launch {
+        db.bookmarkDao().update(db.bookmarkDao().findById(item.id)?.copy(notes = notes, updatedAt = System.currentTimeMillis()) ?: return@launch)
+    }
+
+    fun removeImage(item: Bookmark) = viewModelScope.launch {
+        com.pinfold.app.network.image.ImageStore(getApplication(), HttpClientFactory.create()).remove(item.id)
+        db.bookmarkDao().update(db.bookmarkDao().findById(item.id)?.copy(imagePath = null, blurhash = null) ?: return@launch)
     }
 
     fun refetch(item: Bookmark) {
