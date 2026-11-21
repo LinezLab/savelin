@@ -12,6 +12,7 @@ import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.data.settings.SettingsRepository
+import com.pinfold.app.reminders.ReminderScheduler
 import com.pinfold.app.network.UrlNormalizer
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.resolvers.HttpClientFactory
@@ -113,7 +114,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setReminder(item: Bookmark, triggerAt: Long) = viewModelScope.launch {
-        db.reminderDao().insert(com.pinfold.app.data.model.Reminder(bookmarkId = item.id, triggerAt = triggerAt))
+        val reminder = com.pinfold.app.data.model.Reminder(bookmarkId = item.id, triggerAt = triggerAt)
+        val id = db.reminderDao().insert(reminder)
+        if (id > 0) {
+            ReminderScheduler.schedule(getApplication(), reminder.copy(id = id))
+        }
     }
 
     fun recordOpen(item: Bookmark) = viewModelScope.launch {
