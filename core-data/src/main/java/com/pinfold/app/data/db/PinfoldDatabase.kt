@@ -44,6 +44,7 @@ abstract class PinfoldDatabase : RoomDatabase() {
                 PinfoldDatabase::class.java,
                 "pinfold.db",
             ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+        }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -53,7 +54,6 @@ abstract class PinfoldDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE bookmarks ADD COLUMN $column TEXT NOT NULL DEFAULT ''")
                 }
             }
-        }
         }
     }
 }
