@@ -82,7 +82,13 @@ fun FloatingPillNav(
             .width(width)
             .height(64.dp)
             .alpha(alpha)
-            .glass(Capsule, colors.glass, blur = 3.dp, lensHeight = 14.dp, lensAmount = 26.dp)
+            .glass(
+                Capsule,
+                colors.glass,
+                blur = com.pinfold.app.ui.glass.GlassSettings.style.blur.dp,
+                lensHeight = com.pinfold.app.ui.glass.GlassSettings.style.refractionHeight.dp,
+                lensAmount = com.pinfold.app.ui.glass.GlassSettings.style.refractionAmount.dp,
+            )
             .clip(Capsule)
             .padding(6.dp)
             .onGloballyPositioned { coords = it }

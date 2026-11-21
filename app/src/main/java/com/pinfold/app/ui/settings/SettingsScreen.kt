@@ -56,15 +56,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         GlassBackButton(onBack = { viewModel.selectTab(com.pinfold.app.ui.home.HomeTab.HOME) })
         SectionTitle("Liquid glass", com.pinfold.app.ui.components.AppIcons.Liquid, MaterialTheme.typography.headlineMedium)
         val style = GlassSettings.style
-        Text("Glass style", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GlassStyle.Named.forEach { (name, preset) ->
-                Button(
-                    onClick = { GlassSettings.update(context, preset) },
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                ) { Text(if (style == preset) "✓ $name" else name) }
-            }
-        }
+        com.pinfold.app.ui.components.GlassDropdown(
+            label = "Glass style",
+            options = GlassStyle.Named.map { it.first },
+            selected = GlassStyle.Named.firstOrNull { it.second == style }?.first ?: "Liquid",
+            onSelect = { name -> GlassStyle.Named.firstOrNull { it.first == name }?.second?.let { GlassSettings.update(context, it) } },
+            modifier = Modifier.fillMaxWidth(),
+        )
         FineSlider("Blur", style.blur, 0f..4f) { GlassSettings.update(context, style.copy(blur = it)) }
         FineSlider("Refraction height", style.refractionHeight, 0f..3f) { GlassSettings.update(context, style.copy(refractionHeight = it)) }
         FineSlider("Refraction amount", style.refractionAmount, 0f..3f) { GlassSettings.update(context, style.copy(refractionAmount = it)) }
@@ -79,15 +77,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         Divider()
         SectionTitle("Motion", com.pinfold.app.ui.components.AppIcons.Motion, MaterialTheme.typography.headlineMedium)
         val motion = MotionSettings.style
-        Text("Button motion", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MotionStyle.Presets.forEach { preset ->
-                Button(
-                    onClick = { MotionSettings.update(context, preset) },
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                ) { Text(if (motion == preset) "✓ ${preset.label}" else preset.label) }
-            }
-        }
+        com.pinfold.app.ui.components.GlassDropdown(
+            label = "Button motion",
+            options = MotionStyle.Presets.map { it.label },
+            selected = motion.label,
+            onSelect = { name -> MotionStyle.Presets.firstOrNull { it.label == name }?.let { MotionSettings.update(context, it) } },
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text("Glass spring fine tune", style = MaterialTheme.typography.titleMedium)
         FineSlider("Bounce", motion.bounce, 0f..1f) { MotionSettings.update(context, motion.copy(bounce = it)) }
         FineSlider("Speed", motion.speed, 0.4f..2.5f) { MotionSettings.update(context, motion.copy(speed = it)) }
@@ -111,26 +107,20 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
-        Text("Spacing: ${settings.cardSpacing}", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("TIGHT", "NORMAL", "ROOMY").forEach { value ->
-                Button(onClick = { viewModel.setCardSpacing(value) }, modifier = Modifier.padding(horizontal = 2.dp)) {
-                    Text(if (settings.cardSpacing == value) "✓ $value" else value)
-                }
-            }
-        }
-        Text("Caption style: ${settings.cardCaptionStyle}", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY").forEach { value ->
-                Button(onClick = { viewModel.setCardCaptionStyle(value) }, modifier = Modifier.padding(horizontal = 2.dp)) {
-                    Text(if (settings.cardCaptionStyle == value) "✓ $value" else value)
-                }
-            }
-        }
-        FineSlider("Caption lines", settings.cardTitleLines.toFloat(), 0f..2f) { viewModel.setCardTitleLines(it.roundToInt()) }
-        SettingRow("Show author line", settings.cardShowAuthorLine) { viewModel.setCardShowAuthorLine(it) }
-        SettingRow("Limit very tall images", settings.limitTallImages) { viewModel.setLimitTallImages(it) }
-        SettingRow("True black background", settings.trueBlack) { viewModel.setTrueBlack(it) }
+        com.pinfold.app.ui.components.GlassDropdown(
+            label = "Card spacing",
+            options = listOf("TIGHT", "NORMAL", "ROOMY"),
+            selected = settings.cardSpacing,
+            onSelect = viewModel::setCardSpacing,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        com.pinfold.app.ui.components.GlassDropdown(
+            label = "Caption style",
+            options = listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY"),
+            selected = settings.cardCaptionStyle,
+            onSelect = viewModel::setCardCaptionStyle,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Divider()
         SectionTitle("Privacy & network", com.pinfold.app.ui.components.AppIcons.Lock, MaterialTheme.typography.headlineSmall)

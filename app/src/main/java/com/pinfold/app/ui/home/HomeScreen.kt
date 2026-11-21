@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -74,21 +76,18 @@ fun HomeScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
-                    selected = false,
-                    onClick = { viewModel.setSearchActive(true) },
-                    label = { Text("Search") },
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { viewModel.toggleImportantFilter() },
-                    label = { Text("Important") },
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { viewModel.toggleReminderFilter() },
-                    label = { Text("Due") },
-                )
+                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.setSearchActive(true) }, height = 36.dp) {
+                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Search, null, size = 16.dp)
+                    Text("Search")
+                }
+                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleImportantFilter() }, height = 36.dp) {
+                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Important, null, size = 16.dp)
+                    Text("Important")
+                }
+                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleReminderFilter() }, height = 36.dp) {
+                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Reminder, null, size = 16.dp)
+                    Text("Due")
+                }
             }
         }
         if (searchActive && query.isNotBlank()) {
@@ -117,7 +116,12 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize().weight(1f).background(
                 if (settings.trueBlack) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.background,
             ),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                end = 4.dp,
+                bottom = 88.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+            ),
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {

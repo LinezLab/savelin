@@ -5,6 +5,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,6 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.first
@@ -64,15 +72,24 @@ fun App(sharedText: String? = null) {
     GlassStage(
         wallpaper = { Aurora(AuroraMoods.Desk) },
         screens = {
-            Box(Modifier.fillMaxSize().padding(bottom = 88.dp)) {
-                if (tab == HomeTab.SETTINGS) {
-                    SettingsScreen(viewModel)
-                } else {
-                    HomeScreen(viewModel, onOpen = { detail = it })
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
+                ) {
+                    if (tab == HomeTab.SETTINGS) {
+                        SettingsScreen(viewModel)
+                    } else {
+                        HomeScreen(viewModel, onOpen = { detail = it })
+                    }
                 }
-            }
-            detail?.let { item ->
-                DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
+                val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                Box(
+                    Modifier.fillMaxWidth().height(topInset + 8.dp).align(Alignment.TopCenter)
+                        .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.40f), Color.Transparent))),
+                )
+                detail?.let { item ->
+                    DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
+                }
             }
         },
         chrome = {

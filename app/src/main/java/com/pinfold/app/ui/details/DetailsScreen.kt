@@ -8,6 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -109,7 +113,7 @@ fun DetailsScreen(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)).height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 GlassBackButton(onBack = onBack)
                 val share = Intent(Intent.ACTION_SEND).apply {
@@ -254,7 +258,13 @@ fun DetailsScreen(
 
         Row(
             Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 18.dp)
-                .glass(Capsule, glass.glass, blur = 3.dp, lensHeight = 14.dp, lensAmount = 26.dp).padding(6.dp),
+                .glass(
+                    Capsule,
+                    glass.glass,
+                    blur = com.pinfold.app.ui.glass.GlassSettings.style.blur.dp,
+                    lensHeight = com.pinfold.app.ui.glass.GlassSettings.style.refractionHeight.dp,
+                    lensAmount = com.pinfold.app.ui.glass.GlassSettings.style.refractionAmount.dp,
+                ).padding(6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -277,15 +287,14 @@ fun DetailsScreen(
 
 @Composable
 private fun GlassChipButton(label: String, onClick: () -> Unit) {
-    val glass = clear
-    Text(
-        label,
-        color = glass.ink,
-        style = MaterialTheme.typography.labelMedium,
-        modifier = Modifier.clip(Capsule).glass(Capsule, glass.glass, blur = 2.dp).clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        maxLines = 1,
-    )
+    com.pinfold.app.ui.glass.GlassChip(
+        onClick = onClick,
+        height = 34.dp,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+        label = label,
+    ) {
+        Text(label, color = clear.ink, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+    }
 }
 
 private fun shortUrl(url: String): String {
