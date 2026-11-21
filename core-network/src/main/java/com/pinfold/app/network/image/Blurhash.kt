@@ -12,7 +12,7 @@ import kotlin.math.sign
 import kotlin.math.sqrt
 
 object Blurhash {
-    private const val BASE83 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~"
+    private const val BASE83 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#\$%*+,-.:;=?@[]^_{|}~"
 
     fun encode(bitmap: Bitmap, xComponents: Int = 4, yComponents: Int = 3): String {
         val width = 32
@@ -30,7 +30,7 @@ object Blurhash {
                 var norm = 0f
                 for (j in 0 until height) {
                     for (i in 0 until width) {
-                        val basis = (Math.PI * x * i / width).let(::cos) * (Math.PI * y * j / height).let(::cos)
+                        val basis = ((Math.PI * x * i / width).let(::cos) * (Math.PI * y * j / height).let(::cos)).toFloat()
                         val pixel = pixels[j * width + i]
                         r += basis * srgbToLinear(Color.red(pixel) / 255f)
                         g += basis * srgbToLinear(Color.green(pixel) / 255f)
