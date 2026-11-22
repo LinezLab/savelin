@@ -310,7 +310,7 @@ fun rememberSpringAppear(
 @Composable
 fun rememberRowReveal(appear: Animatable<Float, AnimationVector1D>, index: Int): Animatable<Float, AnimationVector1D> {
     val row = remember { Animatable(0f) }
-    val open by derivedStateOf { appear.value >= 0.4f }
+    val open by remember { derivedStateOf { appear.value >= 0.4f } }
     LaunchedEffect(open, index) {
         if (open) {
             if (index > 0) delay(index * 35L)
