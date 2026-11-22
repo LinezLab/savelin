@@ -64,7 +64,7 @@ fun App(sharedText: String? = null) {
     // The Reduce motion switch lives in the data layer; mirror it into the glass motion engine so
     // every spring, pop-up and press in the app swaps to its short fade in the same frame.
     LaunchedEffect(appearance.reduceMotion) {
-        MotionSettings.setReduceMotion(appearance.reduceMotion)
+        MotionSettings.updateReduceMotion(appearance.reduceMotion)
     }
     BackHandler(enabled = detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS) {
         when {

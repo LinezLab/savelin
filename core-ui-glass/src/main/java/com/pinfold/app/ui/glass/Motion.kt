@@ -93,7 +93,8 @@ object MotionSettings {
     var reduceMotion: Boolean by mutableStateOf(false)
         private set
 
-    fun setReduceMotion(value: Boolean) {
+    /** Mirrors the data layer's Reduce motion switch (kept separate from the generated setter). */
+    fun updateReduceMotion(value: Boolean) {
         if (reduceMotion != value) reduceMotion = value
     }
 
