@@ -190,10 +190,7 @@ fun Modifier.pressable(
             val r = corner.topStart.toPx(size, this)
             drawRoundRect(
                 color = Color.White.copy(alpha = 0.38f * p),
-                topLeft = CornerRadius(r),
-                topRight = CornerRadius(r),
-                bottomRight = CornerRadius(r),
-                bottomLeft = CornerRadius(r),
+                cornerRadius = CornerRadius(r),
                 style = Stroke(width = 2.dp.toPx()),
             )
         }
