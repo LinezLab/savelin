@@ -132,6 +132,8 @@ fun App(sharedText: String? = null) {
                     onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
+            }
+        }
     )
     if (showAdd) {
         AlertDialog(
