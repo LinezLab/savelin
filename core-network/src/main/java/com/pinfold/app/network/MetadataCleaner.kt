@@ -12,10 +12,11 @@ data class CleanedMetadata(
 
 object MetadataCleaner {
     private val INSTAGRAM_DESCRIPTION = Regex(
-        """([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},\s*\d{4})\s*:\s*"([\s\S]*)"""",
+        """(?:([\\d.,KkMm]+)\s+likes,\s*([\\d.,KkMm]+)\s+comments\s*-\s*)?""" +
+            """(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},\s*\d{4})\s*:\s*(["“])([\s\S]*)(["”])\s*\.?\s*$""",
     )
     private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
-    private val PUNCTUATION_ONLY = Regex("^[\\s.\\-–—·•,;:!?…]+$")
+    private val PUNCTUATION_ONLY = Regex("^[\\s.\\-–—·•,;:!?…\"“”']+$")
 
     /** Drops dot-only lines, collapses blank runs and removes trailing hashtag-only lines. */
     fun cleanForDisplay(caption: String): String {
@@ -44,11 +45,27 @@ object MetadataCleaner {
         val comments = match?.groupValues?.get(2).orEmpty()
         val handle = match?.groupValues?.get(3)?.trim().orEmpty().ifEmpty { author.trim() }
         val posted = match?.groupValues?.get(4).orEmpty()
-        val caption = match?.groupValues?.get(5)?.trim().orEmpty().ifEmpty { description.trim() }
+        val rawCaption = match?.groupValues?.get(6)?.trim().orEmpty()
+            ?.trim('"', '“', '”', '\'')
+            ?.trimEnd('.')
+            ?.trim()
+            .orEmpty()
+            .ifEmpty { description.trim() }
+        val caption = cleanForDisplay(rawCaption)
 
-        val usableTitle = title.trim().takeIf {
-            it.isNotBlank() && !it.equals(siteName.trim(), ignoreCase = true) && it.length > 2
-        } ?: caption.lineSequence().firstOrNull()?.trim().orEmpty().take(80)
+        val captionFirstLine = caption.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
+            .orEmpty()
+            .take(80)
+
+        val usableTitle = if (match != null && captionFirstLine.isNotBlank()) {
+            captionFirstLine
+        } else {
+            title.trim().takeIf {
+                it.isNotBlank() && !it.equals(siteName.trim(), ignoreCase = true) && it.length > 2
+            }.orEmpty()
+        }
 
         val displayTitle = usableTitle.ifBlank {
             if (handle.isNotBlank()) "@${handle.removePrefix("@")}" else fallbackTitle

@@ -7,20 +7,18 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.ui.unit.DpOffset
+import androidx.compose.foundation.layout.DpOffset
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +29,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,10 +37,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,18 +53,18 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.Capsule
+import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.RoundedRectangle
@@ -87,21 +84,27 @@ fun DetailsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val glass = clear
     val bookmark = item.bookmark
+    val colors = clear
+    val style = GlassSettings.style
+    val ink = colors.ink
+
     var expandedCaption by remember { mutableStateOf(false) }
     var cameraMenu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
-    var openMenu by remember { mutableStateOf(false) }
-    var reminderMenu by remember { mutableStateOf(false) }
+    var reminderOpen by remember { mutableStateOf(false) }
     var showFullUrl by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var notes by remember(bookmark.id) { mutableStateOf(bookmark.notes) }
+    var reminderText by remember(bookmark.id) { mutableStateOf("") }
     val imagePath = bookmark.imagePath?.takeIf { File(it).exists() }
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) viewModel.attachImage(bookmark, uri)
     }
     val target = remember(bookmark.url) { OpenTargetResolver.resolve(context, bookmark.url) }
+    val openName = target.label ?: bookmark.siteName.ifBlank {
+        bookmark.url.substringAfter("://").substringBefore('/').removePrefix("www.")
+    }
 
     LaunchedEffect(copied) {
         if (copied) {
@@ -117,11 +120,7 @@ fun DetailsScreen(
         copied = true
     }
 
-    val gradient = Brush.verticalGradient(
-        listOf(Candy.Bubblegum.copy(alpha = 0.85f), Candy.Grape.copy(alpha = 0.9f), Candy.Tangerine.copy(alpha = 0.8f)),
-    )
-
-    Box(modifier.fillMaxSize().background(gradient)) {
+    Box(modifier.fillMaxSize().background(colors.wall.last())) {
         if (imagePath != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(File(imagePath)).build(),
@@ -129,40 +128,31 @@ fun DetailsScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().blur(28.dp),
             )
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.55f), Color.Black.copy(0.78f)))))
-        } else {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.5f), Color.Black.copy(0.72f)))))
         }
 
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
                 .padding(horizontal = 16.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val height = minOf(maxHeight * 0.55f, 420.dp)
+                val heroHeight = minOf(maxHeight * 0.5f, 380.dp)
                 Box(
-                    Modifier.fillMaxWidth().height(height).clip(RoundedRectangle(28.dp))
-                        .border(1.dp, glass.rim, RoundedRectangle(28.dp)),
+                    Modifier.fillMaxWidth().height(heroHeight).clip(RoundedRectangle(28.dp))
+                        .glass(RoundedRectangle(28.dp), colors.glass, blur = style.blur.dp,
+                            lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp),
                 ) {
                     if (imagePath != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(context).data(File(imagePath)).build(),
-                            contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
+                            contentDescription = bookmark.displayTitle,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Box(
-                            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Candy.Bubblegum, Candy.Grape, Candy.Tangerine))),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                AppIcons.Icon(AppIcons.NoPreview, null, tint = Color.White, size = 32.dp)
-                                Text("No preview. Add image", color = Color.White)
-                            }
-                        }
+                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Candy.Bubblegum, Candy.Grape, Candy.Tangerine))))
                     }
                     Box(Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                         GlassCircle(
@@ -170,195 +160,218 @@ fun DetailsScreen(
                             onLongClick = { cameraMenu = true },
                             size = 44.dp,
                             label = "Image options",
-                        ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = glass.ink) }
+                        ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = ink) }
                         DropdownMenu(expanded = cameraMenu, onDismissRequest = { cameraMenu = false }, offset = DpOffset((-180).dp, (-140).dp)) {
-                            DropdownMenuItem(
-                                text = { Text("Refetch image") },
-                                leadingIcon = { AppIcons.Icon(AppIcons.Refetch, null, size = 20.dp) },
-                                onClick = { viewModel.refetch(bookmark); cameraMenu = false },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Remove image") },
-                                leadingIcon = { AppIcons.Icon(AppIcons.NoPreview, null, size = 20.dp) },
-                                onClick = { viewModel.removeImage(bookmark); cameraMenu = false },
-                            )
+                            DropdownMenuItem(text = { Text("Refetch image") }, onClick = { viewModel.refetch(bookmark); cameraMenu = false })
+                            DropdownMenuItem(text = { Text("Remove custom image") }, onClick = { viewModel.removeImage(bookmark); cameraMenu = false })
                         }
                     }
                 }
             }
 
             Column(
-                Modifier.fillMaxWidth().glass(RoundedRectangle(28.dp), glass.frost, blur = 8.dp).padding(20.dp),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                Modifier.fillMaxWidth()
+                    .glass(RoundedRectangle(28.dp), colors.glass, blur = style.blur.dp,
+                        lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                FlowRow(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                    GlassChipLabel(bookmark.platform.ifBlank { "Web" }, icon = AppIcons.Browser)
-                    if (bookmark.authorHandle.isNotBlank()) GlassChipLabel("@${bookmark.authorHandle}", icon = null)
-                    if (bookmark.postedAt.isNotBlank()) GlassChipLabel(bookmark.postedAt, icon = null)
-                    if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.ink, size = 16.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    GlassTag(bookmark.platform.ifBlank { "Web" })
+                    if (bookmark.authorHandle.isNotBlank()) GlassTag("@${bookmark.authorHandle}")
+                    if (bookmark.postedAt.isNotBlank()) GlassTag(bookmark.postedAt)
+                    if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = ink, size = 16.dp)
                 }
 
                 var titleExpanded by remember { mutableStateOf(false) }
                 Text(
                     bookmark.displayTitle.ifBlank { bookmark.title.ifBlank { bookmark.url } },
                     style = MaterialTheme.typography.headlineSmall,
-                    color = glass.ink,
+                    color = ink,
                     maxLines = if (titleExpanded) Int.MAX_VALUE else 4,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().combinedClickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) {
-                        titleExpanded = !titleExpanded
-                    },
+                    modifier = Modifier.fillMaxWidth().combinedClickable(
+                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
+                    ) { titleExpanded = !titleExpanded },
                 )
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    val shown = if (showFullUrl) bookmark.url else shortUrl(bookmark.url)
                     Text(
-                        shown,
-                        color = glass.inkSoft,
+                        if (showFullUrl) bookmark.url else shortUrl(bookmark.url),
+                        color = ink,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = if (showFullUrl) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).combinedClickable(
+                        modifier = Modifier.fillMaxWidth(0.8f).combinedClickable(
                             remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
                             onClick = { showFullUrl = !showFullUrl },
                             onLongClick = { copyUrl(original = true) },
                         ),
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Box {
-                        GlassCircle(onClick = { copyUrl(false) }, size = 40.dp, label = "Copy link") {
-                            AppIcons.Icon(if (copied) AppIcons.Selected else AppIcons.Copy, "Copy link", tint = glass.ink)
-                        }
+                    Spacer(Modifier.size(8.dp))
+                    GlassCircle(onClick = { copyUrl(false) }, size = 44.dp, label = "Copy link") {
+                        AppIcons.Icon(if (copied) AppIcons.Selected else AppIcons.Copy, "Copy link", tint = ink)
                     }
                 }
 
-                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (bookmark.likesText.isNotBlank()) {
-                        GlassChipLabel(bookmark.likesText, icon = AppIcons.Likes)
+                        GlassTag("Likes ${bookmark.likesText}", icon = AppIcons.Likes)
                     }
                     if (bookmark.commentsText.isNotBlank()) {
-                        GlassChipLabel(bookmark.commentsText, icon = AppIcons.Comments)
+                        GlassTag("Comments ${bookmark.commentsText}", icon = AppIcons.Comments)
                     }
                 }
 
-                if (bookmark.fetchStatus != com.pinfold.app.data.model.FetchStatus.OK) {
-                    GlassChipButton("Preview incomplete — refetch") { viewModel.refetch(bookmark) }
-                }
-
-                Divider(color = glass.line)
+                Divider(color = colors.line)
                 val caption = MetadataCleaner.cleanForDisplay(bookmark.caption)
                 if (caption.isNotBlank()) {
                     SelectionContainer {
-                        Text(
-                            caption,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = glass.ink,
-                            maxLines = if (expandedCaption) Int.MAX_VALUE else 4,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Text(caption, style = MaterialTheme.typography.bodyMedium, color = ink,
+                            maxLines = if (expandedCaption) Int.MAX_VALUE else 4, overflow = TextOverflow.Ellipsis)
                     }
-                    Box(
-                        Modifier.size(40.dp).clickable { expandedCaption = !expandedCaption },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        AppIcons.Icon(if (expandedCaption) AppIcons.Expand else AppIcons.Expand, "Expand caption", tint = clear.ink)
+                    Box(Modifier.size(44.dp).combinedClickable(
+                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
+                    ) { expandedCaption = !expandedCaption }, contentAlignment = Alignment.Center) {
+                        AppIcons.Icon(AppIcons.Expand, "Expand caption", tint = ink)
                     }
                 }
 
-                Divider(color = glass.line)
+                Divider(color = colors.line)
                 FlowRow(
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    AppIcons.Icon(AppIcons.Tags, "Tags", tint = glass.inkSoft, size = 20.dp)
-                    item.tags.forEach { tag -> GlassChipLabel(tag.name, icon = null) }
-                    GlassChipButton("+") { }
+                    item.tags.forEach { GlassTag(it.name) }
+                    GlassTag("+", icon = AppIcons.Add)
                 }
 
-                Divider(color = glass.line)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIcons.Icon(AppIcons.Notes, "Notes", tint = glass.inkSoft, size = 20.dp)
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it; viewModel.setNotes(bookmark, it) },
-                        label = { Text("Notes") },
-                        modifier = Modifier.fillMaxWidth(),
+                Divider(color = colors.line)
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it; viewModel.setNotes(bookmark, it) },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                GlassChip(onClick = { reminderOpen = true }, height = 40.dp, label = "Reminder") {
+                    AppIcons.Icon(AppIcons.Snooze, null, tint = ink, size = 16.dp)
+                    Text(
+                        reminderText.ifBlank { "Add reminder" },
+                        color = ink,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
 
-                Box {
-                    GlassChipButton(if (bookmark.postedAt.isNotBlank()) "Reminder set" else "Add reminder") { reminderMenu = true }
-                    DropdownMenu(expanded = reminderMenu, onDismissRequest = { reminderMenu = false }, offset = DpOffset(0.dp, (-120).dp)) {
-                        listOf("In 1 hour" to 3_600_000L, "Tonight" to 86_400_000L, "Tomorrow morning" to 108_000_000L).forEach { (label, delta) ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                viewModel.setReminder(bookmark, System.currentTimeMillis() + delta)
-                                reminderMenu = false
-                            })
-                        }
-                    }
-                }
-
-                FlowRow(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                    Text("Saved ${android.text.format.DateFormat.getDateFormat(context).format(java.util.Date(bookmark.createdAt))}", color = glass.inkSoft, style = MaterialTheme.typography.labelSmall)
-                    Text("Opened ${bookmark.openCount} times", color = glass.inkSoft, style = MaterialTheme.typography.labelSmall)
-                }
+                Text(
+                    "Saved ${android.text.format.DateFormat.getDateFormat(context).format(java.util.Date(bookmark.createdAt))} · Opened ${bookmark.openCount} times",
+                    color = ink,
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
             Spacer(Modifier.height(120.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()))
         }
 
         Row(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 14.dp)
-                .glass(
-                    Capsule,
-                    glass.glass,
-                    blur = GlassSettings.style.blur.dp,
-                    lensHeight = GlassSettings.style.refractionHeight.dp,
-                    lensAmount = GlassSettings.style.refractionAmount.dp,
-                ).clip(Capsule).padding(6.dp),
+            Modifier.zIndex(10f).align(Alignment.BottomCenter).fillMaxWidth()
+                .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                .height(60.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            PillButton(AppIcons.Back, "Back", onClick = onBack)
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, clear.line, RoundedCornerShape(12.dp))) {
-                Box {
-                    GlassCircle(onClick = { openLink(context, bookmark.url, target.packageName) }, onLongClick = { openMenu = true }, size = 48.dp, label = "Open link") {
-                        val icon: ImageBitmap? = target.icon
-                        if (icon != null) {
-                            androidx.compose.foundation.Image(icon, "Open in ${target.label ?: "app"}", modifier = Modifier.size(24.dp))
-                        } else {
-                            AppIcons.Icon(AppIcons.Open, "Open link", tint = glass.ink)
+            GlassCircle(onClick = onBack, onLongClick = onBack, size = 56.dp, label = "Back") {
+                AppIcons.Icon(AppIcons.Back, "Back", tint = ink)
+            }
+            Box(
+                Modifier.fillMaxWidth().height(60.dp)
+                    .glass(Capsule, colors.glass, blur = style.blur.dp,
+                        lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
+                    .clip(Capsule).padding(6.dp),
+            ) {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.fillMaxWidth(0.8f)) {
+                        GlassChip(
+                            onClick = { openLink(context, bookmark.url, target.packageName) },
+                            height = 48.dp,
+                            label = "Open in $openName",
+                        ) {
+                            Text(
+                                "Open in $openName",
+                                color = ink,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
-                    DropdownMenu(expanded = openMenu, onDismissRequest = { openMenu = false }, offset = DpOffset((-140).dp, (-150).dp)) {
-                        DropdownMenuItem(text = { Text("Open in browser") }, onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
-                            openMenu = false
-                        })
-                        DropdownMenuItem(text = { Text("Open in app") }, onClick = {
-                            openLink(context, bookmark.url, target.packageName)
-                            openMenu = false
-                        })
+                    Box {
+                        GlassCircle(onClick = { moreMenu = true }, onLongClick = { moreMenu = true }, size = 48.dp, label = "More") {
+                            AppIcons.Icon(AppIcons.More, "More", tint = ink)
+                        }
+                        DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }, offset = DpOffset(0.dp, (-180).dp)) {
+                            DropdownMenuItem(
+                                text = { Text(if (bookmark.isImportant) "Remove important" else "Mark important") },
+                                leadingIcon = { AppIcons.Icon(AppIcons.Important, null, tint = ink, size = 20.dp) },
+                                onClick = { viewModel.toggleImportant(bookmark); moreMenu = false },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (reminderText.isBlank()) "Set reminder" else "Edit reminder") },
+                                leadingIcon = { AppIcons.Icon(AppIcons.Reminder, null, tint = ink, size = 20.dp) },
+                                onClick = { reminderOpen = true; moreMenu = false },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                leadingIcon = { AppIcons.Icon(AppIcons.Share, null, tint = ink, size = 20.dp) },
+                                onClick = {
+                                    val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, bookmark.url) }
+                                    context.startActivity(Intent.createChooser(share, "Share"))
+                                    moreMenu = false
+                                },
+                            )
+                        }
                     }
                 }
             }
-            PillButton(AppIcons.Important, "Important", active = bookmark.isImportant, onClick = { viewModel.toggleImportant(bookmark) })
-            PillButton(if (bookmark.postedAt.isNotBlank() || reminderSet(bookmark.id)) AppIcons.ReminderSet else AppIcons.Reminder, "Reminder", onClick = { reminderMenu = true })
-            PillButton(AppIcons.Share, "Share", onClick = {
-                val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, bookmark.url) }
-                context.startActivity(Intent.createChooser(share, "Share"))
-            })
-            Box {
-                PillButton(AppIcons.More, "More", onClick = { moreMenu = true })
-                DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }, offset = DpOffset((-160).dp, (-260).dp)) {
-                    DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { AppIcons.Icon(AppIcons.Edit, null, size = 20.dp) }, onClick = { moreMenu = false })
-                    DropdownMenuItem(text = { Text("Refetch image") }, leadingIcon = { AppIcons.Icon(AppIcons.Refetch, null, size = 20.dp) }, onClick = { viewModel.refetch(bookmark); moreMenu = false })
-                    DropdownMenuItem(text = { Text("Add custom image") }, leadingIcon = { AppIcons.Icon(AppIcons.CustomImage, null, size = 20.dp) }, onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)); moreMenu = false })
-                    DropdownMenuItem(text = { Text("Move to collection") }, leadingIcon = { AppIcons.Icon(AppIcons.MoveToCollection, null, size = 20.dp) }, onClick = { moreMenu = false })
-                    DropdownMenuItem(text = { Text("Archive") }, leadingIcon = { AppIcons.Icon(AppIcons.Archive, null, size = 20.dp) }, onClick = { viewModel.setArchived(bookmark, true); onBack() })
-                    DropdownMenuItem(text = { Text("Open in browser") }, leadingIcon = { AppIcons.Icon(AppIcons.Browser, null, size = 20.dp) }, onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url))); moreMenu = false })
-                    DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { AppIcons.Icon(AppIcons.Delete, null, size = 20.dp) }, onClick = { viewModel.delete(bookmark); onBack() })
+        }
+
+        if (reminderOpen) {
+            Box(Modifier.zIndex(20f).fillMaxSize().background(Color.Black.copy(alpha = 0.55f))) {
+                Column(
+                    Modifier.align(Alignment.Center).fillMaxWidth().padding(24.dp)
+                        .glass(RoundedRectangle(24.dp), colors.glass, blur = style.blur.dp,
+                            lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("Set reminder", style = MaterialTheme.typography.headlineSmall, color = ink)
+                    Text(bookmark.displayTitle.ifBlank { bookmark.title }, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    OutlinedTextField(
+                        value = reminderText,
+                        onValueChange = { reminderText = it },
+                        label = { Text("When") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("In 1 hour", "Tonight", "Tomorrow morning", "Next week").forEach { label ->
+                            GlassChip(onClick = { reminderText = label }, height = 36.dp, label = label) {
+                                Text(label, color = ink, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { reminderOpen = false }) { Text("Cancel") }
+                        TextButton(onClick = {
+                            if (reminderText.isNotBlank()) {
+                                viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
+                                reminderOpen = false
+                            }
+                        }) { Text("Set reminder") }
+                        if (reminderText.isNotBlank()) {
+                            TextButton(onClick = { reminderText = ""; reminderOpen = false }) { Text("Remove reminder") }
+                        }
+                    }
                 }
             }
         }
@@ -366,28 +379,12 @@ fun DetailsScreen(
 }
 
 @Composable
-private fun PillButton(icon: Int, label: String, active: Boolean = false, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
-    GlassCircle(onClick = onClick, onLongClick = onLongClick, size = 48.dp, label = label) {
-        AppIcons.Icon(icon, label, tint = clear.ink)
+private fun GlassTag(label: String, icon: Int? = null) {
+    GlassChip(onClick = {}, height = 32.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp), label = label) {
+        if (icon != null) AppIcons.Icon(icon, null, tint = clear.ink, size = 16.dp)
+        Text(label, color = clear.ink, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
-
-@Composable
-private fun GlassChipLabel(label: String, icon: Int?) {
-    com.pinfold.app.ui.glass.GlassChip(onClick = {}, height = 34.dp, label = label) {
-        if (icon != null) AppIcons.Icon(icon, null, size = 16.dp)
-        Text(label, color = clear.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-private fun GlassChipButton(label: String, onClick: () -> Unit) {
-    com.pinfold.app.ui.glass.GlassChip(onClick = onClick, height = 34.dp, label = label) {
-        Text(label, color = clear.ink, maxLines = 1)
-    }
-}
-
-private fun reminderSet(bookmarkId: Long): Boolean = false
 
 private fun openLink(context: android.content.Context, url: String, pkg: String?) {
     val intent = if (pkg != null) {
