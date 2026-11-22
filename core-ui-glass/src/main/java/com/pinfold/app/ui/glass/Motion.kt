@@ -211,7 +211,7 @@ object SpringMotion {
     fun listFade(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.8f), MotionSettings.stiffness(420f), 0.0005f))
 
     /** A card changing place as the list inserts or removes an item. */
-    fun listPlace(): AnimationSpec<IntOffset> = reduceOr(spring(MotionSettings.damping(0.7f), MotionSettings.stiffness(360f), IntOffset.VisibilityThreshold))
+    fun listPlace(): AnimationSpec<IntOffset> = reduceOr(spring<IntOffset>(MotionSettings.damping(0.7f), MotionSettings.stiffness(360f)))
 }
 
 /**

@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.theme.clear
 import com.kyant.backdrop.drawBackdrop
-import androidx.compose.ui.graphics.drawscope.drawOutline
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 /**
  * A still glass surface (bars, the dock's body, panels, sheets): refracts [LocalBackdrop] through
@@ -183,9 +185,17 @@ fun Modifier.pressable(
     val rim = if (pressedRim != null) Modifier.drawWithContent {
         drawContent()
         val p = jelly.progress
-        if (p > 0f) {
-            val outline = pressedRim.createOutline(size, layoutDirection, this)
-            drawOutline(outline, Color.White.copy(alpha = 0.38f * p), strokeWidth = 2.dp.toPx())
+        val corner = pressedRim as? RoundedCornerShape
+        if (p > 0f && corner != null) {
+            val r = corner.topStart.toPx(size, this)
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.38f * p),
+                topLeft = CornerRadius(r),
+                topRight = CornerRadius(r),
+                bottomRight = CornerRadius(r),
+                bottomLeft = CornerRadius(r),
+                style = Stroke(width = 2.dp.toPx()),
+            )
         }
     } else Modifier
     return rim.graphicsLayer {
