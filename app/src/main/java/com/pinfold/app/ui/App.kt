@@ -92,7 +92,7 @@ fun App(sharedText: String? = null) {
         wallpaper = {
             val bg = appearance
             when (bg.backgroundType) {
-                "SOLID" -> Box(Modifier.fillMaxSize().background(Color.hsv(bg.backgroundHue, 0.55f, 0.92f)))
+                "SOLID" -> Box(Modifier.fillMaxSize().background(Color.hsv(bg.backgroundHue.coerceIn(0f, 360f), 0.55f, 0.92f)))
                 "PICTURE" -> {
                     val wall = GlassSettings.customWallpaper
                     if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)

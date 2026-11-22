@@ -71,6 +71,7 @@ fun HomeScreen(
     onOpen: (BookmarkWithTags) -> Unit = {},
 ) {
     val items by viewModel.items.collectAsState()
+    val distinctItems = remember(items) { items.distinctBy { it.bookmark.id } }
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
@@ -99,7 +100,7 @@ fun HomeScreen(
         Column(Modifier.fillMaxSize()) {
         if (searchActive && query.isNotBlank()) {
             Text(
-                "${items.size} result${if (items.size == 1) "" else "s"}",
+                "${distinctItems.size} result${if (distinctItems.size == 1) "" else "s"}",
                 style = MaterialTheme.typography.labelMedium,
                 color = clear.onGlass,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -132,7 +133,7 @@ fun HomeScreen(
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
-            items(items, key = { HomeGridKey.Bookmark(it.bookmark.id) }) { item ->
+            items(distinctItems, key = { HomeGridKey.Bookmark(it.bookmark.id) }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(
                         placementSpec = SpringMotion.listPlace(),

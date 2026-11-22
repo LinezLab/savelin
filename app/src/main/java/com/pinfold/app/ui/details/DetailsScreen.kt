@@ -33,7 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -316,7 +316,7 @@ fun DetailsScreen(
             }
             Box(
                 Modifier.align(Alignment.Center)
-                    .widthIn(min = 160.dp, max = maxWidth - 248.dp)
+                    .width((maxWidth - 248.dp).coerceAtLeast(160.dp))
                     .height(56.dp)
                     .then(SavelinGlass.modifier(Capsule))
                     .clip(Capsule),
