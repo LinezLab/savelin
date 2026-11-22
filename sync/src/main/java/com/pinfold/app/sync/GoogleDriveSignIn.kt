@@ -26,7 +26,9 @@ class GoogleDriveSignIn(private val activity: FragmentActivity) {
     private val scope = Scope("https://www.googleapis.com/auth/drive.appdata")
     private var callback: ((SignInResult) -> Unit)? = null
 
-    private val launcher: ActivityResultLauncher<IntentSenderRequest> =
+    // Registration is only legal before the Activity is STARTED. The host Activity creates this
+    // helper that early; the fallback keeps a late/unsafe construction from crashing the app.
+    private val launcher: ActivityResultLauncher<IntentSenderRequest>? = runCatching {
         activity.registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
             if (result.resultCode == Activity.RESULT_CANCELED) {
                 callback?.invoke(SignInResult.Cancelled)
@@ -43,9 +45,15 @@ class GoogleDriveSignIn(private val activity: FragmentActivity) {
                 callback?.invoke(SignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", -1))
             }
         }
+    }.getOrNull()
 
     fun signIn(onResult: (SignInResult) -> Unit) {
         callback = onResult
+        val target = launcher
+        if (target == null) {
+            onResult(SignInResult.Failure("Sign-in is unavailable in this context", -1))
+            return
+        }
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(scope))
             .build()
@@ -55,7 +63,7 @@ class GoogleDriveSignIn(private val activity: FragmentActivity) {
                 if (authorization.hasResolution()) {
                     val pendingIntent = authorization.pendingIntent
                     if (pendingIntent != null) {
-                        launcher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
+                        target.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
                     } else {
                         onResult(SignInResult.Failure("Sign-in resolution was empty", -1))
                     }
@@ -101,4 +109,13 @@ class GoogleDriveSignIn(private val activity: FragmentActivity) {
     } catch (_: Exception) {
         "Unavailable"
     }
+}
+
+/**
+ * Implemented by the host Activity. The sign-in helper is created in the Activity before it is
+ * STARTED, because result launchers can only be registered that early. Creating it from a composable
+ * (which runs after STARTED) threw IllegalStateException on the main thread.
+ */
+interface DriveSignInHost {
+    val driveSignIn: GoogleDriveSignIn
 }

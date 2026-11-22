@@ -3,6 +3,8 @@ package com.pinfold.app.diagnostics
 import android.content.Context
 import java.io.File
 
+private val inHandler: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
+
 /** Writes the last crash to app-private storage and offers it once, on the next launch. */
 object CrashReporter {
     private const val CRASH_FILE = "crash-last.txt"
@@ -12,14 +14,30 @@ object CrashReporter {
 
     fun install(context: Context) {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            val report = buildReport(throwable, thread.name)
-            DiagnosticsLog.log(LogLevel.ERROR, "Crash", report)
-            runCatching { File(context.filesDir, CRASH_FILE).writeText(report) }
-            previous?.uncaughtException(thread, throwable)
-                ?: throw throwable
-        }
+        if (previous is Handler) return
+        Thread.setDefaultUncaughtExceptionHandler(Handler(context.applicationContext, previous))
         consumePending(context)
+    }
+
+    private class Handler(
+        private val context: Context,
+        private val previous: Thread.UncaughtExceptionHandler?,
+    ) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(thread: Thread, throwable: Throwable) {
+            if (inHandler.get()) return
+            inHandler.set(true)
+            try {
+                val report = runCatching { buildReport(throwable, thread.name) }
+                    .getOrElse { "Uncaught ${throwable.javaClass.name} on main" }
+                runCatching { DiagnosticsLog.log(LogLevel.ERROR, "Crash", report) }
+                runCatching { File(context.filesDir, CRASH_FILE).writeText(report) }
+            } finally {
+                inHandler.set(false)
+            }
+            // If there is no platform handler, rethrowing here would feed the same throwable back into
+            // this handler and recurse forever. Let the thread die quietly instead.
+            runCatching { previous?.uncaughtException(thread, throwable) }
+        }
     }
 
     fun consumePending(context: Context) {
@@ -27,7 +45,7 @@ object CrashReporter {
         val text = runCatching { if (file.exists()) file.readText() else null }.getOrNull()
         if (!text.isNullOrBlank()) {
             pendingLog = text
-            file.delete()
+            runCatching { file.delete() }
         }
     }
 

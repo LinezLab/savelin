@@ -52,6 +52,11 @@ import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.clear
 import java.io.File
 
+private sealed interface HomeGridKey {
+    data object Filters : HomeGridKey
+    data class Bookmark(val id: Long) : HomeGridKey
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
@@ -121,7 +126,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
             if (!searchActive) {
-                items(listOf(Unit), key = { "filters" }, span = { StaggeredGridItemSpan.FullLine }) {
+                items(listOf(Unit), key = { HomeGridKey.Filters }, span = { StaggeredGridItemSpan.FullLine }) {
                     Row(
                         Modifier.fillMaxWidth().padding(bottom = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -141,7 +146,7 @@ fun HomeScreen(
                     }
                 }
             }
-            items(items, key = { it.bookmark.id }) { item ->
+            items(items, key = { HomeGridKey.Bookmark(it.bookmark.id) }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(
                         placementSpec = SpringMotion.listPlace(),

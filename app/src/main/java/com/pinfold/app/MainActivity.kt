@@ -15,6 +15,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.ui.App
+import com.pinfold.app.sync.DriveSignInHost
+import com.pinfold.app.sync.GoogleDriveSignIn
 import com.pinfold.app.ui.glass.theme.SavelinTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -23,7 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class MainActivity : FragmentActivity() {
+class MainActivity : FragmentActivity(), DriveSignInHost {
+    override val driveSignIn = GoogleDriveSignIn(this)
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private var activeTheme: String? = null
 

@@ -17,8 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
-import com.pinfold.app.sync.GoogleDriveSignIn
+import com.pinfold.app.sync.DriveSignInHost
 import com.pinfold.app.sync.SignInResult
 import com.pinfold.app.sync.SyncCrypto
 import com.pinfold.app.ui.components.AppIcons
@@ -38,13 +37,12 @@ import java.time.format.DateTimeFormatter
 fun DriveSyncScreen(viewModel: HomeViewModel) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
-    val activity = context as? FragmentActivity
     val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss z", java.util.Locale.getDefault())
     fun format(epoch: Long) = if (epoch > 0) {
         ZonedDateTime.ofInstant(Instant.ofEpochMilli(epoch), ZoneId.systemDefault()).format(formatter)
     } else "Never"
 
-    val signIn = remember(activity) { activity?.let { GoogleDriveSignIn(it) } }
+    val signIn = (context as? DriveSignInHost)?.driveSignIn
     val latest by rememberUpdatedState(viewModel)
     var showPassphrase by remember { mutableStateOf(false) }
     var passphrase by remember { mutableStateOf("") }
