@@ -140,7 +140,7 @@ fun HomeScreen(
             }
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
-                    modifier = animateItem(
+                    modifier = Modifier.animateItem(
                         placementSpec = SpringMotion.listPlace(),
                         fadeInSpec = SpringMotion.listFade(),
                         fadeOutSpec = SpringMotion.listFade(),
