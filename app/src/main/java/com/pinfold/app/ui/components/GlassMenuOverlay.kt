@@ -41,10 +41,10 @@ fun GlassMenuOverlay(items: List<GlassMenuItem>, onDismiss: () -> Unit, modifier
                 val tint = if (entry.destructive) Candy.Tomato else ink
                 Row(
                     Modifier.fillMaxWidth().height(48.dp)
-                        .pressable {
+                        .pressable(onClick = {
                             entry.onClick()
                             onDismiss()
-                        }
+                        })
                         .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

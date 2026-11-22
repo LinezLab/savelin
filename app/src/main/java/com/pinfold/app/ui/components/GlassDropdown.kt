@@ -45,10 +45,10 @@ fun GlassDropdown(
                 options.forEach { option ->
                     Row(
                         Modifier.fillMaxWidth().height(44.dp)
-                            .pressable {
+                            .pressable(onClick = {
                                 onSelect(option)
                                 expanded = false
-                            }
+                            })
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

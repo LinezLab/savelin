@@ -165,7 +165,7 @@ fun HomeScreen(
                         action,
                         color = com.pinfold.app.ui.glass.theme.clear.ink,
                         modifier = Modifier.fillMaxWidth()
-                            .pressable {
+                            .pressable(onClick = {
                                 when (action) {
                                     "Open" -> context.startActivity(
                                         android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)),
@@ -183,7 +183,7 @@ fun HomeScreen(
                                     "Delete" -> viewModel.delete(chosen.bookmark)
                                 }
                                 quickMenu = null
-                            }
+                            })
                             .padding(vertical = 10.dp),
                     )
                 }
