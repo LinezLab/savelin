@@ -14,7 +14,7 @@ object LinkExtractor {
     }
 
     private fun clean(raw: String): String {
-        var value = raw.trim().trim(TRAILING)
+        var value = raw.trim().replace(TRAILING, "")
         if (value.startsWith("www.", ignoreCase = true)) value = "https://$value"
         return value
     }
