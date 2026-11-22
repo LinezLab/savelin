@@ -60,6 +60,7 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
         val connected: Boolean
         when (result) {
             is SignInResult.Success -> {
+                latest.setDriveToken(result.token)
                 message = "Connected"; code = 0; connected = true
             }
             is SignInResult.Cancelled -> {
@@ -151,9 +152,7 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
                         if (!recoverySaved) {
                             banner = "Save your recovery key first"
                         } else {
-                            viewModel.setSetting("driveLastSuccessAt", System.currentTimeMillis())
-                            viewModel.setSetting("driveLastAttemptAt", System.currentTimeMillis())
-                            banner = "First sync finished"
+                            viewModel.syncDriveNow { msg, ok -> banner = msg }
                         }
                     },
                 )
@@ -209,7 +208,10 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
                 SettingsRow(AppIcons.Wifi, Candy.Mint, "Google Play services", services?.second ?: "Missing")
                 SettingsRow(AppIcons.Info, Candy.Tangerine, "Last sign-in", "${format(settings.driveLastSignInAt)} · ${settings.driveLastSignInMessage}")
                 SettingsRow(AppIcons.Stethoscope, Candy.Lime, "Test connection") {
-                    signIn?.signIn(::recordSignIn) ?: run { banner = "Google Play services are needed for sign-in on this phone" }
+                    viewModel.testDriveConnection { banner = it }
+                }
+                SettingsRow(AppIcons.Refetch, Candy.Sky, "Sync now") {
+                    viewModel.syncDriveNow { msg, _ -> banner = msg }
                 }
             }
         }
@@ -250,6 +252,7 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
             confirmButton = {
                 TextButton(onClick = {
                     if (passphrase.length >= 12 && passphrase == confirm) {
+                        viewModel.setDrivePassphrase(passphrase)
                         viewModel.setSetting("drivePassphraseSet", true)
                         showPassphrase = false
                         banner = "Passphrase set. It is never stored or sent."

@@ -23,6 +23,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -86,6 +87,59 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
     fun openBackground() { settingsPageState.value = "BACKGROUND" }
     fun openDriveSync() { settingsPageState.value = "DRIVE_SYNC" }
+
+    var driveToken: String? = null
+        private set
+
+    fun setDriveToken(token: String?) {
+        driveToken = token
+    }
+
+    var driveSessionKey: ByteArray? = null
+        private set
+
+    fun setDrivePassphrase(passphrase: String) {
+        driveSessionKey = com.pinfold.app.sync.SyncCrypto.newDek()
+    }
+
+    fun testDriveConnection(onResult: (String) -> Unit) {
+        val token = driveToken
+        if (token == null) {
+            onResult("Sign in first")
+            return
+        }
+        viewModelScope.launch {
+            val result = com.pinfold.app.sync.DriveRest.listAppdata(token)
+            onResult(result.fold(
+                onSuccess = { "Connected to Drive app data folder ($it objects)" },
+                onFailure = { "Connection failed: ${it.message}" },
+            ))
+        }
+    }
+
+    fun syncDriveNow(onResult: (String, Boolean) -> Unit) {
+        val token = driveToken
+        val key = driveSessionKey
+        if (token == null || key == null) {
+            onResult("Complete sign-in and passphrase setup first", false)
+            return
+        }
+        viewModelScope.launch {
+            val snapshot = settings.first().toString().toByteArray()
+            val sealed = com.pinfold.app.sync.SyncCrypto.encrypt(snapshot, key, "library-snapshot", "settings")
+            val payload = listOf(sealed.salt, sealed.iv, sealed.ciphertext).joinToString("\n").toByteArray()
+            val result = com.pinfold.app.sync.DriveRest.uploadAppdata(token, "snapshot-${System.currentTimeMillis()}", payload)
+            result.fold(
+                onSuccess = {
+                    val now = System.currentTimeMillis()
+                    settingsRepository.set(com.pinfold.app.data.settings.AppSettings::driveLastSuccessAt.name, now)
+                    settingsRepository.set(com.pinfold.app.data.settings.AppSettings::driveLastAttemptAt.name, now)
+                    onResult("Sync finished", true)
+                },
+                onFailure = { onResult("Sync failed: ${it.message}", false) },
+            )
+        }
+    }
     fun closeSettingsPage() { settingsPageState.value = "HOME" }
 
     fun setSearchActive(value: Boolean) {
