@@ -16,7 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.DiagnosticsToast
+import com.pinfold.app.ui.components.copyDiagnosticsText
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
@@ -29,6 +32,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
     val settings by viewModel.settings.collectAsState()
     val networkLog by viewModel.networkLog.collectAsState()
     var importResult by remember { mutableStateOf<Int?>(null) }
+    var toast by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
         if (uri != null) viewModel.exportBackup(uri)
     }
@@ -175,7 +179,12 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Licences, Candy.Sky, "Open source licences")
                 SettingsRow(AppIcons.Lock, Candy.Mint, "Privacy promises")
                 SettingsRow(AppIcons.Info, Candy.Grape, "Version", "1.1.0")
+                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
+                    context.copyDiagnosticsText(DiagnosticsLog.format())
+                    toast = "Diagnostics copied (redacted)"
+                }
             }
         }
     }
+    toast?.let { DiagnosticsToast(it) { toast = null } }
 }

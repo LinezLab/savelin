@@ -37,6 +37,7 @@ import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.GlassStage
 import com.pinfold.app.ui.glass.MotionSettings
+import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FloatingPillNav
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
@@ -140,7 +141,7 @@ fun App(sharedText: String? = null) {
                         )
                     }
                 }
-
+                CrashReportNotice()
             }
         },
         chrome = {

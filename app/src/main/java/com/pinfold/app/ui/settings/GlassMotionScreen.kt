@@ -19,7 +19,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.DiagnosticsToast
+import com.pinfold.app.ui.components.copyDiagnosticsText
 import com.pinfold.app.ui.components.GlassDropdown
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
@@ -37,6 +40,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     val settings by viewModel.settings.collectAsState()
     var glassFine by remember { mutableStateOf(false) }
     var motionFine by remember { mutableStateOf(false) }
+    var toast by remember { mutableStateOf<String?>(null) }
     val style = GlassSettings.style
     val motion = MotionSettings.style
 
@@ -72,6 +76,10 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
         SettingsSection("DIAGNOSTICS") {
             SettingsCard {
                 SettingsRow(AppIcons.Info, Candy.Sky, "Glass engine", "Reduced — Canvas background fallback (no shader)")
+                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
+                    context.copyDiagnosticsText(DiagnosticsLog.format())
+                    toast = "Diagnostics copied (redacted)"
+                }
             }
         }
 
@@ -117,7 +125,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
                             label = preset.label,
                             selected = motion == preset,
                             onClick = { MotionSettings.update(context, preset) },
-                            preview = { Text("∿", color = Candy.Bubblegum, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) },
+                            preview = { Text("∿", color = clear.onGlass, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) },
                         )
                     }
                 }
@@ -159,4 +167,5 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             })
         }
     }
+    toast?.let { DiagnosticsToast(it) { toast = null } }
 }
