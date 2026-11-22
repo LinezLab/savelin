@@ -18,13 +18,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun DriveSyncScreen(viewModel: HomeViewModel) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
-    val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss z", Locale.getDefault())
+    val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss z", androidx.compose.ui.platform.LocalLocale.current)
     val exact = if (settings.driveLastSuccessAt > 0) {
         ZonedDateTime.ofInstant(Instant.ofEpochMilli(settings.driveLastSuccessAt), ZoneId.systemDefault()).format(formatter)
     } else "Never"
