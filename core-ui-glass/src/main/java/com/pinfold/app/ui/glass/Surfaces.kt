@@ -195,7 +195,7 @@ fun Modifier.pressable(
             )
         }
     } else Modifier
-    return rim.graphicsLayer {
+    return this.then(rim).graphicsLayer {
         scaleX = jelly.scale
         scaleY = jelly.scale
     }.combinedClickable(
