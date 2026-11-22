@@ -16,9 +16,9 @@ A local-only Android app: share a link from any app and it appears as a Pinteres
 
 ## Privacy guarantees
 
-1. No account, login, or sign-in with any provider.
+1. No account is required. An optional Google sign-in exists only for Drive sync (off by default).
 2. No analytics, crash reporters, ads, or third-party SDKs that phone home.
-3. All data is stored on-device. There is no backend.
+3. All data is stored on-device; only if you turn on Drive sync is an end-to-end encrypted copy stored in your own Google Drive. There is no developer-run server.
 4. The only network traffic is fetching pages you save (and optionally an image from that page). Every host is logged in **Settings → Network transparency**; **Offline mode** disables fetches entirely.
 5. Tracking parameters (`utm_*`, `fbclid`, `igsh`, …) are stripped from saved URLs.
 6. Android cloud auto-backup is disabled (`allowBackup=false`), cleartext traffic is denied, no cookies are stored, and redirects are capped.

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,19 @@ data class AppSettings(
     val backgroundAnimate: Boolean = true,
     val backgroundDim: Float = 0.2f,
     val backgroundDetails: String = "PICTURE",
+    val driveSyncEnabled: Boolean = false,
+    val driveLastSuccessAt: Long = 0L,
+    val driveLastAttemptAt: Long = 0L,
+    val driveLastError: String = "",
+    val driveWifiOnly: Boolean = true,
+    val driveSyncImages: Boolean = true,
+    val driveSyncAppearance: Boolean = true,
+    val driveSyncPreferences: Boolean = true,
+    val driveSyncPrivate: Boolean = false,
+    val driveHideEmail: Boolean = false,
+    val driveClientId: String = "",
+    val drivePassphraseSet: Boolean = false,
+    val driveRecoverySaved: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -136,6 +150,19 @@ class SettingsRepository(private val context: Context) {
             backgroundAnimate = p[Keys.backgroundAnimate] ?: true,
             backgroundDim = p[Keys.backgroundDim] ?: 0.2f,
             backgroundDetails = p[Keys.backgroundDetails] ?: "PICTURE",
+            driveSyncEnabled = p[Keys.driveSyncEnabled] ?: false,
+            driveLastSuccessAt = p[Keys.driveLastSuccessAt] ?: 0L,
+            driveLastAttemptAt = p[Keys.driveLastAttemptAt] ?: 0L,
+            driveLastError = p[Keys.driveLastError] ?: "",
+            driveWifiOnly = p[Keys.driveWifiOnly] ?: true,
+            driveSyncImages = p[Keys.driveSyncImages] ?: true,
+            driveSyncAppearance = p[Keys.driveSyncAppearance] ?: true,
+            driveSyncPreferences = p[Keys.driveSyncPreferences] ?: true,
+            driveSyncPrivate = p[Keys.driveSyncPrivate] ?: false,
+            driveHideEmail = p[Keys.driveHideEmail] ?: false,
+            driveClientId = p[Keys.driveClientId] ?: "",
+            drivePassphraseSet = p[Keys.drivePassphraseSet] ?: false,
+            driveRecoverySaved = p[Keys.driveRecoverySaved] ?: false,
         )
     }
 
@@ -174,6 +201,7 @@ class SettingsRepository(private val context: Context) {
             is Boolean -> put(booleanPreferencesKey(name), value)
             is String -> put(stringPreferencesKey(name), value)
             is Int -> put(intPreferencesKey(name), value)
+            is Long -> put(longPreferencesKey(name), value)
             is Float -> put(floatPreferencesKey(name), value)
         }
     }
@@ -188,6 +216,9 @@ class SettingsRepository(private val context: Context) {
         context.settingsStore.edit { it[key] = value }
 
     private suspend fun put(key: Preferences.Key<Int>, value: Int) =
+        context.settingsStore.edit { it[key] = value }
+
+    private suspend fun put(key: Preferences.Key<Long>, value: Long) =
         context.settingsStore.edit { it[key] = value }
 
     private object Keys {
@@ -249,5 +280,18 @@ class SettingsRepository(private val context: Context) {
         val backgroundAnimate = booleanPreferencesKey("backgroundAnimate")
         val backgroundDim = floatPreferencesKey("backgroundDim")
         val backgroundDetails = stringPreferencesKey("backgroundDetails")
+        val driveSyncEnabled = booleanPreferencesKey("driveSyncEnabled")
+        val driveLastSuccessAt = longPreferencesKey("driveLastSuccessAt")
+        val driveLastAttemptAt = longPreferencesKey("driveLastAttemptAt")
+        val driveLastError = stringPreferencesKey("driveLastError")
+        val driveWifiOnly = booleanPreferencesKey("driveWifiOnly")
+        val driveSyncImages = booleanPreferencesKey("driveSyncImages")
+        val driveSyncAppearance = booleanPreferencesKey("driveSyncAppearance")
+        val driveSyncPreferences = booleanPreferencesKey("driveSyncPreferences")
+        val driveSyncPrivate = booleanPreferencesKey("driveSyncPrivate")
+        val driveHideEmail = booleanPreferencesKey("driveHideEmail")
+        val driveClientId = stringPreferencesKey("driveClientId")
+        val drivePassphraseSet = booleanPreferencesKey("drivePassphraseSet")
+        val driveRecoverySaved = booleanPreferencesKey("driveRecoverySaved")
     }
 }

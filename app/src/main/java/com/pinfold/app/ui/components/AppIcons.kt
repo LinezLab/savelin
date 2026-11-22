@@ -81,6 +81,7 @@ object AppIcons {
     @DrawableRes val Undo = R.drawable.ic_undo_2
     @DrawableRes val Warning = R.drawable.ic_triangle_alert
     @DrawableRes val Info = R.drawable.ic_info
+    @DrawableRes val Drive = R.drawable.ic_drive
     @DrawableRes val Expand = R.drawable.ic_chevron_down
 
     @Composable

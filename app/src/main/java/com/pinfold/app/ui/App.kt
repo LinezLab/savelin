@@ -85,6 +85,8 @@ fun App(sharedText: String? = null) {
                             com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
                         } else if (settingsPage == "BACKGROUND") {
                             com.pinfold.app.ui.settings.BackgroundScreen(viewModel)
+                        } else if (settingsPage == "DRIVE_SYNC") {
+                            com.pinfold.app.ui.settings.DriveSyncScreen(viewModel)
                         } else {
                             SettingsScreen(viewModel)
                         }
