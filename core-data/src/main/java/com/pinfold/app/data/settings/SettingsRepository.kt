@@ -89,6 +89,9 @@ data class AppSettings(
     val driveLastSignInAt: Long = 0L,
     val driveLastSignInMessage: String = "",
     val driveLastSignInCode: Int = 0,
+    val topShade: Boolean = true,
+    val topShadeHeight: Int = 28,
+    val topShadeStrength: Float = 0.35f,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -162,6 +165,9 @@ class SettingsRepository(private val context: Context) {
             driveSyncPreferences = p[Keys.driveSyncPreferences] ?: true,
             driveSyncPrivate = p[Keys.driveSyncPrivate] ?: false,
             driveLastSignInAt = p[Keys.driveLastSignInAt] ?: 0L,
+            topShade = p[Keys.topShade] ?: true,
+            topShadeHeight = p[Keys.topShadeHeight] ?: 28,
+            topShadeStrength = p[Keys.topShadeStrength] ?: 0.35f,
             driveLastSignInMessage = p[Keys.driveLastSignInMessage] ?: "",
             driveLastSignInCode = p[Keys.driveLastSignInCode] ?: 0,
             driveHideEmail = p[Keys.driveHideEmail] ?: false,
@@ -289,6 +295,9 @@ class SettingsRepository(private val context: Context) {
         val driveLastAttemptAt = longPreferencesKey("driveLastAttemptAt")
         val driveLastError = stringPreferencesKey("driveLastError")
         val driveWifiOnly = booleanPreferencesKey("driveWifiOnly")
+        val topShade = booleanPreferencesKey("topShade")
+        val topShadeHeight = intPreferencesKey("topShadeHeight")
+        val topShadeStrength = floatPreferencesKey("topShadeStrength")
         val driveSyncImages = booleanPreferencesKey("driveSyncImages")
         val driveLastSignInAt = longPreferencesKey("driveLastSignInAt")
         val driveLastSignInMessage = stringPreferencesKey("driveLastSignInMessage")

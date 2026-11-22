@@ -2,6 +2,7 @@ package com.pinfold.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.item
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -73,25 +76,6 @@ fun HomeScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        if (!searchActive) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.setSearchActive(true) }, height = 36.dp) {
-                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Search, null, size = 16.dp)
-                    Text("Search", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                }
-                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleImportantFilter() }, height = 36.dp) {
-                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Important, null, size = 16.dp)
-                    Text("Important", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                }
-                com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleReminderFilter() }, height = 36.dp) {
-                    com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Reminder, null, size = 16.dp)
-                    Text("Due", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                }
-            }
-        }
         if (searchActive && query.isNotBlank()) {
             Text(
                 "${items.size} result${if (items.size == 1) "" else "s"}",
@@ -127,6 +111,27 @@ fun HomeScreen(
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
+            if (!searchActive) {
+                item(span = StaggeredGridItemSpan.FullLine, key = "filters") {
+                    Row(
+                        Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.setSearchActive(true) }, height = 36.dp) {
+                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Search, null, size = 16.dp)
+                            Text("Search", color = com.pinfold.app.ui.glass.theme.clear.ink)
+                        }
+                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleImportantFilter() }, height = 36.dp) {
+                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Important, null, size = 16.dp)
+                            Text("Important", color = com.pinfold.app.ui.glass.theme.clear.ink)
+                        }
+                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleReminderFilter() }, height = 36.dp) {
+                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Reminder, null, size = 16.dp)
+                            Text("Due", color = com.pinfold.app.ui.glass.theme.clear.ink)
+                        }
+                    }
+                }
+            }
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
                     item = item,
@@ -227,13 +232,13 @@ private fun BookmarkCard(
             ) {
                 Box(
                     Modifier.clip(RoundedCornerShape(10.dp))
-                        .glass(androidx.compose.foundation.shape.RoundedCornerShape(10.dp), com.pinfold.app.ui.glass.theme.clear.glass, blur = 2.dp)
+                        .border(1.dp, com.pinfold.app.ui.glass.theme.clear.rim, RoundedCornerShape(10.dp)).background(com.pinfold.app.ui.glass.theme.clear.glass.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp),
                 ) {
                     Text(bookmark.platform.ifBlank { "Web" }, color = com.pinfold.app.ui.glass.theme.clear.ink, style = MaterialTheme.typography.labelSmall)
                 }
                 if (bookmark.isImportant || hasReminder) {
-                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).glass(androidx.compose.foundation.shape.CircleShape, com.pinfold.app.ui.glass.theme.clear.glass, blur = 2.dp).padding(5.dp)) {
+                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).border(1.dp, com.pinfold.app.ui.glass.theme.clear.rim, androidx.compose.foundation.shape.CircleShape).background(com.pinfold.app.ui.glass.theme.clear.glass.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape).padding(5.dp)) {
                         if (bookmark.isImportant) com.pinfold.app.ui.components.AppIcons.Icon(
                             com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
                         )

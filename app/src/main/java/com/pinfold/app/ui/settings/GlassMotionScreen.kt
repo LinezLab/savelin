@@ -59,6 +59,16 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             })
         }
 
+        SettingsSection("TOP GLASS SHADE") {
+            SettingsCard {
+                SettingsRow(AppIcons.Appearance, Candy.Sky, "Top glass shade", trailing = {
+                    GlassSwitch(settings.topShade) { viewModel.setSetting("topShade", it) }
+                })
+                FineSlider("Shade height", settings.topShadeHeight.toFloat(), 0f..64f) { viewModel.setSetting("topShadeHeight", it.toInt()) }
+                FineSlider("Shade strength", settings.topShadeStrength, 0f..0.6f) { viewModel.setSetting("topShadeStrength", it) }
+            }
+        }
+
         SettingsSection("DIAGNOSTICS") {
             SettingsCard {
                 SettingsRow(AppIcons.Info, Candy.Sky, "Glass engine", "Reduced — Canvas background fallback (no shader)")

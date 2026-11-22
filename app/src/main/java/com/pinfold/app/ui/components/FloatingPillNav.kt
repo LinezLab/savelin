@@ -1,6 +1,7 @@
 package com.pinfold.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -24,7 +25,6 @@ import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.glass
 import com.pinfold.app.ui.glass.theme.clear
-
 @Composable
 fun FloatingPillNav(
     searchActive: Boolean,
@@ -49,7 +49,6 @@ fun FloatingPillNav(
         lensHeight = 24.dp.coerceAtMost(style.refractionHeight.dp * 2f),
         lensAmount = 40.dp.coerceAtMost(style.refractionAmount.dp * 2f),
     )
-
     BoxWithConstraints(modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
         Box(
             Modifier.align(Alignment.BottomStart).alpha(pillAlpha)
@@ -62,11 +61,17 @@ fun FloatingPillNav(
         ) {
             if (searchActive) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
+                    BasicTextField(
                         value = query,
                         onValueChange = onQueryChange,
-                        placeholder = { androidx.compose.material3.Text("Search bookmarks", color = colors.inkSoft) },
                         singleLine = true,
+                        textStyle = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(color = colors.ink),
+                        decorationBox = { inner ->
+                            if (query.isEmpty()) {
+                                androidx.compose.material3.Text("Search bookmarks", color = colors.inkSoft)
+                            }
+                            inner()
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
                     GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 46.dp, label = "Close search") {
@@ -74,24 +79,16 @@ fun FloatingPillNav(
                     }
                 }
             } else {
-                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(56.dp)) {
                         GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 48.dp, label = "Search") {
                             AppIcons.Icon(AppIcons.Search, "Search", tint = colors.ink)
                         }
-                    }
-                    Box(Modifier.size(56.dp)) {
                         GlassCircle(onClick = onAdd, onLongClick = onAddLong, size = 48.dp, label = "Add link") {
                             AppIcons.Icon(AppIcons.Add, "Add link", tint = colors.ink)
-                        }
-                    }
-                }
             }
         }
         Box(Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp).then(glassModifier).clip(Capsule)) {
             GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings") {
                 AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.ink)
-            }
-        }
     }
 }

@@ -161,9 +161,14 @@ fun DetailsScreen(
                             size = 44.dp,
                             label = "Image options",
                         ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = ink) }
-                        DropdownMenu(expanded = cameraMenu, onDismissRequest = { cameraMenu = false }, offset = DpOffset((-180).dp, (-140).dp)) {
-                            DropdownMenuItem(text = { Text("Refetch image") }, onClick = { viewModel.refetch(bookmark); cameraMenu = false })
-                            DropdownMenuItem(text = { Text("Remove custom image") }, onClick = { viewModel.removeImage(bookmark); cameraMenu = false })
+                        if (cameraMenu) {
+                            com.pinfold.app.ui.components.GlassMenuOverlay(
+                                items = listOf(
+                                    com.pinfold.app.ui.components.GlassMenuItem(com.pinfold.app.ui.components.AppIcons.Refetch, "Refetch image") { viewModel.refetch(bookmark) },
+                                    com.pinfold.app.ui.components.GlassMenuItem(com.pinfold.app.ui.components.AppIcons.NoPreview, "Remove custom image") { viewModel.removeImage(bookmark) },
+                                ),
+                                onDismiss = { cameraMenu = false },
+                            )
                         }
                     }
                 }
@@ -310,25 +315,26 @@ fun DetailsScreen(
                         GlassCircle(onClick = { moreMenu = true }, onLongClick = { moreMenu = true }, size = 48.dp, label = "More") {
                             AppIcons.Icon(AppIcons.More, "More", tint = ink)
                         }
-                        DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }, offset = DpOffset(0.dp, (-180).dp)) {
-                            DropdownMenuItem(
-                                text = { Text(if (bookmark.isImportant) "Remove important" else "Mark important") },
-                                leadingIcon = { AppIcons.Icon(AppIcons.Important, null, tint = ink, size = 20.dp) },
-                                onClick = { viewModel.toggleImportant(bookmark); moreMenu = false },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(if (reminderText.isBlank()) "Set reminder" else "Edit reminder") },
-                                leadingIcon = { AppIcons.Icon(AppIcons.Reminder, null, tint = ink, size = 20.dp) },
-                                onClick = { reminderOpen = true; moreMenu = false },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Share") },
-                                leadingIcon = { AppIcons.Icon(AppIcons.Share, null, tint = ink, size = 20.dp) },
-                                onClick = {
-                                    val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, bookmark.url) }
-                                    context.startActivity(Intent.createChooser(share, "Share"))
-                                    moreMenu = false
-                                },
+                        if (moreMenu) {
+                            com.pinfold.app.ui.components.GlassMenuOverlay(
+                                items = listOf(
+                                    com.pinfold.app.ui.components.GlassMenuItem(
+                                        AppIcons.Important,
+                                        if (bookmark.isImportant) "Remove important" else "Mark important",
+                                    ) { viewModel.toggleImportant(bookmark) },
+                                    com.pinfold.app.ui.components.GlassMenuItem(
+                                        AppIcons.Reminder,
+                                        if (reminderText.isBlank()) "Set reminder" else "Edit reminder",
+                                    ) { reminderOpen = true },
+                                    com.pinfold.app.ui.components.GlassMenuItem(AppIcons.Share, "Share") {
+                                        val share = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, bookmark.url)
+                                        }
+                                        context.startActivity(Intent.createChooser(share, "Share"))
+                                    },
+                                ),
+                                onDismiss = { moreMenu = false },
                             )
                         }
                     }

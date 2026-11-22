@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -30,6 +30,7 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.first
 import com.pinfold.app.ui.glass.Aurora
@@ -43,7 +44,6 @@ import com.pinfold.app.ui.home.HomeScreen
 import com.pinfold.app.ui.details.DetailsScreen
 import com.pinfold.app.ui.settings.SettingsScreen
 import com.pinfold.app.data.model.BookmarkWithTags
-
 @Composable
 fun App(sharedText: String? = null) {
     val viewModel: HomeViewModel = viewModel()
@@ -56,26 +56,24 @@ fun App(sharedText: String? = null) {
     val query by viewModel.searchQuery.collectAsState()
     val navVisible by viewModel.navVisible.collectAsState()
     val settingsPage by viewModel.settingsPage.collectAsState()
-
+    val appearance by viewModel.settings.collectAsState()
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
     }
-
     if (locked) {
         BiometricGate(onUnlock = { locked = false })
         return
-    }
-
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
             draft = sharedText
             showAdd = true
         }
-    }
-
     GlassStage(
         wallpaper = { com.pinfold.app.ui.background.GeneratedBackground(Modifier.fillMaxSize()) },
         screens = {
+            val shadeColors = com.pinfold.app.ui.glass.theme.clear
+            val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val shadeHeight = topInset + appearance.topShadeHeight.dp
             Box(Modifier.fillMaxSize()) {
                 Box(
                     Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
@@ -97,6 +95,16 @@ fun App(sharedText: String? = null) {
                 detail?.let { item ->
                     DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
                 }
+                if (appearance.topShade) {
+                    Box(
+                        Modifier.align(Alignment.TopCenter).fillMaxWidth().height(shadeHeight).zIndex(5f)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(shadeColors.wall.last().copy(alpha = appearance.topShadeStrength), Color.Transparent),
+                                ),
+                            ),
+                    )
+                }
             }
         },
         chrome = {
@@ -113,10 +121,7 @@ fun App(sharedText: String? = null) {
                     onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
-            }
-        },
     )
-
     if (showAdd) {
         AlertDialog(
             onDismissRequest = { showAdd = false },
@@ -127,7 +132,6 @@ fun App(sharedText: String? = null) {
                     onValueChange = { draft = it },
                     placeholder = { Text("Paste a link or shared text") },
                     singleLine = true,
-                )
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -135,8 +139,6 @@ fun App(sharedText: String? = null) {
                     draft = ""
                     showAdd = false
                 }) { Text("Save") }
-            },
             dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } },
         )
-    }
 }
