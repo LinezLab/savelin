@@ -20,4 +20,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.play.services.auth)
+    implementation(libs.androidx.activity.ktx)
 }

@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      allow_unsigned:
+        description: 'Allow an unsigned test build (NOT for sync testing)'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -68,7 +73,18 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
             echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          elif [ "${{ inputs.allow_unsigned }}" != "true" ]; then
+            echo "::error::Release keystore secrets are missing. Add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD."
+            exit 1
+          else
+            echo "::warning::Building unsigned test APK. NOT for Google Drive sync testing."
           fi
+      - name: Print signing fingerprint
+        if: ${{ env.KEYSTORE_PATH != '' }}
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" | grep -E 'SHA1|SHA-1'
       - name: Assemble release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}

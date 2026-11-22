@@ -84,9 +84,11 @@ data class AppSettings(
     val driveSyncPreferences: Boolean = true,
     val driveSyncPrivate: Boolean = false,
     val driveHideEmail: Boolean = false,
-    val driveClientId: String = "",
     val drivePassphraseSet: Boolean = false,
     val driveRecoverySaved: Boolean = false,
+    val driveLastSignInAt: Long = 0L,
+    val driveLastSignInMessage: String = "",
+    val driveLastSignInCode: Int = 0,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -159,8 +161,10 @@ class SettingsRepository(private val context: Context) {
             driveSyncAppearance = p[Keys.driveSyncAppearance] ?: true,
             driveSyncPreferences = p[Keys.driveSyncPreferences] ?: true,
             driveSyncPrivate = p[Keys.driveSyncPrivate] ?: false,
+            driveLastSignInAt = p[Keys.driveLastSignInAt] ?: 0L,
+            driveLastSignInMessage = p[Keys.driveLastSignInMessage] ?: "",
+            driveLastSignInCode = p[Keys.driveLastSignInCode] ?: 0,
             driveHideEmail = p[Keys.driveHideEmail] ?: false,
-            driveClientId = p[Keys.driveClientId] ?: "",
             drivePassphraseSet = p[Keys.drivePassphraseSet] ?: false,
             driveRecoverySaved = p[Keys.driveRecoverySaved] ?: false,
         )
@@ -286,11 +290,13 @@ class SettingsRepository(private val context: Context) {
         val driveLastError = stringPreferencesKey("driveLastError")
         val driveWifiOnly = booleanPreferencesKey("driveWifiOnly")
         val driveSyncImages = booleanPreferencesKey("driveSyncImages")
+        val driveLastSignInAt = longPreferencesKey("driveLastSignInAt")
+        val driveLastSignInMessage = stringPreferencesKey("driveLastSignInMessage")
+        val driveLastSignInCode = intPreferencesKey("driveLastSignInCode")
         val driveSyncAppearance = booleanPreferencesKey("driveSyncAppearance")
         val driveSyncPreferences = booleanPreferencesKey("driveSyncPreferences")
         val driveSyncPrivate = booleanPreferencesKey("driveSyncPrivate")
         val driveHideEmail = booleanPreferencesKey("driveHideEmail")
-        val driveClientId = stringPreferencesKey("driveClientId")
         val drivePassphraseSet = booleanPreferencesKey("drivePassphraseSet")
         val driveRecoverySaved = booleanPreferencesKey("driveRecoverySaved")
     }

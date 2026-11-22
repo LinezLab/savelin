@@ -82,6 +82,14 @@ object AppIcons {
     @DrawableRes val Warning = R.drawable.ic_triangle_alert
     @DrawableRes val Info = R.drawable.ic_info
     @DrawableRes val Drive = R.drawable.ic_drive
+    @DrawableRes val LogIn = R.drawable.ic_log_in
+    @DrawableRes val KeyRound = R.drawable.ic_key_round
+    @DrawableRes val LifeBuoy = R.drawable.ic_life_buoy
+    @DrawableRes val History = R.drawable.ic_history
+    @DrawableRes val Stethoscope = R.drawable.ic_stethoscope
+    @DrawableRes val Wifi = R.drawable.ic_wifi
+    @DrawableRes val Image = R.drawable.ic_image
+    @DrawableRes val Clock = R.drawable.ic_clock
     @DrawableRes val Expand = R.drawable.ic_chevron_down
 
     @Composable
