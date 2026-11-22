@@ -157,3 +157,4 @@ fun App(sharedText: String? = null) {
             dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } },
         )
 }
+}
