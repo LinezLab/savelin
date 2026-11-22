@@ -1,7 +1,6 @@
 package com.pinfold.app.ui.home
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.animateItem
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -141,7 +140,7 @@ fun HomeScreen(
             }
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
-                    modifier = Modifier.animateItem(
+                    modifier = animateItem(
                         placementSpec = SpringMotion.listPlace(),
                         fadeInSpec = SpringMotion.listFade(),
                         fadeOutSpec = SpringMotion.listFade(),

@@ -2,6 +2,7 @@ package com.pinfold.app.ui.glass
 
 import android.content.Context
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
@@ -177,6 +178,9 @@ object SpringMotion {
     /** Keeps a designed spec when motion is full, swaps to a short fade when it is reduced. */
     fun <T> reduceOr(spec: AnimationSpec<T>): AnimationSpec<T> = if (MotionSettings.reduceMotion) reduced() else spec
 
+    /** The finite form lazy-list placement/fade specs require. */
+    fun <T> reduceOrFinite(spec: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> = if (MotionSettings.reduceMotion) tween(ReduceMs, easing = LinearEasing) else spec
+
     /** A finger landing: the control swells under it. Bouncy/Jelly overshoot; Calm/Normal stay smooth. */
     fun pressIn(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.66f), MotionSettings.stiffness(620f), 0.001f))
 
@@ -209,10 +213,10 @@ object SpringMotion {
     fun searchMorph(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(360f), 0.0005f))
 
     /** A card fading into the grid. */
-    fun listFade(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.8f), MotionSettings.stiffness(420f), 0.0005f))
+    fun listFade(): FiniteAnimationSpec<Float> = reduceOrFinite(spring(MotionSettings.damping(0.8f), MotionSettings.stiffness(420f), 0.0005f))
 
     /** A card changing place as the list inserts or removes an item. */
-    fun listPlace(): AnimationSpec<IntOffset> = reduceOr(spring<IntOffset>(MotionSettings.damping(0.7f), MotionSettings.stiffness(360f)))
+    fun listPlace(): FiniteAnimationSpec<IntOffset> = reduceOrFinite(spring<IntOffset>(MotionSettings.damping(0.7f), MotionSettings.stiffness(360f)))
 }
 
 /**
