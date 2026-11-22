@@ -1,8 +1,5 @@
 package com.pinfold.app.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,20 +7,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.GlassChoicePopUp
 import com.pinfold.app.ui.glass.GlassBackButton
 import com.pinfold.app.ui.glass.GlassSlider
 import com.pinfold.app.ui.glass.GlassToggle
@@ -45,36 +47,38 @@ import com.pinfold.app.ui.glass.theme.clear
 fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-            .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             GlassBackButton(onBack = onBack)
-            Spacer(Modifier.size(12.dp))
-            Text(title, style = MaterialTheme.typography.headlineLarge, color = clear.ink)
+            Spacer(Modifier.size(14.dp))
+            Text(title, style = MaterialTheme.typography.headlineLarge, color = clear.onGlass)
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.heightIn(min = 20.dp))
         content()
-        Spacer(Modifier.height(120.dp))
+        Spacer(Modifier.heightIn(min = 120.dp))
     }
 }
 
 @Composable
 fun SettingsSection(header: String, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(24.dp))
+    Spacer(Modifier.heightIn(min = 28.dp))
     Text(
         header.uppercase(),
         style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
-        color = clear.inkSoft,
-        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        color = clear.onGlassSoft,
+        modifier = Modifier.padding(start = 6.dp, bottom = 10.dp),
     )
     content()
 }
 
+/** A taller glass card with breathing room on all sides, so 200 % text and RTL stay readable. */
 @Composable
 fun SettingsCard(content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().then(SavelinGlass.modifier(RoundedRectangle(22.dp)))
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().padding(vertical = 6.dp)
+            .then(SavelinGlass.modifier(RoundedRectangle(22.dp)))
+            .padding(horizontal = 18.dp, vertical = 14.dp),
     ) { content() }
 }
 
@@ -88,35 +92,57 @@ fun SettingsRow(
     onClick: () -> Unit = {},
 ) {
     Row(
-        Modifier.fillMaxWidth().height(if (subtitle == null) 56.dp else 64.dp)
+        Modifier.fillMaxWidth().heightIn(min = if (subtitle == null) 64.dp else 80.dp)
             .pressable(onClick = onClick)
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(32.dp).then(SavelinGlass.modifier(RoundedCornerShape(9.dp))),
+            Modifier.size(36.dp).then(SavelinGlass.modifier(RoundedCornerShape(10.dp))),
             contentAlignment = Alignment.Center,
-        ) { AppIcons.Icon(icon, null, tint = clear.ink, size = 18.dp) }
-        Spacer(Modifier.size(12.dp))
-        Column(Modifier.fillMaxWidth(0.78f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = clear.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        ) { AppIcons.Icon(icon, null, tint = clear.onGlass, size = 18.dp) }
+        Spacer(Modifier.size(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = clear.onGlass, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = clear.inkSoft, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = clear.onGlassSoft, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
+        Spacer(Modifier.size(10.dp))
         trailing()
+    }
+}
+
+/** A row that opens the shared in-screen glass pop-up with every option and its check mark. */
+@Composable
+fun SettingsChoiceRow(
+    icon: Int,
+    tileColor: Color,
+    title: String,
+    subtitle: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    SettingsRow(icon = icon, tileColor = tileColor, title = title, subtitle = subtitle, onClick = { open = true })
+    if (open) {
+        GlassChoicePopUp(
+            title = title,
+            options = options,
+            selected = subtitle,
+            onSelect = { onSelect(it); open = false },
+            onDismiss = { open = false },
+        )
     }
 }
 
 @Composable
 fun Chevron() {
-    AppIcons.Icon(AppIcons.Expand, null, tint = clear.inkSoft, size = 18.dp)
+    AppIcons.Icon(AppIcons.Expand, null, tint = clear.onGlassSoft, size = 18.dp)
 }
 
 @Composable
 fun GlassSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
-    // The shared glass toggle: its thumb follows a DampedDragAnimation on the active Motion spring,
-    // swells under the finger and plays ToggleOn/ToggleOff — no instant state change on tap.
     GlassToggle(checked = checked, onChange = onChange)
 }
 
@@ -129,24 +155,24 @@ fun ChoiceTile(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.size(width = 96.dp, height = 112.dp)
-            .then(SavelinGlass.modifier(RoundedCornerShape(16.dp)))
-            .border(if (selected) 2.dp else 1.dp, if (selected) Candy.Sky else clear.rim, RoundedCornerShape(16.dp))
+        modifier.size(width = 116.dp, height = 134.dp)
+            .then(SavelinGlass.modifier(RoundedCornerShape(18.dp)))
             .pressable(onClick = onClick)
-            .padding(6.dp),
+            .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.height(64.dp).fillMaxWidth()) { preview() }
-        Spacer(Modifier.size(4.dp))
+        Box(Modifier.height(82.dp).fillMaxWidth()) { preview() }
+        Spacer(Modifier.size(6.dp))
         Text(
             label,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal),
-            color = clear.ink,
+            color = clear.onGlass,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         if (selected) {
-            AppIcons.Icon(AppIcons.Selected, "Selected", tint = Candy.Sky, size = 14.dp)
+            AppIcons.Icon(AppIcons.Selected, "Selected", tint = clear.onGlass, size = 16.dp)
         }
     }
 }
@@ -154,7 +180,7 @@ fun ChoiceTile(
 @Composable
 fun ExpandableRow(title: String, icon: Int, expanded: Boolean, onToggle: () -> Unit) {
     SettingsRow(icon = icon, tileColor = Candy.Grape, title = title, onClick = onToggle, trailing = {
-        AppIcons.Icon(AppIcons.Expand, null, tint = clear.inkSoft, size = 18.dp)
+        AppIcons.Icon(AppIcons.Expand, null, tint = clear.onGlassSoft, size = 18.dp)
     })
 }
 
@@ -163,10 +189,8 @@ fun FineSlider(label: String, value: Float, range: ClosedFloatingPointRange<Floa
     Text(
         "$label: ${(value * 100).toInt() / 100f}",
         style = MaterialTheme.typography.bodyMedium,
-        color = clear.ink,
+        color = clear.onGlass,
     )
-    // The shared glass slider: the thumb turns to glass while held, follows the finger on the same
-    // Motion spring and stretches along its travel, instead of jumping to the new value.
     GlassSlider(
         value = value.coerceIn(range),
         onChange = onChange,

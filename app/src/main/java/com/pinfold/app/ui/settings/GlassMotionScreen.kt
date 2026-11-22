@@ -1,12 +1,18 @@
 package com.pinfold.app.ui.settings
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -14,25 +20,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
-import com.pinfold.app.ui.components.copyDiagnosticsText
 import com.pinfold.app.ui.components.GlassDropdown
+import com.pinfold.app.ui.components.copyDiagnosticsText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassStyle
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.MotionStyle
+import com.pinfold.app.ui.glass.glass
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
+import kotlin.math.cos
+import kotlin.math.exp
 
 @Composable
 fun GlassMotionScreen(viewModel: HomeViewModel) {
@@ -43,20 +56,24 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     var toast by remember { mutableStateOf<String?>(null) }
     val style = GlassSettings.style
     val motion = MotionSettings.style
+    val materialName = GlassStyle.Named.firstOrNull { it.second == style }?.first ?: "Custom"
+    val motionName = motion.label
+    val materialOptions = GlassStyle.Named.map { it.first }.let { if (it.contains(materialName)) it else it + materialName }
+    val motionOptions = MotionStyle.Presets.map { it.label }.let { if (it.contains(motionName)) it else it + motionName }
 
     SettingsScaffold("Liquid glass & motion", onBack = viewModel::closeSettingsPage) {
         SettingsCard {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GlassChip(onClick = {}, height = 40.dp) { Text("Press me", color = clear.ink) }
-                GlassCircle(onClick = {}, size = 40.dp, label = "Preview") {
-                    AppIcons.Icon(AppIcons.Normal, null, tint = clear.ink)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                GlassChip(onClick = {}, height = 40.dp) { Text("Press me", color = clear.onGlass) }
+                GlassCircle(onClick = {}, size = 40.dp, label = "Preview", ink = clear.onGlass) {
+                    AppIcons.Icon(AppIcons.Normal, null, tint = clear.onGlass)
                 }
-                GlassChip(onClick = {}, height = 40.dp) { Text("Outlined chip", color = clear.ink) }
+                GlassChip(onClick = {}, height = 40.dp) { Text("Outlined chip", color = clear.onGlass) }
             }
             Text(
                 "These buttons move the way you set them below. Press and hold them.",
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = clear.inkSoft,
+                style = MaterialTheme.typography.bodySmall,
+                color = clear.onGlassSoft,
             )
             SettingsRow(icon = AppIcons.Haptics, tileColor = Candy.Mint, title = "Touch and hold effects", trailing = {
                 GlassSwitch(checked = settings.touchHoldEffect, onChange = { viewModel.setSetting("touchHoldEffect", it) })
@@ -83,22 +100,22 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             }
         }
 
-        SettingsSection("GLASS") {
+        SettingsSection("GLASS MATERIAL") {
             SettingsCard {
+                GlassDropdown(
+                    label = "Material",
+                    options = materialOptions,
+                    selected = materialName,
+                    onSelect = { name -> GlassStyle.Named.firstOrNull { it.first == name }?.second?.let { GlassSettings.update(context, it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     GlassStyle.Named.forEach { (name, preset) ->
                         ChoiceTile(
                             label = name,
                             selected = style == preset,
                             onClick = { GlassSettings.update(context, preset) },
-                            preview = {
-                                androidx.compose.foundation.layout.Box(
-                                    Modifier.fillMaxWidth().height(64.dp),
-                                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                                ) {
-                                    AppIcons.Icon(AppIcons.Appearance, null, tint = clear.ink, size = 24.dp)
-                                }
-                            },
+                            preview = { GlassPresetPreview(preset) },
                         )
                     }
                 }
@@ -119,13 +136,20 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
 
         SettingsSection("BUTTON MOTION") {
             SettingsCard {
+                GlassDropdown(
+                    label = "Button motion",
+                    options = motionOptions,
+                    selected = motionName,
+                    onSelect = { name -> MotionStyle.Presets.firstOrNull { it.label == name }?.let { MotionSettings.update(context, it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MotionStyle.Presets.forEach { preset ->
                         ChoiceTile(
                             label = preset.label,
                             selected = motion == preset,
                             onClick = { MotionSettings.update(context, preset) },
-                            preview = { Text("∿", color = clear.onGlass, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium) },
+                            preview = { SpringCurvePreview(preset) },
                         )
                     }
                 }
@@ -168,4 +192,58 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
         }
     }
     toast?.let { DiagnosticsToast(it) { toast = null } }
+}
+
+/** A real, small glass surface over a colourful backdrop — the preset is applied, not described. */
+@Composable
+private fun GlassPresetPreview(preset: GlassStyle) {
+    val icon = when (preset) {
+        GlassStyle.Default -> AppIcons.Liquid
+        GlassStyle.Frosted -> AppIcons.Frosted
+        GlassStyle.Crystal -> AppIcons.Crystal
+        GlassStyle.Water -> AppIcons.Water
+        GlassStyle.Solid -> AppIcons.Solid
+        else -> AppIcons.Appearance
+    }
+    Box(
+        Modifier.fillMaxWidth().height(82.dp).clip(RoundedCornerShape(12.dp))
+            .background(Brush.linearGradient(listOf(Candy.Bubblegum, Candy.Sky, Candy.Mint))),
+    ) {
+        Box(
+            Modifier.align(Alignment.Center).size(width = 84.dp, height = 44.dp)
+                .glass(
+                    shape = RoundedCornerShape(12.dp),
+                    wash = clear.glass,
+                    blur = 8.dp * preset.blur,
+                    lensHeight = 8.dp * preset.refractionHeight,
+                    lensAmount = 10.dp * preset.refractionAmount,
+                    styleOverride = preset,
+                    scaleByStyle = false,
+                ),
+        )
+        Box(Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+            AppIcons.Icon(icon, null, tint = clear.onGlass, size = 14.dp)
+        }
+    }
+}
+
+/** The motion tile draws the actual damped curve its spring will follow. */
+@Composable
+private fun SpringCurvePreview(motion: MotionStyle) {
+    val ink = clear.onGlass
+    Canvas(Modifier.fillMaxWidth().height(82.dp)) {
+        val damping = 1f + (0.5f - motion.bounce) * 1.2f
+        val w = size.width
+        val h = size.height
+        drawLine(ink.copy(alpha = 0.2f), Offset(0f, h * 0.5f), Offset(w, h * 0.5f), strokeWidth = 1.dp.toPx())
+        val path = Path()
+        for (i in 0..120) {
+            val x = i / 120f
+            val t = x * 6f
+            val value = 1f - exp(-0.8f * damping * t) * cos(2.4f * t * motion.speed)
+            val y = h * (0.14f + 0.72f * (1f - (value.coerceIn(-0.2f, 1.4f) / 1.4f)))
+            if (i == 0) path.moveTo(x * w, y) else path.lineTo(x * w, y)
+        }
+        drawPath(path, ink.copy(alpha = 0.9f), style = Stroke(width = 2.dp.toPx()))
+    }
 }

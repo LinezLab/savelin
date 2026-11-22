@@ -54,7 +54,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Mint, "Background", "${settings.backgroundStyle} · ${settings.backgroundLoopSeconds}s loop", onClick = viewModel::openBackground)
-                SettingsRow(AppIcons.Language, Candy.Sky, "App language", settings.language, onClick = { viewModel.setSetting("language", "English") })
+                SettingsChoiceRow(AppIcons.Language, Candy.Sky, "App language", settings.language, listOf("System", "English")) { viewModel.setSetting("language", it) }
                 SettingsRow(AppIcons.Haptics, Candy.Mint, "Haptic feedback", trailing = {
                     GlassSwitch(settings.haptics != "OFF") { viewModel.setHaptics(if (it) "LIGHT" else "OFF") }
                 })
@@ -63,45 +63,26 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
 
         SettingsSection("LIBRARY") {
             SettingsCard {
-                SettingsRow(AppIcons.Card, Candy.Sky, "Default view", settings.defaultView) { viewModel.setSetting("defaultView", if (settings.defaultView == "CARD") "COMPACT" else "CARD") }
-                SettingsRow(AppIcons.Filter, Candy.Grape, "Columns", settings.cardColumns.toString()) {
-                    viewModel.setCardColumns(if (settings.cardColumns >= 4) 1 else settings.cardColumns + 1)
-                }
-                SettingsRow(AppIcons.Compact, Candy.Bubblegum, "Card caption", settings.cardCaptionStyle) {
-                    val values = listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY")
-                    viewModel.setCardCaptionStyle(values[(values.indexOf(settings.cardCaptionStyle) + 1) % values.size])
-                }
-                SettingsRow(AppIcons.Select, Candy.Tangerine, "Tap on a bookmark", settings.tapAction) {
-                    val values = listOf("OPEN", "DETAILS", "ASK")
-                    viewModel.setSetting("tapAction", values[(values.indexOf(settings.tapAction) + 1) % values.size])
-                }
-                SettingsRow(AppIcons.Sort, Candy.Lime, "Sort order", settings.sortOrder) {
-                    viewModel.setSetting("sortOrder", if (settings.sortOrder == "NEWEST") "OLDEST" else "NEWEST")
-                }
-                SettingsRow(AppIcons.Delete, Candy.Tomato, "Trash retention", "${settings.trashRetentionDays} days") {
-                    viewModel.setSetting("trashRetentionDays", 30)
-                }
+                SettingsChoiceRow(AppIcons.Card, Candy.Sky, "Default view", settings.defaultView, listOf("CARD", "COMPACT")) { viewModel.setSetting("defaultView", it) }
+                SettingsChoiceRow(AppIcons.Filter, Candy.Grape, "Columns", settings.cardColumns.toString(), (1..4).map { it.toString() }) { viewModel.setCardColumns(it.toInt()) }
+                SettingsChoiceRow(AppIcons.Compact, Candy.Bubblegum, "Card caption", settings.cardCaptionStyle, listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY")) { viewModel.setCardCaptionStyle(it) }
+                SettingsChoiceRow(AppIcons.Select, Candy.Tangerine, "Tap on a bookmark", settings.tapAction, listOf("OPEN", "DETAILS", "ASK")) { viewModel.setSetting("tapAction", it) }
+                SettingsChoiceRow(AppIcons.Sort, Candy.Lime, "Sort order", settings.sortOrder, listOf("NEWEST", "OLDEST")) { viewModel.setSetting("sortOrder", it) }
+                SettingsChoiceRow(AppIcons.Delete, Candy.Tomato, "Trash retention (days)", settings.trashRetentionDays.toString(), listOf("7", "30", "90")) { viewModel.setSetting("trashRetentionDays", it.toInt()) }
             }
         }
 
         SettingsSection("LINKS AND PREVIEWS") {
             SettingsCard {
-                SettingsRow(AppIcons.Open, Candy.Sky, "Open links in", settings.openLinksIn) {
-                    viewModel.setSetting("openLinksIn", if (settings.openLinksIn == "NATIVE") "BROWSER" else "NATIVE")
-                }
-                SettingsRow(AppIcons.Biometric, Candy.Grape, "Preview identity", settings.previewIdentity) {
-                    viewModel.setSetting("previewIdentity", if (settings.previewIdentity == "MOBILE") "CRAWLER" else "MOBILE")
-                }
+                SettingsChoiceRow(AppIcons.Open, Candy.Sky, "Open links in", settings.openLinksIn, listOf("NATIVE", "BROWSER")) { viewModel.setSetting("openLinksIn", it) }
+                SettingsChoiceRow(AppIcons.Biometric, Candy.Grape, "Preview identity", settings.previewIdentity, listOf("MOBILE", "CRAWLER")) { viewModel.setSetting("previewIdentity", it) }
                 SettingsRow(AppIcons.Warning, Candy.Tangerine, "Third-party preview helpers", trailing = {
                     GlassSwitch(settings.previewHelpers) { viewModel.setProxies(it) }
                 })
                 SettingsRow(AppIcons.Refetch, Candy.Mint, "Refetch missing previews", trailing = {
                     GlassSwitch(settings.refetchMissing) { viewModel.setSetting("refetchMissing", it) }
                 })
-                SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Image quality", settings.imageQuality) {
-                    val values = listOf("QUALITY", "BALANCED", "DATA_SAVER")
-                    viewModel.setSetting("imageQuality", values[(values.indexOf(settings.imageQuality) + 1) % values.size])
-                }
+                SettingsChoiceRow(AppIcons.CustomImage, Candy.Bubblegum, "Image quality", settings.imageQuality, listOf("QUALITY", "BALANCED", "DATA_SAVER")) { viewModel.setSetting("imageQuality", it) }
             }
         }
 
@@ -110,9 +91,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Reminder, Candy.Tangerine, "Notifications", trailing = {
                     GlassSwitch(settings.notifications) { viewModel.setSetting("notifications", it) }
                 })
-                SettingsRow(AppIcons.Snooze, Candy.Lime, "Default snooze", "${settings.defaultSnoozeMinutes} min") {
-                    viewModel.setSetting("defaultSnoozeMinutes", 60)
-                }
+                SettingsChoiceRow(AppIcons.Snooze, Candy.Lime, "Default snooze (min)", settings.defaultSnoozeMinutes.toString(), listOf("5", "15", "30", "60", "120")) { viewModel.setSetting("defaultSnoozeMinutes", it.toInt()) }
                 SettingsRow(AppIcons.Hide, Candy.Grape, "Hide details on lock screen", trailing = {
                     GlassSwitch(settings.hideDetailsOnLockScreen) { viewModel.setSetting("hideDetailsOnLockScreen", it) }
                 })
@@ -157,14 +136,8 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Appearance, Candy.Sky, "Reduce transparency", trailing = {
                     GlassSwitch(settings.reduceTransparency) { viewModel.setReduceTransparency(it) }
                 })
-                SettingsRow(AppIcons.Tags, Candy.Lemon, "Icon labels", settings.iconLabels) {
-                    val values = listOf("ICONS_ONLY", "SELECTED", "ALWAYS")
-                    viewModel.setSetting("iconLabels", values[(values.indexOf(settings.iconLabels) + 1) % values.size])
-                }
-                SettingsRow(AppIcons.Motion, Candy.Grape, "Performance mode", settings.performanceMode) {
-                    val values = listOf("AUTO", "QUALITY", "BALANCED", "BATTERY")
-                    viewModel.setSetting("performanceMode", values[(values.indexOf(settings.performanceMode) + 1) % values.size])
-                }
+                SettingsChoiceRow(AppIcons.Tags, Candy.Lemon, "Icon labels", settings.iconLabels, listOf("ICONS_ONLY", "SELECTED", "ALWAYS")) { viewModel.setSetting("iconLabels", it) }
+                SettingsChoiceRow(AppIcons.Motion, Candy.Grape, "Performance mode", settings.performanceMode, listOf("AUTO", "QUALITY", "BALANCED", "BATTERY")) { viewModel.setSetting("performanceMode", it) }
                 SettingsRow(AppIcons.Expand, Candy.Tangerine, "Immersive mode", trailing = {
                     GlassSwitch(settings.immersiveMode) { viewModel.setSetting("immersiveMode", it) }
                 })

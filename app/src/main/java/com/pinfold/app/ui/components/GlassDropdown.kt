@@ -1,16 +1,18 @@
 package com.pinfold.app.ui.components
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,15 +22,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.floatingLayer
+import com.pinfold.app.ui.glass.GlassOverlay
 import com.pinfold.app.ui.glass.GlassPillButton
-import com.pinfold.app.ui.glass.GlassPopover
 import com.pinfold.app.ui.glass.RoundedRectangle
-import com.pinfold.app.ui.glass.SpringMotion
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.revealRow
-import com.pinfold.app.ui.glass.rememberRowReveal
-import com.pinfold.app.ui.glass.theme.clear
+import com.pinfold.app.ui.glass.rememberMenuRow
+import com.pinfold.app.ui.glass.rememberSpringAppear
 
+/**
+ * A setting that opens an in-screen glass pop-up with EVERY option and a check on the current one.
+ * There is no Android dropdown: the pop-up is a live glass surface that springs out of the row and
+ * folds back on a tap-away, on the same Motion vocabulary as the nav pill and every other menu.
+ */
 @Composable
 fun GlassDropdown(
     label: String,
@@ -38,51 +45,66 @@ fun GlassDropdown(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var closing by remember { mutableStateOf(false) }
-    val appear = remember { Animatable(0f) }
-    val open = { closing = false; expanded = true }
-    val close = { if (expanded) closing = true }
-    LaunchedEffect(expanded, closing) {
-        val target = if (expanded && !closing) 1f else 0f
-        appear.animateTo(target, if (target == 1f) SpringMotion.popOpen() else SpringMotion.popClose())
-        if (target == 0f && expanded) {
-            expanded = false
-            closing = false
-        }
-    }
     Box(modifier) {
-        GlassPillButton(onClick = { if (expanded) close() else open() }, height = 40.dp, label = label) {
-            Text("$label: $selected", color = clear.onGlass)
-            AppIcons.Icon(AppIcons.Expand, null, tint = clear.onGlassSoft, size = 16.dp)
+        GlassPillButton(onClick = { expanded = true }, height = 48.dp, label = label) {
+            Text("$label: $selected", color = SavelinGlass.ink)
+            AppIcons.Icon(AppIcons.Expand, null, tint = SavelinGlass.inkSoft, size = 16.dp)
         }
         if (expanded) {
-            Box(Modifier.matchParentSize().clickable { close() })
-            GlassPopover(
-                Modifier.align(Alignment.TopStart).padding(top = 46.dp).fillMaxWidth().padding(6.dp)
+            GlassChoicePopUp(
+                title = label,
+                options = options,
+                selected = selected,
+                onSelect = { onSelect(it); expanded = false },
+                onDismiss = { expanded = false },
+            )
+        }
+    }
+}
+
+/** The shared in-screen pop-up behind every choice in Settings. All options stay visible. */
+@Composable
+fun GlassChoicePopUp(
+    title: String,
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    GlassOverlay(animatesOut = true) {
+        val appear = rememberSpringAppear()
+        Box(Modifier.fillMaxSize().padding(16.dp)) {
+            Box(Modifier.matchParentSize().clickable(onClick = onDismiss))
+            Column(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .floatingLayer {
                         val p = appear.value.coerceIn(0f, 1f)
-                        val s = 0.7f + 0.3f * p
+                        val s = 0.76f + 0.24f * p
                         scaleX = s
                         scaleY = s
                         alpha = p
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    },
-                shape = RoundedRectangle(18.dp),
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                    }
+                    .then(SavelinGlass.popupModifier(RoundedRectangle(22.dp)))
+                    .padding(10.dp),
             ) {
+                Text(
+                    title.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SavelinGlass.inkSoft,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
                 options.forEachIndexed { i, option ->
-                    val row = rememberRowReveal(appear, i)
+                    val row = rememberMenuRow(i)
                     Row(
-                        Modifier.fillMaxWidth().revealRow(row).height(44.dp)
-                            .pressable(onClick = {
-                                onSelect(option)
-                                close()
-                            })
+                        Modifier.fillMaxWidth().height(52.dp).revealRow(row)
+                            .pressable(onClick = { onSelect(option) })
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(option, color = clear.onGlass, modifier = Modifier.weight(1f))
+                        Text(option, color = SavelinGlass.ink, modifier = Modifier.weight(1f))
                         if (option == selected) {
-                            AppIcons.Icon(AppIcons.Selected, "Selected", tint = clear.onGlass, size = 16.dp)
+                            AppIcons.Icon(AppIcons.Selected, "Selected", tint = SavelinGlass.ink, size = 20.dp)
                         }
                     }
                 }

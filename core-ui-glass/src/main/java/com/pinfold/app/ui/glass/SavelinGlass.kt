@@ -95,9 +95,9 @@ object SavelinGlass {
     }
 
     /**
-     * The heavier glass of pop-ups: the same live preset and the same rim, but a strong neutral frost
-     * that softens whatever is behind it so rows stay readable. The wash is not thinned by the tint
-     * slider; blur, refraction, colour and rim still follow every preset and slider change.
+     * The heavier glass of pop-ups: the same live preset, the same neutral wash and the same rim as
+     * the nav pill, with a stronger frost so rows stay readable. Every value is read from
+     * [GlassSettings] here, so a preset or any slider moves a pop-up in the very same frame.
      */
     @Composable
     fun popupModifier(shape: Shape = RoundedRectangle(24.dp)): Modifier {
@@ -109,7 +109,6 @@ object SavelinGlass {
             lensHeight = 14.dp * style.refractionHeight,
             lensAmount = 20.dp * style.refractionAmount,
             scaleByStyle = false,
-            tintWash = false,
         )
     }
 }

@@ -74,6 +74,9 @@ data class AppSettings(
     val backgroundAnimate: Boolean = true,
     val backgroundDim: Float = 0.2f,
     val backgroundDetails: String = "PICTURE",
+    val backgroundShape: String = "SOFT",
+    val backgroundSource: String = "PALETTE",
+    val backgroundFps: Int = 30,
     val driveSyncEnabled: Boolean = false,
     val driveLastSuccessAt: Long = 0L,
     val driveLastAttemptAt: Long = 0L,
@@ -155,6 +158,9 @@ class SettingsRepository(private val context: Context) {
             backgroundAnimate = p[Keys.backgroundAnimate] ?: true,
             backgroundDim = p[Keys.backgroundDim] ?: 0.2f,
             backgroundDetails = p[Keys.backgroundDetails] ?: "PICTURE",
+            backgroundShape = p[Keys.backgroundShape] ?: "SOFT",
+            backgroundSource = p[Keys.backgroundSource] ?: "PALETTE",
+            backgroundFps = p[Keys.backgroundFps] ?: 30,
             driveSyncEnabled = p[Keys.driveSyncEnabled] ?: false,
             driveLastSuccessAt = p[Keys.driveLastSuccessAt] ?: 0L,
             driveLastAttemptAt = p[Keys.driveLastAttemptAt] ?: 0L,
@@ -290,6 +296,9 @@ class SettingsRepository(private val context: Context) {
         val backgroundAnimate = booleanPreferencesKey("backgroundAnimate")
         val backgroundDim = floatPreferencesKey("backgroundDim")
         val backgroundDetails = stringPreferencesKey("backgroundDetails")
+        val backgroundShape = stringPreferencesKey("backgroundShape")
+        val backgroundSource = stringPreferencesKey("backgroundSource")
+        val backgroundFps = intPreferencesKey("backgroundFps")
         val driveSyncEnabled = booleanPreferencesKey("driveSyncEnabled")
         val driveLastSuccessAt = longPreferencesKey("driveLastSuccessAt")
         val driveLastAttemptAt = longPreferencesKey("driveLastAttemptAt")

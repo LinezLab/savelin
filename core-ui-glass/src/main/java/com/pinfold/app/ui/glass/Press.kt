@@ -226,7 +226,7 @@ half4 main(float2 coord) {
         if (pressAnim.value == 0f && wobbleAnim.value == 0f && glowAnim.value == 0f && expandAnim.value == 0f) return
         releaseJob?.cancel()
         longPressJob?.cancel()
-        val quick = spring<Float>(1f, 1400f, 0.004f)
+        val quick = SpringMotion.reduceOr(spring<Float>(1f, MotionSettings.stiffness(1400f), 0.004f))
         releaseJob = animationScope.launch {
             launch { wobbleAnim.animateTo(0f, quick) }
             launch { pressAnim.animateTo(0f, quick) }

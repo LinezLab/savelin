@@ -144,15 +144,14 @@ fun GlassDialog(
                 shape = RoundedRectangle(34.dp),
                 wash = c.frost,
                 blur = 16.dp,
-                tintWash = false,
             ) {
                 Column(
                     Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp, bottom = 18.dp),
                     horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
                 ) {
                     if (icon != null) {
-                        Box(Modifier.size(46.dp).clip(CircleShape).background(tint), contentAlignment = Alignment.Center) {
-                            Icon(icon, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                        Box(Modifier.size(46.dp).clip(CircleShape).then(SavelinGlass.modifier(CircleShape)), contentAlignment = Alignment.Center) {
+                            Icon(icon, null, tint = SavelinGlass.ink, modifier = Modifier.size(24.dp))
                         }
                         Spacer(Modifier.height(14.dp))
                     }
@@ -180,10 +179,16 @@ fun GlassDialog(
                             if (confirm != null) {
                                 GlassPill(
                                     onClick = { if (confirmEnabled) onConfirm() },
-                                    tint = if (confirmEnabled) tint else c.inkFaint,
                                     height = 46.dp,
                                     modifier = each.revealRow(confirmReveal),
-                                ) { Text(confirm, style = ClearType.BodyStrong, color = Color.White, maxLines = 1) }
+                                ) {
+                                    Text(
+                                        confirm,
+                                        style = ClearType.BodyStrong,
+                                        color = if (!confirmEnabled) c.onGlassSoft else if (destructive) Candy.Tomato else SavelinGlass.ink,
+                                        maxLines = 1,
+                                    )
+                                }
                             }
                         }
                     }
@@ -266,7 +271,6 @@ fun GlassSheet(
                 shape = RoundedRectangle(32.dp),
                 wash = c.frost,
                 blur = 16.dp,
-                tintWash = false,
             ) {
                 Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(36.dp, 5.dp).clip(Capsule).background(c.inkFaint.copy(alpha = 0.35f)))
@@ -308,9 +312,9 @@ fun GlassRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            val blob = if (destructive) Candy.Tomato else accent
-            Box(Modifier.size(34.dp).clip(RoundedRectangle(11.dp)).background(blob.copy(alpha = if (c.dark) 0.26f else 0.16f)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = blob, modifier = Modifier.size(19.dp))
+            val ink = if (destructive) Candy.Tomato else SavelinGlass.ink
+            Box(Modifier.size(34.dp).clip(RoundedRectangle(11.dp)).then(SavelinGlass.modifier(RoundedRectangle(11.dp))), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = ink, modifier = Modifier.size(19.dp))
             }
             Spacer(Modifier.width(14.dp))
         }
@@ -347,7 +351,6 @@ fun MenuCard(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.
         wash = c.frost,
         blur = 12.dp + 4.dp * GlassSettings.style.blur,
         luminance = luminance,
-        tintWash = false,
     ) {
         val ink = adaptiveInk(luminance, c.ink)
         CompositionLocalProvider(LocalGlassInk provides ink, LocalMenuInk provides ink) { content() }
@@ -498,8 +501,7 @@ fun GlassTextField(
         decorationBox = { inner ->
             Box(
                 Modifier.fillMaxWidth().clip(RoundedRectangle(16.dp))
-                    .background(c.ink.copy(alpha = if (c.dark) 0.08f else 0.05f))
-                    .then(if (error) Modifier.background(Candy.Tomato.copy(alpha = 0.12f)) else Modifier)
+                    .then(SavelinGlass.modifier(RoundedRectangle(16.dp)))
                     .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
                 if (value.isEmpty()) Text(placeholder, style = ClearType.Body, color = if (error) Candy.Tomato else c.onGlassSoft)
@@ -532,15 +534,15 @@ fun GlassToast(text: String, action: String?, onAction: () -> Unit, modifier: Mo
                 alpha = p.coerceIn(0f, 1f)
             }
             .widthIn(max = 520.dp)
-            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance, tintWash = false)
+            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance)
             .padding(start = 20.dp, end = if (action != null) 6.dp else 20.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, style = ClearType.Label, color = ink, modifier = Modifier.weight(1f, fill = false).padding(vertical = 8.dp), maxLines = 3)
         if (action != null) {
             Spacer(Modifier.width(10.dp))
-            GlassPill(onClick = onAction, tint = Candy.Sky, height = 38.dp, horizontalPadding = 14.dp) {
-                Text(action, style = ClearType.Label, color = Color.White)
+            GlassPill(onClick = onAction, height = 38.dp, horizontalPadding = 14.dp) {
+                Text(action, style = ClearType.Label, color = SavelinGlass.ink)
             }
         }
     }

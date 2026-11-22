@@ -8,6 +8,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,9 +65,12 @@ import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.GlassMenuItem
+import com.pinfold.app.ui.background.GeneratedBackground
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
+import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.SavelinGlassDialog
@@ -85,9 +90,10 @@ fun DetailsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val settings by viewModel.settings.collectAsState()
     val bookmark = item.bookmark
     val colors = clear
-    val ink = colors.ink
+    val ink = colors.onGlass
 
     var expandedCaption by remember { mutableStateOf(false) }
     var cameraMenu by remember { mutableStateOf(false) }
@@ -128,7 +134,20 @@ fun DetailsScreen(
         copied = true
     }
 
-    Box(modifier.fillMaxSize().background(colors.wall.last())) {
+    Box(modifier.fillMaxSize()) {
+        when (settings.backgroundDetails) {
+            "SOLID" -> Box(Modifier.fillMaxSize().background(Color.hsv(settings.backgroundHue, 0.55f, 0.92f)))
+            "GENERATED" -> GeneratedBackground(
+                Modifier.fillMaxSize(), loopMs = settings.backgroundLoopSeconds * 1000, animate = settings.backgroundAnimate,
+                style = settings.backgroundStyle, hue = settings.backgroundHue, dim = settings.backgroundDim,
+                shape = settings.backgroundShape, source = settings.backgroundSource, fps = settings.backgroundFps,
+            )
+            else -> {
+                val wall = GlassSettings.customWallpaper
+                if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                else Box(Modifier.fillMaxSize().background(colors.wall.last()))
+            }
+        }
         if (imagePath != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(File(imagePath)).build(),
@@ -159,7 +178,7 @@ fun DetailsScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Candy.Bubblegum, Candy.Grape, Candy.Tangerine))))
+                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(colors.wall)))
                     }
                     Box(Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                         GlassCircle(
@@ -167,13 +186,18 @@ fun DetailsScreen(
                             onLongClick = { cameraMenu = true },
                             size = 44.dp,
                             label = "Image options",
+                            ink = ink,
                         ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = ink) }
                         if (cameraMenu) {
                             com.pinfold.app.ui.components.GlassMenuOverlay(
                                 items = listOf(
-                                    com.pinfold.app.ui.components.GlassMenuItem(com.pinfold.app.ui.components.AppIcons.Refetch, "Refetch image", onClick = { viewModel.refetch(bookmark) }),
-                                    com.pinfold.app.ui.components.GlassMenuItem(com.pinfold.app.ui.components.AppIcons.NoPreview, "Remove custom image", onClick = { viewModel.removeImage(bookmark) }),
-                                ),
+                                    GlassMenuItem(AppIcons.Refetch, "Refetch image", onClick = { viewModel.refetch(bookmark) }),
+                                    GlassMenuItem(AppIcons.CustomImage, "Choose picture", onClick = {
+                                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    }),
+                                ) + if (bookmark.customImage) listOf(
+                                    GlassMenuItem(AppIcons.NoPreview, "Remove custom image", onClick = { viewModel.removeImage(bookmark) }),
+                                ) else emptyList(),
                                 onDismiss = { cameraMenu = false },
                             )
                         }
@@ -220,7 +244,7 @@ fun DetailsScreen(
                         ),
                     )
                     Spacer(Modifier.size(8.dp))
-                    GlassCircle(onClick = { copyUrl(false) }, size = 44.dp, label = "Copy link") {
+                    GlassCircle(onClick = { copyUrl(false) }, size = 44.dp, label = "Copy link", ink = ink) {
                         AppIcons.Icon(if (copied) AppIcons.Selected else AppIcons.Copy, "Copy link", tint = ink)
                     }
                 }
@@ -286,7 +310,7 @@ fun DetailsScreen(
                 .height(56.dp),
         ) {
             Box(Modifier.align(Alignment.CenterStart)) {
-                GlassCircle(onClick = onBack, onLongClick = onBack, size = 56.dp, label = "Back") {
+                GlassCircle(onClick = onBack, onLongClick = onBack, size = 56.dp, label = "Back", ink = ink) {
                     AppIcons.Icon(AppIcons.Back, "Back", tint = ink)
                 }
             }
@@ -304,32 +328,40 @@ fun DetailsScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 24.dp)
-                        .pressable(onClick = { openLink(context, bookmark.url, target.packageName) }),
+                        .pressable(onClick = { openLink(context, bookmark.url, target.packageName, settings.openLinksIn == "BROWSER") }),
                 )
             }
             Box(Modifier.align(Alignment.CenterEnd)) {
-                GlassCircle(onClick = { moreMenu = true }, onLongClick = { moreMenu = true }, size = 56.dp, label = "More") {
+                GlassCircle(onClick = { moreMenu = true }, onLongClick = { moreMenu = true }, size = 56.dp, label = "More", ink = ink) {
                     AppIcons.Icon(AppIcons.More, "More", tint = ink)
                 }
                 if (moreMenu) {
                     com.pinfold.app.ui.components.GlassMenuOverlay(
                         items = listOf(
-                            com.pinfold.app.ui.components.GlassMenuItem(
+                            GlassMenuItem(AppIcons.Open, "Open link", onClick = {
+                                openLink(context, bookmark.url, target.packageName, settings.openLinksIn == "BROWSER")
+                            }),
+                            GlassMenuItem(AppIcons.Copy, "Copy link", onClick = { copyUrl(original = true) }),
+                            GlassMenuItem(
                                 AppIcons.Important,
                                 if (bookmark.isImportant) "Remove important" else "Mark important",
                                 onClick = { viewModel.toggleImportant(bookmark) },
                             ),
-                            com.pinfold.app.ui.components.GlassMenuItem(
+                            GlassMenuItem(
                                 AppIcons.Reminder,
                                 if (reminderText.isBlank()) "Set reminder" else "Edit reminder",
                                 onClick = { reminderOpen = true },
                             ),
-                            com.pinfold.app.ui.components.GlassMenuItem(AppIcons.Share, "Share", onClick = {
+                            GlassMenuItem(AppIcons.Share, "Share", onClick = {
                                 val share = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(Intent.EXTRA_TEXT, bookmark.url)
                                 }
                                 context.startActivity(Intent.createChooser(share, "Share"))
+                            }),
+                            GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = {
+                                viewModel.delete(bookmark)
+                                onBack()
                             }),
                         ),
                         onDismiss = { moreMenu = false },
@@ -345,7 +377,7 @@ fun DetailsScreen(
                 confirm = "Set reminder",
                 onConfirm = {
                     if (reminderText.isNotBlank()) {
-                        viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
+                        viewModel.setReminder(bookmark, reminderTime(reminderText))
                         reminderOpen = false
                     }
                 },
@@ -362,7 +394,7 @@ fun DetailsScreen(
                     }
                 }
                 if (reminderText.isNotBlank()) {
-                    GlassChip(onClick = { reminderText = ""; reminderOpen = false }, height = 36.dp, label = "Remove reminder") {
+                    GlassChip(onClick = { viewModel.clearReminder(bookmark); reminderText = ""; reminderOpen = false }, height = 36.dp, label = "Remove reminder") {
                         Text("Remove reminder", color = ink, style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -373,18 +405,43 @@ fun DetailsScreen(
 
 @Composable
 private fun GlassTag(label: String, icon: Int? = null) {
-    GlassChip(onClick = {}, height = 32.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp), label = label) {
-        if (icon != null) AppIcons.Icon(icon, null, tint = clear.ink, size = 16.dp)
-        Text(label, color = clear.ink, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    GlassChip(onClick = {}, height = 32.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp), label = label, ink = clear.onGlass) {
+        if (icon != null) AppIcons.Icon(icon, null, tint = clear.onGlass, size = 16.dp)
+        Text(label, color = clear.onGlass, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-private fun openLink(context: android.content.Context, url: String, pkg: String?) {
-    val intent = if (pkg != null) {
+private fun openLink(context: android.content.Context, url: String, pkg: String?, browser: Boolean) {
+    val intent = if (!browser && pkg != null) {
         context.packageManager.getLaunchIntentForPackage(pkg)?.apply { data = Uri.parse(url) }
             ?: Intent(Intent.ACTION_VIEW, Uri.parse(url))
     } else Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    context.startActivity(intent)
+    runCatching { context.startActivity(intent) }
+}
+
+/** Turns a reminder chip's label into a real trigger time, in the device's own time zone. */
+private fun reminderTime(label: String): Long {
+    val now = java.util.Calendar.getInstance()
+    return when (label) {
+        "Tonight" -> {
+            val c = java.util.Calendar.getInstance()
+            c.set(java.util.Calendar.HOUR_OF_DAY, 20)
+            c.set(java.util.Calendar.MINUTE, 0)
+            c.set(java.util.Calendar.SECOND, 0)
+            if (c.timeInMillis <= now.timeInMillis) c.add(java.util.Calendar.DAY_OF_MONTH, 1)
+            c.timeInMillis
+        }
+        "Tomorrow morning" -> {
+            val c = java.util.Calendar.getInstance()
+            c.add(java.util.Calendar.DAY_OF_MONTH, 1)
+            c.set(java.util.Calendar.HOUR_OF_DAY, 9)
+            c.set(java.util.Calendar.MINUTE, 0)
+            c.set(java.util.Calendar.SECOND, 0)
+            c.timeInMillis
+        }
+        "Next week" -> now.timeInMillis + 7L * 24L * 60L * 60L * 1000L
+        else -> now.timeInMillis + 60L * 60L * 1000L
+    }
 }
 
 private fun shortUrl(url: String): String {

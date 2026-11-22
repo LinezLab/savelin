@@ -3,12 +3,14 @@ package com.pinfold.app.ui.home
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,12 +46,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.SpringMotion
 import com.pinfold.app.ui.glass.pressable
+import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import java.io.File
 
@@ -68,6 +73,8 @@ fun HomeScreen(
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
+    val importantFilter by viewModel.importantFilter.collectAsState()
+    val reminderFilter by viewModel.reminderFilter.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val gridState = viewModel.gridState
@@ -87,7 +94,8 @@ fun HomeScreen(
         }
     }
 
-    Column(modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
         if (searchActive && query.isNotBlank()) {
             Text(
                 "${items.size} result${if (items.size == 1) "" else "s"}",
@@ -113,9 +121,7 @@ fun HomeScreen(
         LazyVerticalStaggeredGrid(
             state = gridState,
             columns = StaggeredGridCells.Fixed(settings.cardColumns.coerceIn(1, 4)),
-            modifier = Modifier.fillMaxSize().weight(1f).background(
-                if (settings.trueBlack) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.background,
-            ),
+            modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(
                 start = 4.dp,
                 top = 8.dp,
@@ -125,27 +131,6 @@ fun HomeScreen(
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
-            if (!searchActive) {
-                items(listOf(Unit), key = { HomeGridKey.Filters }, span = { StaggeredGridItemSpan.FullLine }) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.setSearchActive(true) }, height = 36.dp) {
-                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Search, null, size = 16.dp)
-                            Text("Search", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                        }
-                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleImportantFilter() }, height = 36.dp) {
-                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Important, null, size = 16.dp)
-                            Text("Important", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                        }
-                        com.pinfold.app.ui.glass.GlassChip(onClick = { viewModel.toggleReminderFilter() }, height = 36.dp) {
-                            com.pinfold.app.ui.components.AppIcons.Icon(com.pinfold.app.ui.components.AppIcons.Reminder, null, size = 16.dp)
-                            Text("Due", color = com.pinfold.app.ui.glass.theme.clear.ink)
-                        }
-                    }
-                }
-            }
             items(items, key = { HomeGridKey.Bookmark(it.bookmark.id) }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(
@@ -211,6 +196,18 @@ fun HomeScreen(
         }
 
     }
+    if (!searchActive) {
+        Row(
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = 78.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            FilterChip(AppIcons.Search, "Search", searchActive) { viewModel.setSearchActive(true) }
+            FilterChip(AppIcons.Important, "Important", importantFilter) { viewModel.toggleImportantFilter() }
+            FilterChip(AppIcons.Reminder, "Due", reminderFilter) { viewModel.toggleReminderFilter() }
+        }
+    }
+}
 }
 
 @Composable
@@ -339,5 +336,23 @@ private fun FallbackTile(platform: String, title: String) {
             )
             Text("No preview. Add image", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelSmall)
         }
+    }
+}
+
+@Composable
+private fun FilterChip(icon: Int, label: String, selected: Boolean, onClick: () -> Unit) {
+    GlassChip(
+        onClick = onClick,
+        height = 46.dp,
+        contentPadding = PaddingValues(horizontal = 14.dp),
+        label = label,
+        ink = clear.onGlass,
+        modifier = Modifier.border(
+            if (selected) 2.dp else 1.dp,
+            if (selected) Candy.Sky else clear.rim,
+            CircleShape,
+        ),
+    ) {
+        AppIcons.Icon(icon, label, tint = if (selected) Candy.Sky else clear.onGlass, size = 20.dp)
     }
 }

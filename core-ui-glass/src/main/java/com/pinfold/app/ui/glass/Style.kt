@@ -54,7 +54,7 @@ data class GlassStyle(
         val Water = GlassStyle(blur = 1.2f, refractionHeight = 0.8f, refractionAmount = 0.7f, tint = 0.9f, saturation = 1.3f)
         /** No blur or refraction at all: for slow devices and reduced transparency. */
         val Solid = GlassStyle(blur = 0f, refractionHeight = 0f, refractionAmount = 0f, tint = 1f, highlight = 0f, saturation = 1f)
-        val Named = listOf("Liquid" to Default, "Frosted" to Frosted, "Crystal" to Crystal, "Water" to Water, "Solid" to Solid)
+        val Named = listOf("Liquid" to Default, "Frosted" to Frosted, "Crystal" to Crystal, "Water glass" to Water, "Solid" to Solid)
         val Presets = listOf(Default, Frosted, Crystal, Lite)
     }
 }

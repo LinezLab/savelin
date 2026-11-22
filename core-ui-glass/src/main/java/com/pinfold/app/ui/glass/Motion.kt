@@ -44,6 +44,7 @@ data class MotionStyle(
             Normal -> "Normal"
             Bouncy -> "Bouncy"
             Jelly -> "Jelly"
+            GlassSpring -> "Glass spring"
             else -> "Custom"
         }
 
@@ -52,7 +53,8 @@ data class MotionStyle(
         val Calm = MotionStyle(bounce = 0.2f, speed = 1.45f, press = 0.6f, wobble = 0f, stretch = 0.5f, bloom = 0.5f)
         val Bouncy = MotionStyle(bounce = 0.75f, speed = 0.92f, press = 1.3f, wobble = 1.6f, stretch = 1.2f, bloom = 1.2f)
         val Jelly = MotionStyle(bounce = 0.95f, speed = 0.82f, press = 1.6f, wobble = 2.2f, stretch = 1.5f, bloom = 1.5f)
-        val Presets = listOf(Calm, Normal, Bouncy, Jelly)
+        val GlassSpring = MotionStyle(bounce = 0.62f, speed = 1.12f, press = 1.15f, wobble = 1.25f, stretch = 1.1f, bloom = 1.15f)
+        val Presets = listOf(Calm, Normal, Bouncy, Jelly, GlassSpring)
         val Default = Bouncy
     }
 }
@@ -231,7 +233,7 @@ object Fluid {
     /** For small things fading or sliding a short way. */
     val Soft: Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
-    private fun ms(designed: Int): Int = (designed * MotionSettings.duration.coerceIn(0.3f, 3f)).roundToInt()
+    private fun ms(designed: Int): Int = if (MotionSettings.reduceMotion) SpringMotion.ReduceMs else (designed * MotionSettings.duration.coerceIn(0.3f, 3f)).roundToInt()
 
     /** A screen pushed in. */
     fun <T> push(): TweenSpec<T> = tween(ms(420), easing = Ease)
@@ -257,7 +259,7 @@ object Fluid {
     fun <T> fade(): TweenSpec<T> = tween(ms(200), easing = Soft)
 
     /** Values that follow something (an interrupted drag, a moving target): no overshoot. */
-    fun <T> follow(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 520f)
+    fun <T> follow(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = MotionSettings.stiffness(520f))
 
     /** A finger on a flat surface (cards, rows): it sinks fast, on the active Motion style. */
     fun pressIn(): AnimationSpec<Float> = SpringMotion.pressIn()

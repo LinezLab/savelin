@@ -112,7 +112,7 @@ fun FloatingPillNav(
             }
         }
         Box(Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp).then(SavelinGlass.modifier(Capsule)).clip(Capsule)) {
-            GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings") {
+            GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings", ink = colors.onGlass) {
                 AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.onGlass)
             }
         }
@@ -129,12 +129,12 @@ private fun ButtonsRow(
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(56.dp)) {
-            GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 48.dp, label = "Search") {
+            GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 48.dp, label = "Search", ink = ink) {
                 AppIcons.Icon(AppIcons.Search, "Search", tint = ink)
             }
         }
         Box(Modifier.size(56.dp)) {
-            GlassCircle(onClick = onAdd, onLongClick = onAddLong, size = 48.dp, label = "Add link") {
+            GlassCircle(onClick = onAdd, onLongClick = onAddLong, size = 48.dp, label = "Add link", ink = ink) {
                 AppIcons.Icon(AppIcons.Add, "Add link", tint = ink)
             }
         }
@@ -151,7 +151,7 @@ private fun SearchFieldRow(
     ink: Color,
     inkSoft: Color,
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         BasicTextField(
             value = query,
             onValueChange = onQueryChange,
@@ -166,11 +166,11 @@ private fun SearchFieldRow(
             modifier = Modifier.weight(1f),
         )
         if (enabled && query.isNotEmpty()) {
-            GlassCircle(onClick = { onQueryChange("") }, onLongClick = { onQueryChange("") }, size = 38.dp, label = "Clear search") {
+            GlassCircle(onClick = { onQueryChange("") }, onLongClick = { onQueryChange("") }, size = 38.dp, label = "Clear search", ink = inkSoft) {
                 AppIcons.Icon(AppIcons.Close, "Clear search", tint = inkSoft, size = 16.dp)
             }
         }
-        GlassCircle(onClick = { if (enabled) onSearchToggle() }, onLongClick = { if (enabled) onSearchToggle() }, size = 46.dp, label = "Close search") {
+        GlassCircle(onClick = { if (enabled) onSearchToggle() }, onLongClick = { if (enabled) onSearchToggle() }, size = 46.dp, label = "Close search", ink = ink) {
             AppIcons.Icon(AppIcons.Close, "Close search", tint = ink)
         }
     }

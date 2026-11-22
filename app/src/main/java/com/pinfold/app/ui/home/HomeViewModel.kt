@@ -53,6 +53,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     val searchActive: StateFlow<Boolean> = searchActiveState.asStateFlow()
     val navVisible: StateFlow<Boolean> = navVisibleState.asStateFlow()
+    val importantFilter: StateFlow<Boolean> = importantOnly.asStateFlow()
+    val reminderFilter: StateFlow<Boolean> = reminderOnly.asStateFlow()
 
     val reminderIds = db.reminderDao().observeAll()
         .combine(importantOnly) { reminders, _ -> reminders.map { it.bookmarkId }.toSet() }
@@ -257,6 +259,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             status = com.pinfold.app.data.model.FetchStatus.OK,
         )
         db.bookmarkDao().update(db.bookmarkDao().findById(item.id)!!.copy(customImage = true))
+    }
+
+    fun clearReminder(item: Bookmark) = viewModelScope.launch {
+        val existing = db.reminderDao().observeAll().first().firstOrNull { it.bookmarkId == item.id }
+        if (existing != null) {
+            db.reminderDao().delete(existing.id)
+            ReminderScheduler.cancel(getApplication(), existing.id)
+        }
     }
 
     fun setReminder(item: Bookmark, triggerAt: Long) = viewModelScope.launch {

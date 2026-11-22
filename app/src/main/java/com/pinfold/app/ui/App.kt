@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,9 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -86,7 +89,26 @@ fun App(sharedText: String? = null) {
         }
     }
     GlassStage(
-        wallpaper = { com.pinfold.app.ui.background.GeneratedBackground(Modifier.fillMaxSize()) },
+        wallpaper = {
+            val bg = appearance
+            when (bg.backgroundType) {
+                "SOLID" -> Box(Modifier.fillMaxSize().background(Color.hsv(bg.backgroundHue, 0.55f, 0.92f)))
+                "PICTURE" -> {
+                    val wall = GlassSettings.customWallpaper
+                    if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else com.pinfold.app.ui.background.GeneratedBackground(
+                        Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = bg.backgroundAnimate,
+                        style = bg.backgroundStyle, hue = bg.backgroundHue, dim = bg.backgroundDim,
+                        shape = bg.backgroundShape, source = bg.backgroundSource, fps = bg.backgroundFps,
+                    )
+                }
+                else -> com.pinfold.app.ui.background.GeneratedBackground(
+                    Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = bg.backgroundAnimate,
+                    style = bg.backgroundStyle, hue = bg.backgroundHue, dim = bg.backgroundDim,
+                    shape = bg.backgroundShape, source = bg.backgroundSource, fps = bg.backgroundFps,
+                )
+            }
+        },
         screens = {
             val shadeColors = com.pinfold.app.ui.glass.theme.clear
             val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -113,13 +135,11 @@ fun App(sharedText: String? = null) {
                     DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
                 }
                 if (appearance.topShade) {
+                    val glass = GlassSettings.style
+                    val wash = shadeColors.glass.copy(alpha = (appearance.topShadeStrength * glass.tint).coerceIn(0f, 0.65f))
                     Box(
                         Modifier.align(Alignment.TopCenter).fillMaxWidth().height(shadeHeight).zIndex(5f)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(shadeColors.wall.last().copy(alpha = appearance.topShadeStrength), Color.Transparent),
-                                ),
-                            ),
+                            .background(Brush.verticalGradient(listOf(wash, Color.Transparent))),
                     )
                 }
                 if (showAdd) {
