@@ -151,6 +151,7 @@ fun App(sharedText: String? = null) {
                     draft = ""
                     showAdd = false
                 }) { Text("Save") }
+            },
             dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } },
         )
 }
