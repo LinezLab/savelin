@@ -48,7 +48,7 @@ fun GlassTextAction(label: String, onClick: () -> Unit, modifier: Modifier = Mod
             color = when {
                 primary && enabled -> Color.White
                 enabled -> c.ink
-                else -> c.inkFaint
+                else -> c.onGlassSoft
             },
         )
     }

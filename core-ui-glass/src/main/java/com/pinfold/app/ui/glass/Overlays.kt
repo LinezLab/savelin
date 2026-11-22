@@ -144,6 +144,7 @@ fun GlassDialog(
                 shape = RoundedRectangle(34.dp),
                 wash = c.frost,
                 blur = 16.dp,
+                tintWash = false,
             ) {
                 Column(
                     Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp, bottom = 18.dp),
@@ -265,6 +266,7 @@ fun GlassSheet(
                 shape = RoundedRectangle(32.dp),
                 wash = c.frost,
                 blur = 16.dp,
+                tintWash = false,
             ) {
                 Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(36.dp, 5.dp).clip(Capsule).background(c.inkFaint.copy(alpha = 0.35f)))
@@ -328,19 +330,11 @@ data class GlassMenuItem(val label: String, val icon: ImageVector? = null, val d
 /** How long a chosen menu item waits for the menu to fold away (its dismiss tween, about 260 ms). */
 private const val MenuGoneMillis = 220L
 
-// Menus are their own glass material.  A neutral wash lets a PDF, picture, or wallpaper supply the
-// reflected colour instead of imposing the app theme's blue frost over every context.
-// Lighter than before (0.72 / 0.58 over a ×3 blur read as a painted card): the menu is glass again,
-// what is behind it showing through as soft colour, in both themes.
-private val MenuLightWash = Color.White.copy(alpha = 0.50f)
-private val MenuDarkWash = Color(0xFF101014).copy(alpha = 0.54f)
-
 /**
- * The card every menu and popover is made of (the desk's menus, the viewer's selection and page
- * menus, More tools): one frosted glass, whatever the user's glass preset, so no menu comes out
- * clear, prismatic or painted where the others are frosted. With Settings ▸ Liquid glass ▸ Adaptive
- * luminance it reads what is behind it and takes light glass and dark ink, or dark glass and white
- * ink, to suit; its rows take their ink from [LocalGlassInk] / [LocalMenuInk].
+ * The card every menu and popover is made of: the app's own live glass, with a heavier neutral frost
+ * so what is behind is softened and every row meets contrast. Blur, refraction, colour, rim and
+ * saturation all come from the active preset and its sliders; nothing is frozen here. Adaptive
+ * luminance still picks dark or light ink to suit the page underneath.
  */
 @Composable
 fun MenuCard(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.Shape = RoundedRectangle(24.dp), content: @Composable ColumnScope.() -> Unit) {
@@ -350,10 +344,10 @@ fun MenuCard(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.
         // unseen for the frame or two it takes to read what is behind it (see [GlassLuminance])
         modifier.graphicsLayer { alpha = if (luminance == null || luminance.measured) 1f else 0f },
         shape = shape,
-        wash = if (c.dark) MenuDarkWash else MenuLightWash,
-        blur = 16.dp,
-        styleOverride = if (c.dark) GlassStyle.MenuFrostDark else GlassStyle.MenuFrost,
+        wash = c.frost,
+        blur = 12.dp + 4.dp * GlassSettings.style.blur,
         luminance = luminance,
+        tintWash = false,
     ) {
         val ink = adaptiveInk(luminance, c.ink)
         CompositionLocalProvider(LocalGlassInk provides ink, LocalMenuInk provides ink) { content() }
@@ -496,7 +490,7 @@ fun GlassTextField(
         onValueChange = onValueChange,
         singleLine = singleLine,
         textStyle = ClearType.Body.copy(color = c.ink),
-        cursorBrush = SolidColor(Candy.Sky),
+        cursorBrush = SolidColor(c.ink),
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
@@ -504,11 +498,11 @@ fun GlassTextField(
         decorationBox = { inner ->
             Box(
                 Modifier.fillMaxWidth().clip(RoundedRectangle(16.dp))
-                    .background(if (c.dark) Color.White.copy(alpha = 0.07f) else c.ink.copy(alpha = 0.05f))
+                    .background(c.ink.copy(alpha = if (c.dark) 0.08f else 0.05f))
                     .then(if (error) Modifier.background(Candy.Tomato.copy(alpha = 0.12f)) else Modifier)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
-                if (value.isEmpty()) Text(placeholder, style = ClearType.Body, color = if (error) Candy.Tomato else c.inkFaint)
+                if (value.isEmpty()) Text(placeholder, style = ClearType.Body, color = if (error) Candy.Tomato else c.onGlassSoft)
                 inner()
             }
         },
@@ -538,7 +532,7 @@ fun GlassToast(text: String, action: String?, onAction: () -> Unit, modifier: Mo
                 alpha = p.coerceIn(0f, 1f)
             }
             .widthIn(max = 520.dp)
-            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance)
+            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance, tintWash = false)
             .padding(start = 20.dp, end = if (action != null) 6.dp else 20.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

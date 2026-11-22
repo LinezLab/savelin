@@ -49,40 +49,44 @@ fun Modifier.glass(
     lensAmount: Dp = 24.dp,
     styleOverride: GlassStyle? = null,
     luminance: GlassLuminance? = null,
+    scaleByStyle: Boolean = true,
+    tintWash: Boolean = true,
 ): Modifier {
     val backdrop = LocalBackdrop.current
     val style = styleOverride ?: GlassSettings.style
+    val effectStyle = if (scaleByStyle) style else style.copy(blur = 1f, refractionHeight = 1f, refractionAmount = 1f)
+    fun Color.surfaceWash(): Color = if (tintWash) glassTint(style) else this
     // adaptive: the glass answers what is behind it instead of wearing the theme's wash
     if (luminance != null) return drawBackdrop(
         backdrop = backdrop,
         shape = { shape },
         shadow = null,
-        effects = { adaptiveGlassEffects(style, luminance.value, blur.toPx(), lensHeight.toPx(), lensAmount.toPx()) },
+        effects = { adaptiveGlassEffects(effectStyle, luminance.value, blur.toPx(), lensHeight.toPx(), lensAmount.toPx()) },
         highlight = { glassHighlight(style) },
         onDrawBackdrop = luminance.recorder,
-        onDrawSurface = { drawRect(adaptiveWash(luminance.value).glassTint(style)) },
+        onDrawSurface = { drawRect(adaptiveWash(luminance.value).surfaceWash()) },
     )
     // Adaptive luminance on: a still surface (a bar, a panel, a sheet) takes its frost and light
     // from what is around it. It keeps its own wash: what is written on it is in the theme's ink.
     val around = rememberSurroundLuminance()
     if (around != null && styleOverride == null) {
-        val base = style.adaptiveBase
+        val base = style.adaptiveBase.let { if (scaleByStyle) it else it.copy(blur = 1f, refractionHeight = 1f, refractionAmount = 1f) }
         return then(around.modifier).drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             shadow = null,
             effects = { adaptiveGlassEffects(base, around.value, blur.toPx(), lensHeight.toPx(), lensAmount.toPx()) },
             highlight = { glassHighlight(base) },
-            onDrawSurface = { if (wash.isSpecified) drawRect(wash) },
+            onDrawSurface = { if (wash.isSpecified) drawRect(wash.surfaceWash()) },
         )
     }
     return drawBackdrop(
         backdrop = backdrop,
         shape = { shape },
         shadow = null,
-        effects = { glassEffects(style, blur.toPx(), lensHeight.toPx(), lensAmount.toPx()) },
+        effects = { glassEffects(effectStyle, blur.toPx(), lensHeight.toPx(), lensAmount.toPx()) },
         highlight = { glassHighlight(style) },
-        onDrawSurface = { if (wash.isSpecified) drawRect(wash.glassTint(style)) },
+        onDrawSurface = { if (wash.isSpecified) drawRect(wash.surfaceWash()) },
     )
 }
 
@@ -98,13 +102,15 @@ fun GlassCard(
     blur: Dp = 8.dp,
     styleOverride: GlassStyle? = null,
     luminance: GlassLuminance? = null,
+    scaleByStyle: Boolean = true,
+    tintWash: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val below = LocalBackdrop.current
     val layer = rememberLayerBackdrop()
     val combined = rememberCombinedBackdrop(below, layer)
     Box(modifier) {
-        Box(Modifier.matchParentSize().layerBackdrop(layer).glass(shape, wash, blur, styleOverride = styleOverride, luminance = luminance))
+        Box(Modifier.matchParentSize().layerBackdrop(layer).glass(shape, wash, blur, styleOverride = styleOverride, luminance = luminance, scaleByStyle = scaleByStyle, tintWash = tintWash))
         CompositionLocalProvider(LocalBackdrop provides combined) { Column(content = content) }
     }
 }

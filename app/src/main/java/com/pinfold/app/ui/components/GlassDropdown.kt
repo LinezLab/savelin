@@ -52,8 +52,8 @@ fun GlassDropdown(
     }
     Box(modifier) {
         GlassPillButton(onClick = { if (expanded) close() else open() }, height = 40.dp, label = label) {
-            Text("$label: $selected", color = clear.ink)
-            AppIcons.Icon(AppIcons.Expand, null, tint = clear.inkSoft, size = 16.dp)
+            Text("$label: $selected", color = clear.onGlass)
+            AppIcons.Icon(AppIcons.Expand, null, tint = clear.onGlassSoft, size = 16.dp)
         }
         if (expanded) {
             Box(Modifier.matchParentSize().clickable { close() })
@@ -80,9 +80,9 @@ fun GlassDropdown(
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(option, color = clear.ink, modifier = Modifier.weight(1f))
+                        Text(option, color = clear.onGlass, modifier = Modifier.weight(1f))
                         if (option == selected) {
-                            AppIcons.Icon(AppIcons.Selected, "Selected", tint = clear.ink, size = 16.dp)
+                            AppIcons.Icon(AppIcons.Selected, "Selected", tint = clear.onGlass, size = 16.dp)
                         }
                     }
                 }

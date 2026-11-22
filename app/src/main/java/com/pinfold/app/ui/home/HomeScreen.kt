@@ -49,6 +49,7 @@ import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.SpringMotion
 import com.pinfold.app.ui.glass.pressable
+import com.pinfold.app.ui.glass.theme.clear
 import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -86,6 +87,7 @@ fun HomeScreen(
             Text(
                 "${items.size} result${if (items.size == 1) "" else "s"}",
                 style = MaterialTheme.typography.labelMedium,
+                color = clear.onGlass,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             if (query.trim().startsWith("http")) {
@@ -98,6 +100,7 @@ fun HomeScreen(
                 Text(
                     "No matches. Try a tag or a site name.",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = clear.onGlass,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -283,7 +286,7 @@ private fun BookmarkCard(
                     if (titleLines > 0) {
                         Text(
                             bookmark.displayTitle.ifBlank { bookmark.title.ifBlank { bookmark.url } },
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = clear.onGlass,
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = titleLines,
                             overflow = TextOverflow.Ellipsis,
@@ -291,14 +294,14 @@ private fun BookmarkCard(
                     }
                     if (showAuthorLine) {
                         val subtitle = if (bookmark.authorHandle.isNotBlank()) "@${bookmark.authorHandle}" else bookmark.url.substringAfter("://").substringBefore('/')
-                        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        Text(subtitle, color = clear.onGlassSoft, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
                 Box(Modifier.size(40.dp).pressable(onClick = onMore, pressedScale = 0.86f), contentAlignment = Alignment.Center) {
                     com.pinfold.app.ui.components.AppIcons.Icon(
                         com.pinfold.app.ui.components.AppIcons.More,
                         "More options",
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = clear.onGlass,
                     )
                 }
             }

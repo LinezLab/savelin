@@ -54,19 +54,26 @@ object SavelinGlass {
     val wash: Color @Composable get() = clear.glass
 
     /** Content colour of every label and glyph on glass. */
-    val ink: Color @Composable get() = clear.ink
+    val ink: Color @Composable get() = clear.onGlass
+
+    /** Secondary content colour on glass: captions, placeholders, values. */
+    val inkSoft: Color @Composable get() = clear.onGlassSoft
 
     /** The specular edge, at the user's rim-light strength (drawn by [glassHighlight]). */
     val rim: Color @Composable get() = clear.rim
 
-    /** The lens/blur of the nav pill, tied to the live glass preset and sliders. */
+    /**
+     * The lens/blur of the shared glass, read from the live preset on every recomposition. Nothing is
+     * capped or remembered: the effect stack applies these once, so every preset and slider moves the
+     * open search field and the pill in exactly the same frame.
+     */
     @Composable
     fun metrics(): GlassMetrics {
-        val s = GlassSettings.style
+        val style = GlassSettings.style
         return GlassMetrics(
-            blur = s.blur.dp.coerceAtMost(8.dp),
-            lensHeight = 24.dp.coerceAtMost(s.refractionHeight.dp * 2f),
-            lensAmount = 40.dp.coerceAtMost(s.refractionAmount.dp * 2f),
+            blur = 8.dp * style.blur,
+            lensHeight = 16.dp * style.refractionHeight,
+            lensAmount = 24.dp * style.refractionAmount,
         )
     }
 
@@ -83,6 +90,26 @@ object SavelinGlass {
             blur = m.blur,
             lensHeight = m.lensHeight,
             lensAmount = m.lensAmount,
+            scaleByStyle = false,
+        )
+    }
+
+    /**
+     * The heavier glass of pop-ups: the same live preset and the same rim, but a strong neutral frost
+     * that softens whatever is behind it so rows stay readable. The wash is not thinned by the tint
+     * slider; blur, refraction, colour and rim still follow every preset and slider change.
+     */
+    @Composable
+    fun popupModifier(shape: Shape = RoundedRectangle(24.dp)): Modifier {
+        val style = GlassSettings.style
+        return Modifier.glass(
+            shape = shape,
+            wash = clear.frost,
+            blur = 10.dp + 4.dp * style.blur,
+            lensHeight = 14.dp * style.refractionHeight,
+            lensAmount = 20.dp * style.refractionAmount,
+            scaleByStyle = false,
+            tintWash = false,
         )
     }
 }
@@ -163,7 +190,7 @@ fun GlassPopover(
     shape: Shape = RoundedRectangle(24.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier.then(SavelinGlass.modifier(shape)), content = content)
+    Column(modifier.then(SavelinGlass.popupModifier(shape)), content = content)
 }
 
 /**
@@ -213,7 +240,7 @@ fun SavelinGlassDialog(
                         alpha = appear.value.coerceIn(0f, 1f)
                         transformOrigin = TransformOrigin(0.5f, 0.86f)
                     }
-                    .then(SavelinGlass.modifier(RoundedRectangle(28.dp)))
+                    .then(SavelinGlass.popupModifier(RoundedRectangle(28.dp)))
                     .clickable(remember { MutableInteractionSource() }, null) {}
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -242,7 +269,7 @@ fun SavelinGlassDialog(
                                 Text(
                                     confirm,
                                     style = ClearType.BodyStrong,
-                                    color = if (!confirmEnabled) c.inkFaint else if (destructive) com.pinfold.app.ui.glass.theme.Candy.Tomato else SavelinGlass.ink,
+                                    color = if (!confirmEnabled) c.onGlassSoft else if (destructive) com.pinfold.app.ui.glass.theme.Candy.Tomato else SavelinGlass.ink,
                                     maxLines = 1,
                                 )
                             }

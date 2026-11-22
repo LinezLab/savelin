@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
@@ -77,7 +78,7 @@ fun FloatingPillNav(
                             scaleX = s
                             scaleY = s
                         }.clickable(inactive, null) {},
-                        onSearchToggle, onAdd, onAddLong, colors.ink,
+                        onSearchToggle, onAdd, onAddLong, colors.onGlass,
                     )
                     SearchFieldRow(
                         Modifier.fillMaxSize().graphicsLayer {
@@ -87,7 +88,7 @@ fun FloatingPillNav(
                             scaleX = s
                             scaleY = s
                         },
-                        query, onQueryChange, onSearchToggle, true, colors.ink, colors.inkSoft,
+                        query, onQueryChange, onSearchToggle, true, colors.onGlass, colors.onGlassSoft,
                     )
                 } else {
                     SearchFieldRow(
@@ -95,7 +96,7 @@ fun FloatingPillNav(
                             val a = morph.coerceIn(0f, 1f)
                             alpha = a
                         }.clickable(inactive, null) {},
-                        query, onQueryChange, onSearchToggle, false, colors.ink, colors.inkSoft,
+                        query, onQueryChange, onSearchToggle, false, colors.onGlass, colors.onGlassSoft,
                     )
                     ButtonsRow(
                         Modifier.fillMaxSize().graphicsLayer {
@@ -105,14 +106,14 @@ fun FloatingPillNav(
                             scaleX = s
                             scaleY = s
                         },
-                        onSearchToggle, onAdd, onAddLong, colors.ink,
+                        onSearchToggle, onAdd, onAddLong, colors.onGlass,
                     )
                 }
             }
         }
         Box(Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp).then(SavelinGlass.modifier(Capsule)).clip(Capsule)) {
             GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings") {
-                AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.ink)
+                AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.onGlass)
             }
         }
     }
@@ -157,13 +158,19 @@ private fun SearchFieldRow(
             enabled = enabled,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = ink),
+            cursorBrush = SolidColor(ink),
             decorationBox = { inner ->
                 if (query.isEmpty()) Text("Search bookmarks", color = inkSoft)
                 inner()
             },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
         )
-        GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 46.dp, label = "Close search") {
+        if (enabled && query.isNotEmpty()) {
+            GlassCircle(onClick = { onQueryChange("") }, onLongClick = { onQueryChange("") }, size = 38.dp, label = "Clear search") {
+                AppIcons.Icon(AppIcons.Close, "Clear search", tint = inkSoft, size = 16.dp)
+            }
+        }
+        GlassCircle(onClick = { if (enabled) onSearchToggle() }, onLongClick = { if (enabled) onSearchToggle() }, size = 46.dp, label = "Close search") {
             AppIcons.Icon(AppIcons.Close, "Close search", tint = ink)
         }
     }

@@ -36,7 +36,7 @@ fun BiometricGate(onUnlock: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Savelin is locked", style = MaterialTheme.typography.headlineMedium)
+        Text("Savelin is locked", style = MaterialTheme.typography.headlineMedium, color = clear.onGlass)
         GlassPillButton(onClick = {
             val info = BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Unlock Savelin")
@@ -44,7 +44,7 @@ fun BiometricGate(onUnlock: () -> Unit) {
                 .build()
             prompt?.authenticate(info)
         }) {
-            Text("Unlock", color = clear.ink)
+            Text("Unlock", color = clear.onGlass)
         }
     }
 }

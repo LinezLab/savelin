@@ -39,7 +39,7 @@ data class GlassMenuItem(val icon: Int, val label: String, val onClick: () -> Un
  */
 @Composable
 fun GlassMenuOverlay(items: List<GlassMenuItem>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val ink = clear.ink
+    val ink = clear.onGlass
     GlassOverlay(animatesOut = true) {
         val appear = rememberSpringAppear()
         Box(modifier.fillMaxSize().zIndex(30f)) {
@@ -54,7 +54,7 @@ fun GlassMenuOverlay(items: List<GlassMenuItem>, onDismiss: () -> Unit, modifier
                         alpha = p
                         transformOrigin = TransformOrigin(1f, 1f)
                     }
-                    .then(SavelinGlass.modifier(RoundedRectangle(18.dp)))
+                    .then(SavelinGlass.popupModifier(RoundedRectangle(18.dp)))
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
