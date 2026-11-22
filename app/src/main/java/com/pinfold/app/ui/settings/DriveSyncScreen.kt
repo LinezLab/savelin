@@ -20,10 +20,11 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @Composable
+@android.annotation.SuppressLint("NonObservableLocale")
 fun DriveSyncScreen(viewModel: HomeViewModel) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
-    val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss z", java.util.Locale.forLanguageTag(androidx.compose.ui.platform.LocalLocale.current.languageTag))
+    val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss z", java.util.Locale.getDefault())
     val exact = if (settings.driveLastSuccessAt > 0) {
         ZonedDateTime.ofInstant(Instant.ofEpochMilli(settings.driveLastSuccessAt), ZoneId.systemDefault()).format(formatter)
     } else "Never"
