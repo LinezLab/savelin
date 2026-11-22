@@ -12,7 +12,7 @@ data class CleanedMetadata(
 
 object MetadataCleaner {
     private val INSTAGRAM_DESCRIPTION = Regex(
-        """(?:([\\d.,KkMm]+)\s+likes,\s*([\\d.,KkMm]+)\s+comments\s*-\s*)?""" +
+        """(?:([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*)?""" +
             """(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},\s*\d{4})\s*:\s*(["“])([\s\S]*)(["”])\s*\.?\s*$""",
     )
     private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
@@ -47,7 +47,6 @@ object MetadataCleaner {
         val posted = match?.groupValues?.get(4).orEmpty()
         val rawCaption = match?.groupValues?.get(6)?.trim().orEmpty()
             ?.trim('"', '“', '”', '\'')
-            ?.trimEnd('.')
             ?.trim()
             .orEmpty()
             .ifEmpty { description.trim() }
