@@ -2,6 +2,7 @@ package com.pinfold.app.ui.glass
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -121,7 +122,10 @@ fun GlassDialog(
         val leaving = LocalOverlayPresence.current?.leaving == true
         BackHandler(enabled = dismissible && !leaving, onBack = onDismiss)
         // pops in on a glass spring (a little past full size, then settles); leaves quickly, no bounce
-        val appear = rememberOverlayAppear(enter = GlassMotion.morph(), exit = Fluid.dismiss())
+        val appear = rememberSpringAppear()
+        val contentReveal = rememberRowReveal(appear, 0)
+        val dismissReveal = rememberRowReveal(appear, 1)
+        val confirmReveal = rememberRowReveal(appear, 2)
         Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.Center) {
             Scrim(appear) { if (dismissible) onDismiss() }
             GlassCard(
@@ -130,10 +134,11 @@ fun GlassDialog(
                     .widthIn(max = 380.dp)
                     .fillMaxWidth()
                     .floatingLayer {
-                        val s = lerp(0.9f, 1f, appear.value)
+                        val s = lerp(0.86f, 1f, appear.value)
                         scaleX = s
                         scaleY = s
                         alpha = appear.value.coerceIn(0f, 1f)
+                        transformOrigin = TransformOrigin(0.5f, 0.86f)
                     }
                     .clickable(remember { MutableInteractionSource() }, null) {},
                 shape = RoundedRectangle(34.dp),
@@ -154,10 +159,11 @@ fun GlassDialog(
                         Text(
                             title, style = if (centered) ClearType.Title.copy(fontSize = 19.sp, lineHeight = 24.sp) else ClearType.Headline, color = c.ink,
                             textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+                            modifier = Modifier.revealRow(contentReveal),
                         )
                         Spacer(Modifier.height(10.dp))
                     }
-                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) { content() }
+                    Column(Modifier.revealRow(contentReveal).heightIn(max = 420.dp).verticalScroll(rememberScrollState())) { content() }
                     if (confirm != null || dismiss != null) {
                         Spacer(Modifier.height(20.dp))
                         Row(
@@ -166,7 +172,7 @@ fun GlassDialog(
                         ) {
                             val each = if (centered) Modifier.weight(1f) else Modifier
                             if (dismiss != null) {
-                                GlassPill(onClick = { (onDismissButton ?: onDismiss)() }, height = 46.dp, modifier = each) {
+                                GlassPill(onClick = { (onDismissButton ?: onDismiss)() }, height = 46.dp, modifier = each.revealRow(dismissReveal)) {
                                     Text(dismiss, style = ClearType.BodyStrong, color = c.ink, maxLines = 1)
                                 }
                             }
@@ -175,7 +181,7 @@ fun GlassDialog(
                                     onClick = { if (confirmEnabled) onConfirm() },
                                     tint = if (confirmEnabled) tint else c.inkFaint,
                                     height = 46.dp,
-                                    modifier = each,
+                                    modifier = each.revealRow(confirmReveal),
                                 ) { Text(confirm, style = ClearType.BodyStrong, color = Color.White, maxLines = 1) }
                             }
                         }
@@ -252,7 +258,7 @@ fun GlassSheet(
                                 appear.snapTo(from)
                                 onDismiss()
                             } else {
-                                drag.animateTo(0f, spring(MotionSettings.damping(0.7f), MotionSettings.stiffness(500f)), velocity)
+                                drag.animateTo(0f, SpringMotion.dragSettle(), if (MotionSettings.reduceMotion) 0f else velocity)
                             }
                         },
                     ),
@@ -279,8 +285,8 @@ fun GlassSheet(
 
 // the old app's sheet, a shade bouncier: it rises ~3 % past rest and settles once, whatever the motion
 // setting (scaled by Jelly it shivered)
-private val SheetEnter = spring<Float>(dampingRatio = 0.74f, stiffness = 380f, visibilityThreshold = 0.001f)
-private val SheetExit = spring<Float>(dampingRatio = 1f, stiffness = 600f, visibilityThreshold = 0.001f)
+private val SheetEnter: AnimationSpec<Float> get() = SpringMotion.reduceOr(spring<Float>(dampingRatio = 0.74f, stiffness = 380f, visibilityThreshold = 0.001f))
+private val SheetExit: AnimationSpec<Float> get() = SpringMotion.reduceOr(spring<Float>(dampingRatio = 1f, stiffness = 600f, visibilityThreshold = 0.001f))
 
 /** A row of a sheet or menu: a candy icon blob, a label, an optional value. */
 @Composable
@@ -364,9 +370,10 @@ fun GlassMenu(anchor: Rect, onDismiss: () -> Unit, items: List<GlassMenuItem>) {
     var closing by remember { mutableStateOf(false) }
     GlassMenuLayout(anchor, onDismiss) {
         Spacer(Modifier.height(6.dp))
-        items.forEach { item ->
+        items.forEachIndexed { i, item ->
+            val row = rememberMenuRow(i)
             Row(
-                Modifier.fillMaxWidth().pressable({
+                Modifier.fillMaxWidth().revealRow(row).pressable({
                     if (!closing) {
                         closing = true
                         onDismiss()
@@ -438,7 +445,7 @@ private fun GlassMenuLayoutContent(
                             alpha = (p * 1.6f).coerceIn(0f, 1f)
                         },
                 ) {
-                    Column(Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState()), content = content)
+                    Column(Modifier.revealRow(rememberMenuRow(0)).heightIn(max = maxHeight).verticalScroll(rememberScrollState()), content = content)
                 }
             },
             modifier = Modifier.fillMaxSize(),

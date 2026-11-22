@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.util.fastCoerceIn
 
 /** The ink drawn on a glass control: white on a candy tint, else the theme's ink. */
 val LocalGlassInk = androidx.compose.runtime.compositionLocalOf { Color.Unspecified }
@@ -118,10 +119,17 @@ private fun Modifier.glassControl(
             shape = { shape },
             shadow = null,
             effects = {
-                if (around != null) adaptiveGlassEffects(style, around.value, blur.toPx(), 12f.dp.toPx(), 24f.dp.toPx())
-                else glassEffects(style, blur.toPx(), 12f.dp.toPx(), 24f.dp.toPx())
+                // the same pressProgress that swells the control thickens its lens while held
+                val p = (highlight.pressProgress + highlight.expandProgress * 0.6f).fastCoerceIn(0f, 1.6f)
+                val lensH = (12f + 6f * p).dp.toPx()
+                val lensA = (24f + 14f * p).dp.toPx()
+                if (around != null) adaptiveGlassEffects(style, around.value, blur.toPx(), lensH, lensA)
+                else glassEffects(style, blur.toPx(), lensH, lensA)
             },
-            highlight = { glassHighlight(style) },
+            highlight = {
+                val p = (highlight.pressProgress + highlight.expandProgress).fastCoerceIn(0f, 1f)
+                glassHighlight(style)?.let { h -> h.copy(alpha = (h.alpha * (1f + 0.8f * p)).coerceIn(0f, 1f)) }
+            },
             layerBlock = { liquidPressTransform(highlight) },
             onDrawSurface = {
                 // tintAt is read here, while drawing, so a colour that follows a pager recomposes nothing
@@ -198,10 +206,16 @@ fun Modifier.glassBar(shape: Shape = ChromeCapsule, surface: Color = Color.Unspe
             shape = { shape },
             shadow = null,
             effects = {
-                if (around != null) adaptiveGlassEffects(style, around.value, blur.toPx(), 12f.dp.toPx(), 24f.dp.toPx())
-                else glassEffects(style, blur.toPx(), 12f.dp.toPx(), 24f.dp.toPx())
+                val p = highlight.pressProgress.fastCoerceIn(0f, 1f)
+                val lensH = (12f + 6f * p).dp.toPx()
+                val lensA = (24f + 14f * p).dp.toPx()
+                if (around != null) adaptiveGlassEffects(style, around.value, blur.toPx(), lensH, lensA)
+                else glassEffects(style, blur.toPx(), lensH, lensA)
             },
-            highlight = { glassHighlight(style) },
+            highlight = {
+                val p = highlight.pressProgress.fastCoerceIn(0f, 1f)
+                glassHighlight(style)?.let { h -> h.copy(alpha = (h.alpha * (1f + 0.8f * p)).coerceIn(0f, 1f)) }
+            },
             layerBlock = { liquidPressTransform(highlight) },
             onDrawSurface = {
                 if (around != null) drawRect(adaptiveWash(around.value).let { it.copy(alpha = it.alpha * 0.7f) })

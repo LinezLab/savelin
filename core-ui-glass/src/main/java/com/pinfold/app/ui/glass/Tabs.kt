@@ -121,7 +121,7 @@ fun GlassTabs(
                     val target = targetValue.fastRoundToInt().fastCoerceIn(0, count - 1)
                     current = target
                     animateToValue(target.toFloat())
-                    scope.launch { offsetAnim.animateTo(0f, spring(1f, 300f, 0.5f)) }
+                    scope.launch { offsetAnim.animateTo(0f, SpringMotion.dragSettle()) }
                 },
                 onDrag = { _, d ->
                     updateValue((targetValue + d.x / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(0f, (count - 1).toFloat()))

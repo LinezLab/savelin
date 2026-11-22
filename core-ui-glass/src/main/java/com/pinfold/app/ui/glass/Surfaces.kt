@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.theme.clear
 import com.kyant.backdrop.drawBackdrop
+import androidx.compose.ui.graphics.drawscope.drawOutline
 
 /**
  * A still glass surface (bars, the dock's body, panels, sheets): refracts [LocalBackdrop] through
@@ -172,11 +174,21 @@ fun Modifier.pressable(
     role: Role = Role.Button,
     enabled: Boolean = true,
     feel: Feel? = Feel.Tap,
+    /** A card's rim lights up with the very same pressProgress that sinks it. */
+    pressedRim: Shape? = null,
 ): Modifier {
     val source = remember { MutableInteractionSource() }
     val jelly = rememberJellyPress(source, pressedScale)
     val haptics = LocalHaptics.current
-    return graphicsLayer {
+    val rim = if (pressedRim != null) Modifier.drawWithContent {
+        drawContent()
+        val p = jelly.progress
+        if (p > 0f) {
+            val outline = pressedRim.createOutline(size, layoutDirection, this)
+            drawOutline(outline, Color.White.copy(alpha = 0.38f * p), strokeWidth = 2.dp.toPx())
+        }
+    } else Modifier
+    return rim.graphicsLayer {
         scaleX = jelly.scale
         scaleY = jelly.scale
     }.combinedClickable(

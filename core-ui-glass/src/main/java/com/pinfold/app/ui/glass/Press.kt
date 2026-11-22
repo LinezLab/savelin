@@ -115,15 +115,15 @@ class InteractiveHighlight(
     private val longPressExpand: Boolean = false,
     private val onLongPressExpand: (() -> Unit)? = null,
 ) {
-    private val pressInSpec get() = spring(MotionSettings.damping(0.66f), MotionSettings.stiffness(620f), 0.001f)
-    private val pressOutSpec get() = spring(MotionSettings.damping(0.5f), MotionSettings.stiffness(380f), 0.001f)
-    private val positionSpec get() = spring(MotionSettings.damping(0.52f), MotionSettings.stiffness(360f), Offset.VisibilityThreshold)
-    private val wobbleSpec get() = spring(MotionSettings.damping(0.42f), MotionSettings.stiffness(420f), 0.001f)
-    private val expandInSpec get() = spring(MotionSettings.damping(0.52f), MotionSettings.stiffness(340f), 0.001f)
-    private val expandOutSpec get() = spring(MotionSettings.damping(0.46f), MotionSettings.stiffness(420f), 0.001f)
+    private val pressInSpec get() = SpringMotion.pressIn()
+    private val pressOutSpec get() = SpringMotion.pressOut()
+    private val positionSpec get() = SpringMotion.reduceOr(spring(MotionSettings.damping(0.52f), MotionSettings.stiffness(360f), Offset.VisibilityThreshold))
+    private val wobbleSpec get() = SpringMotion.wobble()
+    private val expandInSpec get() = SpringMotion.hold()
+    private val expandOutSpec get() = SpringMotion.holdOut()
     // The light never bounces: it rises with the finger and fades once it lifts, while the shape jiggles.
-    private val glowInSpec get() = spring(1f, MotionSettings.stiffness(900f), 0.001f)
-    private val glowOutSpec get() = spring(1f, MotionSettings.stiffness(380f), 0.001f)
+    private val glowInSpec get() = SpringMotion.glowIn()
+    private val glowOutSpec get() = SpringMotion.glowOut()
 
     private val pressAnim = Animatable(0f, 0.001f)
     private val positionAnim = Animatable(Offset.Zero, Offset.VectorConverter, Offset.VisibilityThreshold)
@@ -206,7 +206,7 @@ half4 main(float2 coord) {
         releaseJob = animationScope.launch {
             val held = SystemClock.uptimeMillis() - downAt
             if (held < GlassMotion.MinPressMillis) delay(GlassMotion.MinPressMillis - held)
-            val kick = WobbleKick * MotionSettings.style.wobble.fastCoerceIn(0f, 3f) * pressAnim.value.fastCoerceIn(0f, 1.1f)
+            val kick = if (MotionSettings.reduceMotion) 0f else WobbleKick * MotionSettings.style.wobble.fastCoerceIn(0f, 3f) * pressAnim.value.fastCoerceIn(0f, 1.1f)
             launch { wobbleAnim.animateTo(0f, wobbleSpec, initialVelocity = kick) }
             launch { pressAnim.animateTo(0f, pressOutSpec) }
             launch { glowAnim.animateTo(0f, glowOutSpec) }
@@ -251,7 +251,7 @@ half4 main(float2 coord) {
                     launch { pressAnim.animateTo(1f, pressInSpec) }
                     launch { glowAnim.animateTo(1f, glowInSpec) }
                     launch { positionAnim.snapTo(startPosition) }
-                    launch { wobbleAnim.animateTo(0f, wobbleSpec, initialVelocity = -PressKick) }
+                    launch { wobbleAnim.animateTo(0f, wobbleSpec, initialVelocity = if (MotionSettings.reduceMotion) 0f else -PressKick) }
                 }
                 if (longPressExpand) {
                     longPressJob = animationScope.launch {
@@ -282,6 +282,13 @@ fun GraphicsLayerScope.liquidPressTransform(h: InteractiveHighlight) {
     val width = size.width
     val height = size.height
     if (!(width > 0f && height > 0f)) return
+    if (MotionSettings.reduceMotion) {
+        scaleX = 1f
+        scaleY = 1f
+        translationX = 0f
+        translationY = 0f
+        return
+    }
     val motion = MotionSettings.style
     val progress = h.pressProgress
     val bloomAmount = motion.bloom.fastCoerceIn(0f, 2.5f)
@@ -369,7 +376,7 @@ class LiquidStretchState internal constructor(
     private val maxScale: Float,
     private val settleDelayMs: Long,
 ) {
-    private val spec get() = spring<Float>(MotionSettings.damping(0.35f), MotionSettings.stiffness(180f), 0.0005f)
+    private val spec get() = SpringMotion.reduceOr(spring<Float>(MotionSettings.damping(0.35f), MotionSettings.stiffness(180f), 0.0005f))
     private val sx = Animatable(1f, 0.0005f)
     private val sy = Animatable(1f, 0.0005f)
     private var lastX = Float.NaN
@@ -447,11 +454,11 @@ class DampedDragAnimation(
     val onDragStopped: DampedDragAnimation.() -> Unit,
     val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -> Unit,
 ) {
-    private val valueSpec = spring(1f, 1000f, visibilityThreshold)
-    private val velocitySpec get() = spring(MotionSettings.damping(0.5f), MotionSettings.stiffness(300f), visibilityThreshold * 10f)
-    private val pressSpec = spring(1f, 1000f, 0.001f)
-    private val scaleXSpec get() = spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(250f), 0.001f)
-    private val scaleYSpec get() = spring(MotionSettings.damping(0.7f), MotionSettings.stiffness(250f), 0.001f)
+    private val valueSpec get() = SpringMotion.dragSettle()
+    private val velocitySpec get() = SpringMotion.reduceOr(spring(MotionSettings.damping(0.5f), MotionSettings.stiffness(300f), visibilityThreshold * 10f))
+    private val pressSpec get() = SpringMotion.pressIn()
+    private val scaleXSpec get() = SpringMotion.reduceOr(spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(250f), 0.001f))
+    private val scaleYSpec get() = SpringMotion.reduceOr(spring(MotionSettings.damping(0.7f), MotionSettings.stiffness(250f), 0.001f))
 
     private val valueAnim = Animatable(initialValue, visibilityThreshold)
     private val velocityAnim = Animatable(0f, 5f)

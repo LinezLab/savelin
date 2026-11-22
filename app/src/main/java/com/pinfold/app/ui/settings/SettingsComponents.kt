@@ -33,8 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.GlassBackButton
+import com.pinfold.app.ui.glass.GlassSlider
+import com.pinfold.app.ui.glass.GlassToggle
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 
@@ -86,7 +89,7 @@ fun SettingsRow(
 ) {
     Row(
         Modifier.fillMaxWidth().height(if (subtitle == null) 56.dp else 64.dp)
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -112,18 +115,9 @@ fun Chevron() {
 
 @Composable
 fun GlassSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
-    Switch(
-        checked = checked,
-        onCheckedChange = onChange,
-        colors = androidx.compose.material3.SwitchDefaults.colors(
-            checkedTrackColor = clear.glass,
-            uncheckedTrackColor = clear.glass,
-            checkedThumbColor = clear.ink,
-            uncheckedThumbColor = clear.inkSoft,
-            checkedBorderColor = Candy.Mint,
-            uncheckedBorderColor = clear.line,
-        ),
-    )
+    // The shared glass toggle: its thumb follows a DampedDragAnimation on the active Motion spring,
+    // swells under the finger and plays ToggleOn/ToggleOff — no instant state change on tap.
+    GlassToggle(checked = checked, onChange = onChange)
 }
 
 @Composable
@@ -138,7 +132,7 @@ fun ChoiceTile(
         modifier.size(width = 96.dp, height = 112.dp)
             .then(SavelinGlass.modifier(RoundedCornerShape(16.dp)))
             .border(if (selected) 2.dp else 1.dp, if (selected) Candy.Sky else clear.rim, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick)
             .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -171,10 +165,12 @@ fun FineSlider(label: String, value: Float, range: ClosedFloatingPointRange<Floa
         style = MaterialTheme.typography.bodyMedium,
         color = clear.ink,
     )
-    androidx.compose.material3.Slider(
+    // The shared glass slider: the thumb turns to glass while held, follows the finger on the same
+    // Motion spring and stretches along its travel, instead of jumping to the new value.
+    GlassSlider(
         value = value.coerceIn(range),
-        onValueChange = onChange,
-        valueRange = range,
+        onChange = onChange,
+        range = range,
         modifier = Modifier.fillMaxWidth(),
     )
 }

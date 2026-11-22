@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -189,7 +190,10 @@ fun SavelinGlassDialog(
     GlassOverlay(animatesOut = true) {
         val leaving = LocalOverlayPresence.current?.leaving == true
         BackHandler(enabled = dismissible && !leaving, onBack = onDismiss)
-        val appear = rememberOverlayAppear(enter = GlassMotion.morph(), exit = Fluid.dismiss())
+        val appear = rememberSpringAppear()
+        val contentReveal = rememberRowReveal(appear, 0)
+        val dismissReveal = rememberRowReveal(appear, 1)
+        val confirmReveal = rememberRowReveal(appear, 2)
         Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.Center) {
             Box(
                 Modifier.fillMaxSize()
@@ -203,10 +207,11 @@ fun SavelinGlassDialog(
                     .widthIn(max = 420.dp)
                     .fillMaxWidth()
                     .floatingLayer {
-                        val s = 0.92f + 0.08f * appear.value.coerceIn(0f, 1f)
+                        val s = 0.86f + 0.14f * appear.value.coerceIn(0f, 1f)
                         scaleX = s
                         scaleY = s
                         alpha = appear.value.coerceIn(0f, 1f)
+                        transformOrigin = TransformOrigin(0.5f, 0.86f)
                     }
                     .then(SavelinGlass.modifier(RoundedRectangle(28.dp)))
                     .clickable(remember { MutableInteractionSource() }, null) {}
@@ -214,16 +219,16 @@ fun SavelinGlassDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (title != null) {
-                    Text(title, style = ClearType.Headline, color = SavelinGlass.ink)
+                    Text(title, style = ClearType.Headline, color = SavelinGlass.ink, modifier = Modifier.revealRow(contentReveal))
                 }
-                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) { content() }
+                Column(Modifier.revealRow(contentReveal).heightIn(max = 420.dp).verticalScroll(rememberScrollState())) { content() }
                 if (confirm != null || dismiss != null) {
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                     ) {
                         if (dismiss != null) {
-                            GlassPillButton(onClick = { (onDismissButton ?: onDismiss)() }, height = 46.dp) {
+                            GlassPillButton(onClick = { (onDismissButton ?: onDismiss)() }, height = 46.dp, modifier = Modifier.revealRow(dismissReveal)) {
                                 Text(dismiss, style = ClearType.BodyStrong, color = SavelinGlass.ink, maxLines = 1)
                             }
                         }
@@ -231,6 +236,7 @@ fun SavelinGlassDialog(
                             GlassPillButton(
                                 onClick = { if (confirmEnabled) latest() },
                                 height = 46.dp,
+                                modifier = Modifier.revealRow(confirmReveal),
                                 tap = if (confirmEnabled) Feel.Tap else null,
                             ) {
                                 Text(

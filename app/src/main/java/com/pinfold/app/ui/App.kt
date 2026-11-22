@@ -36,6 +36,7 @@ import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.GlassStage
+import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.components.FloatingPillNav
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
@@ -59,6 +60,11 @@ fun App(sharedText: String? = null) {
     val appearance by viewModel.settings.collectAsState()
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
+    }
+    // The Reduce motion switch lives in the data layer; mirror it into the glass motion engine so
+    // every spring, pop-up and press in the app swaps to its short fade in the same frame.
+    LaunchedEffect(appearance.reduceMotion) {
+        MotionSettings.setReduceMotion(appearance.reduceMotion)
     }
     BackHandler(enabled = detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS) {
         when {

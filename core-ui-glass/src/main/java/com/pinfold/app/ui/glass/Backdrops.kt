@@ -1,6 +1,8 @@
 package com.pinfold.app.ui.glass
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.AnimationVector4D
 import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.foundation.layout.Box
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -42,6 +45,7 @@ import com.kyant.backdrop.backdrops.emptyBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -285,6 +289,63 @@ fun rememberOverlayAppear(
         }
     }
     return a
+}
+
+/**
+ * A pop-up's 0 → 1 growth out of its trigger and 1 → 0 fold back into it, on the active Motion style.
+ * The same [Animatable] is kept across an interruption: a second open or dismiss retargets the spring
+ * in flight instead of restarting it from rest. Under Reduce motion both directions are short fades.
+ */
+@Composable
+fun rememberSpringAppear(
+    enter: AnimationSpec<Float> = SpringMotion.popOpen(),
+    exit: AnimationSpec<Float> = SpringMotion.popClose(),
+): Animatable<Float, AnimationVector1D> = rememberOverlayAppear(enter = enter, exit = exit)
+
+/**
+ * One row of a springing pop-up. Content waits until the pop-up is ~40 % open, then rows arrive 35 ms
+ * apart; dismissing folds them away immediately. Reading the shared [appear] snapshot means a quick
+ * tap-away retargets every row still on its way in.
+ */
+@Composable
+fun rememberRowReveal(appear: Animatable<Float, AnimationVector1D>, index: Int): Animatable<Float, AnimationVector1D> {
+    val row = remember { Animatable(0f) }
+    val open by derivedStateOf { appear.value >= 0.4f }
+    LaunchedEffect(open, index) {
+        if (open) {
+            if (index > 0) delay(index * 35L)
+            row.animateTo(1f, SpringMotion.popOpen())
+        } else {
+            row.animateTo(0f, SpringMotion.popClose())
+        }
+    }
+    return row
+}
+
+/**
+ * A row of a portal menu that owns its reveal: it grows in a beat after the menu opens (35 ms per
+ * row) and folds away when the portal says the menu is leaving. Retargets the same Animatable.
+ */
+@Composable
+fun rememberMenuRow(index: Int): Animatable<Float, AnimationVector1D> {
+    val row = remember { Animatable(0f) }
+    val leaving = LocalOverlayPresence.current?.leaving == true
+    LaunchedEffect(leaving, index) {
+        if (!leaving) {
+            if (index > 0) delay(index * 35L)
+            row.animateTo(1f, SpringMotion.popOpen())
+        } else {
+            row.animateTo(0f, SpringMotion.popClose())
+        }
+    }
+    return row
+}
+
+/** Draw-time fade/slide for a row revealed by [rememberRowReveal] — no layout, no recomposition. */
+fun Modifier.revealRow(row: Animatable<Float, AnimationVector1D>): Modifier = graphicsLayer {
+    val r = row.value.coerceIn(0f, 1f)
+    alpha = r
+    translationY = (1f - r) * 8f
 }
 
 /**

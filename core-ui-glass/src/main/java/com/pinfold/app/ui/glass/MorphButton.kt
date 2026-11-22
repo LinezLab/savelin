@@ -251,14 +251,14 @@ private fun RectMorphSurface(
                 coroutineScope {
                     // each on a spring at the user's bounce (Settings ▸ Motion), the next joining before the
                     // last has landed, so the glass swings past each state and the swing flows on
-                    launch { drop.animateTo(1f, spring(maxOf(MotionSettings.damping(0.62f), 0.3f), MotionSettings.stiffness(318f), 0.0005f)) }
+                    launch { drop.animateTo(1f, SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.62f), 0.3f), MotionSettings.stiffness(318f), 0.0005f))) }
                     launch {
                         androidx.compose.runtime.snapshotFlow { drop.value >= 0.45f }.first { it }
-                        wide.animateTo(1f, spring(maxOf(MotionSettings.damping(0.58f), 0.3f), MotionSettings.stiffness(272f), 0.0005f))
+                        wide.animateTo(1f, SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.58f), 0.3f), MotionSettings.stiffness(272f), 0.0005f)))
                     }
                     launch {
                         androidx.compose.runtime.snapshotFlow { wide.value >= 0.45f }.first { it }
-                        tall.animateTo(1f, spring(maxOf(MotionSettings.damping(0.6f), 0.3f), MotionSettings.stiffness(181f), 0.0005f))
+                        tall.animateTo(1f, SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.6f), 0.3f), MotionSettings.stiffness(181f), 0.0005f)))
                     }
                 }
             } else if (!ghost && MorphAnchors.glyphAt(anchor) == null) {
@@ -268,14 +268,14 @@ private fun RectMorphSurface(
                 runChosen()
             } else {
                 coroutineScope {
-                    launch { tall.animateTo(0f, spring(1f, MotionSettings.stiffness(469f), 0.0005f)) }
+                    launch { tall.animateTo(0f, SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(469f), 0.0005f))) }
                     launch {
                         androidx.compose.runtime.snapshotFlow { tall.value <= 0.4f }.first { it }
-                        wide.animateTo(0f, spring(1f, MotionSettings.stiffness(393f), 0.0005f))
+                        wide.animateTo(0f, SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(393f), 0.0005f)))
                     }
                     launch {
                         androidx.compose.runtime.snapshotFlow { tall.value <= 0.05f && wide.value <= 0.4f }.first { it }
-                        drop.animateTo(0f, spring(1f, MotionSettings.stiffness(423f), 0.0005f))
+                        drop.animateTo(0f, SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(423f), 0.0005f)))
                     }
                 }
                 if (ghost) fade.animateTo(0f, androidx.compose.animation.core.tween(110))

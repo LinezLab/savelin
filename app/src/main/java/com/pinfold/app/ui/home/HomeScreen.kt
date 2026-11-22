@@ -1,5 +1,8 @@
 package com.pinfold.app.ui.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.animateItem
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -32,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,10 +46,13 @@ import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
+import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.SpringMotion
 import com.pinfold.app.ui.glass.pressable
 import java.io.File
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -133,6 +141,11 @@ fun HomeScreen(
             }
             items(items, key = { it.bookmark.id }) { item ->
                 BookmarkCard(
+                    modifier = Modifier.animateItem(
+                        placementSpec = SpringMotion.listPlace(),
+                        fadeInSpec = SpringMotion.listFade(),
+                        fadeOutSpec = SpringMotion.listFade(),
+                    ),
                     item = item,
                     hasReminder = item.bookmark.id in reminderIds,
                     titleLines = settings.cardTitleLines,
@@ -195,6 +208,7 @@ fun HomeScreen(
 
 @Composable
 private fun BookmarkCard(
+    modifier: Modifier = Modifier,
     item: BookmarkWithTags,
     hasReminder: Boolean,
     titleLines: Int,
@@ -205,6 +219,8 @@ private fun BookmarkCard(
     onClick: () -> Unit,
     imageModel: () -> Any?,
 ) {
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { appear.animateTo(1f, SpringMotion.listFade()) }
     val bookmark = item.bookmark
     val model = imageModel()
     val ratio = when {
@@ -214,7 +230,20 @@ private fun BookmarkCard(
         }
         else -> 0.8f
     }
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Column(
+        modifier.fillMaxWidth()
+            .graphicsLayer {
+                val p = appear.value.coerceIn(0f, 1f)
+                alpha = p
+                if (!MotionSettings.reduceMotion) {
+                    val s = 0.94f + 0.06f * p
+                    scaleX = s
+                    scaleY = s
+                    transformOrigin = TransformOrigin(0.5f, 0.2f)
+                }
+            }
+            .pressable(onClick = onClick, pressedRim = RoundedCornerShape(20.dp)),
+    ) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
             if (model != null) {
                 AsyncImage(
@@ -266,7 +295,7 @@ private fun BookmarkCard(
                         Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
-                Box(Modifier.size(40.dp).clickable(onClick = onMore), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(40.dp).pressable(onClick = onMore, pressedScale = 0.86f), contentAlignment = Alignment.Center) {
                     com.pinfold.app.ui.components.AppIcons.Icon(
                         com.pinfold.app.ui.components.AppIcons.More,
                         "More options",

@@ -1,13 +1,16 @@
 package com.pinfold.app.ui.glass
 
 import android.content.Context
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +86,17 @@ object MotionSettings {
     var duration: Float by mutableStateOf(1f)
         private set
 
+    /**
+     * Reduce motion (Settings ▸ Accessibility): every glass spring becomes a short, straight fade and
+     * nothing overshoots, wobbles or stretches. The data layer's setting is mirrored here at runtime.
+     */
+    var reduceMotion: Boolean by mutableStateOf(false)
+        private set
+
+    fun setReduceMotion(value: Boolean) {
+        if (reduceMotion != value) reduceMotion = value
+    }
+
     private var cachedCurve: EaseCurve? = null
     private var cachedEasing: Easing = EaseCurve.Drawer.easing
 
@@ -113,6 +127,7 @@ object MotionSettings {
             curve = EaseCurve(it[0], it[1], it[2], it[3])
         }
         duration = p.getFloat("motion_duration", 1f)
+        reduceMotion = p.getBoolean("reduce_motion", false)
         val d = MotionStyle.Default
         style = MotionStyle(
             bounce = p.getFloat("motion_bounce", d.bounce),
@@ -140,6 +155,63 @@ object MotionSettings {
     fun damping(designed: Float): Float = (designed * (1f + (0.5f - style.bounce) * 1.2f)).coerceIn(0.12f, 0.98f)
 
     fun stiffness(designed: Float): Float = designed * style.speed.coerceIn(0.4f, 2.5f)
+}
+
+/**
+ * The one spring vocabulary of the app. Every interactive element — press, hold, drag, release,
+ * pop-up open and close, search morph, list insert — takes its spec from here, so one Motion style
+ * (and its fine-tune sliders) moves all of them. Each spec is derived from [MotionSettings] at read
+ * time: changing a slider takes effect on the very next animation, with no restart of a running one.
+ *
+ * Reduce motion swaps every spring for one short, straight fade ([ReduceMs]): no overshoot, no
+ * wobble, no stretch. Haptics are independent and still play (they live in `Haptics.kt`).
+ */
+object SpringMotion {
+    /** Length of the fade-only animation used when Reduce motion is on. */
+    const val ReduceMs = 140
+
+    /** The tween every spring is replaced with under Reduce motion. */
+    fun <T> reduced(): AnimationSpec<T> = tween(ReduceMs, easing = LinearEasing)
+
+    /** Keeps a designed spec when motion is full, swaps to a short fade when it is reduced. */
+    fun <T> reduceOr(spec: AnimationSpec<T>): AnimationSpec<T> = if (MotionSettings.reduceMotion) reduced() else spec
+
+    /** A finger landing: the control swells under it. Bouncy/Jelly overshoot; Calm/Normal stay smooth. */
+    fun pressIn(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.66f), MotionSettings.stiffness(620f), 0.001f))
+
+    /** Finger lifted: comes back with the style's wobble, or a plain fade under Reduce motion. */
+    fun pressOut(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.5f), MotionSettings.stiffness(380f), 0.001f))
+
+    /** A long hold blooming into its expanded state. */
+    fun hold(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.52f), MotionSettings.stiffness(340f), 0.001f))
+
+    /** The bloom when a held control is let go. */
+    fun holdOut(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.46f), MotionSettings.stiffness(420f), 0.001f))
+
+    /** The release jiggle; its velocity is set by [MotionStyle.wobble]. */
+    fun wobble(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.42f), MotionSettings.stiffness(420f), 0.001f))
+
+    /** A dragged lens/thumb settling on its target. */
+    fun dragSettle(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.52f), MotionSettings.stiffness(520f), 0.001f))
+
+    /** Light following a finger: never bounces, alpha must not flicker. */
+    fun glowIn(): AnimationSpec<Float> = reduceOr(spring(1f, MotionSettings.stiffness(900f), 0.001f))
+    fun glowOut(): AnimationSpec<Float> = reduceOr(spring(1f, MotionSettings.stiffness(380f), 0.001f))
+
+    /** A pop-up growing out of its trigger: scale and alpha only, never layout. */
+    fun popOpen(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.58f), MotionSettings.stiffness(420f), 0.0005f))
+
+    /** Dismissal: faster and well damped, so it folds back without a step. */
+    fun popClose(): AnimationSpec<Float> = reduceOr(spring(1f, MotionSettings.stiffness(900f), 0.0005f))
+
+    /** The nav search field morphing out of the Search button (and reversing). */
+    fun searchMorph(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(360f), 0.0005f))
+
+    /** A card fading into the grid. */
+    fun listFade(): AnimationSpec<Float> = reduceOr(spring(MotionSettings.damping(0.8f), MotionSettings.stiffness(420f), 0.0005f))
+
+    /** A card changing place as the list inserts or removes an item. */
+    fun listPlace(): AnimationSpec<IntOffset> = reduceOr(spring(MotionSettings.damping(0.7f), MotionSettings.stiffness(360f), IntOffset.VisibilityThreshold))
 }
 
 /**
@@ -182,11 +254,11 @@ object Fluid {
     /** Values that follow something (an interrupted drag, a moving target): no overshoot. */
     fun <T> follow(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 520f)
 
-    /** A finger on a flat surface (cards, rows): it sinks fast ... */
-    fun <T> pressIn(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 1800f)
+    /** A finger on a flat surface (cards, rows): it sinks fast, on the active Motion style. */
+    fun pressIn(): AnimationSpec<Float> = SpringMotion.pressIn()
 
-    /** ... and comes back softly, never past rest. */
-    fun <T> pressOut(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 420f)
+    /** ... and comes back with the style's release (a short fade under Reduce motion). */
+    fun pressOut(): AnimationSpec<Float> = SpringMotion.pressOut()
 
     /** How far a flat pressable sinks. */
     const val PressedScale = 0.97f
@@ -200,7 +272,7 @@ object Fluid {
  */
 object GlassMotion {
     /** Alpha and colour. Never bounces. */
-    fun <T> settle(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = Spring.StiffnessMedium)
+    fun <T> settle(): AnimationSpec<T> = SpringMotion.reduceOr(spring<T>(dampingRatio = 1f, stiffness = Spring.StiffnessMedium))
 
     /**
      * How close to rest a glass spring runs before it is let go. The platform's default (1 % of the
@@ -210,25 +282,25 @@ object GlassMotion {
     private const val Rest = 0.0005f
 
     /** A menu unfolding: its width leads and settles with a soft overshoot (the one every entrance is judged against). */
-    fun unfold(): SpringSpec<Float> = spring(MotionSettings.damping(0.68f), MotionSettings.stiffness(420f), Rest)
+    fun unfold(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(MotionSettings.damping(0.68f), MotionSettings.stiffness(420f), Rest))
 
     /** The menu's height, a beat behind its width. */
-    fun unfoldLag(): SpringSpec<Float> = spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(340f), Rest)
+    fun unfoldLag(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(MotionSettings.damping(0.6f), MotionSettings.stiffness(340f), Rest))
 
     /** Springs open: capsules, chevrons, thumbs, dialogs, toasts. */
-    fun morph(): SpringSpec<Float> = spring(MotionSettings.damping(0.58f), MotionSettings.stiffness(420f), Rest)
+    fun morph(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(MotionSettings.damping(0.58f), MotionSettings.stiffness(420f), Rest))
 
     /** A small thing popping into place: fan chips, the + glyph. */
-    fun pop(): SpringSpec<Float> = spring(MotionSettings.damping(0.45f), MotionSettings.stiffness(500f), Rest)
+    fun pop(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(MotionSettings.damping(0.45f), MotionSettings.stiffness(500f), Rest))
 
     /** A glass popover folding back into its button: quick, critically damped, so it lands without a step. */
-    fun fold(): SpringSpec<Float> = spring(1f, MotionSettings.stiffness(900f), Rest)
+    fun fold(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(900f), Rest))
 
     /** The recorder pill growing: slow and soft, with a floor on damping so Jelly cannot ring on. */
-    fun shape(): SpringSpec<Float> = spring(maxOf(MotionSettings.damping(0.6f), ShapeMinDamping), MotionSettings.stiffness(105f), Rest)
+    fun shape(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.6f), ShapeMinDamping), MotionSettings.stiffness(105f), Rest))
 
     /** The recorder pill shrinking back. */
-    fun shapeBack(): SpringSpec<Float> = spring(maxOf(MotionSettings.damping(0.62f), ShapeMinDamping), MotionSettings.stiffness(125f), Rest)
+    fun shapeBack(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.62f), ShapeMinDamping), MotionSettings.stiffness(125f), Rest))
 
     private const val ShapeMinDamping = 0.46f
 
@@ -237,13 +309,13 @@ object GlassMotion {
      * one spring that, at the user's bounce, swings past the menu and back as jelly does (Calm barely,
      * Jelly three or four times). A floor on damping keeps Jelly from ringing on.
      */
-    fun morphOpen(): SpringSpec<Float> = spring(maxOf(MotionSettings.damping(0.6f), MorphMinDamping), MotionSettings.stiffness(150f), Rest)
+    fun morphOpen(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(maxOf(MotionSettings.damping(0.6f), MorphMinDamping), MotionSettings.stiffness(150f), Rest))
 
     /** The menu flowing back into its button when dismissed: unhurried, and it lands without a bounce. */
-    fun morphClose(): SpringSpec<Float> = spring(1f, MotionSettings.stiffness(150f), 0.01f)
+    fun morphClose(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(150f), 0.01f))
 
     /** The same after a row was chosen: quicker, done the moment it looks landed (the row's action waits on it). */
-    fun morphChosen(): SpringSpec<Float> = spring(1f, MotionSettings.stiffness(300f), 0.03f)
+    fun morphChosen(): AnimationSpec<Float> = SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(300f), 0.03f))
 
     private const val MorphMinDamping = 0.3f
 

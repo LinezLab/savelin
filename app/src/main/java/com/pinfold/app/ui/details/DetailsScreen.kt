@@ -69,6 +69,7 @@ import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
@@ -203,9 +204,7 @@ fun DetailsScreen(
                     color = ink,
                     maxLines = if (titleExpanded) Int.MAX_VALUE else 4,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().combinedClickable(
-                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
-                    ) { titleExpanded = !titleExpanded },
+                    modifier = Modifier.fillMaxWidth().pressable(onClick = { titleExpanded = !titleExpanded }),
                 )
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -215,8 +214,7 @@ fun DetailsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = if (showFullUrl) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.fillMaxWidth(0.8f).combinedClickable(
-                            remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
+                        modifier = Modifier.fillMaxWidth(0.8f).pressable(
                             onClick = { showFullUrl = !showFullUrl },
                             onLongClick = { copyUrl(original = true) },
                         ),
@@ -243,9 +241,7 @@ fun DetailsScreen(
                         Text(caption, style = MaterialTheme.typography.bodyMedium, color = ink,
                             maxLines = if (expandedCaption) Int.MAX_VALUE else 4, overflow = TextOverflow.Ellipsis)
                     }
-                    Box(Modifier.size(44.dp).combinedClickable(
-                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null,
-                    ) { expandedCaption = !expandedCaption }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(44.dp).pressable(onClick = { expandedCaption = !expandedCaption }), contentAlignment = Alignment.Center) {
                         AppIcons.Icon(AppIcons.Expand, "Expand caption", tint = ink)
                     }
                 }
@@ -308,7 +304,7 @@ fun DetailsScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 24.dp)
-                        .clickable { openLink(context, bookmark.url, target.packageName) },
+                        .pressable(onClick = { openLink(context, bookmark.url, target.packageName) }),
                 )
             }
             Box(Modifier.align(Alignment.CenterEnd)) {
