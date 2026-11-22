@@ -4,7 +4,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.pinfold.app.ui.glass.GlassPillButton
+import com.pinfold.app.ui.glass.theme.clear
 import androidx.fragment.app.FragmentActivity
 
 @Composable
@@ -36,14 +37,14 @@ fun BiometricGate(onUnlock: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Savelin is locked", style = MaterialTheme.typography.headlineMedium)
-        Button(onClick = {
+        GlassPillButton(onClick = {
             val info = BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Unlock Savelin")
                 .setNegativeButtonText("Cancel")
                 .build()
             prompt?.authenticate(info)
         }) {
-            Text("Unlock")
+            Text("Unlock", color = clear.ink)
         }
     }
 }

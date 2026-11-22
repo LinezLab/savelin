@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.GlassBackButton
 import com.pinfold.app.ui.glass.RoundedRectangle
-import com.pinfold.app.ui.glass.glass
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 
@@ -70,7 +70,7 @@ fun SettingsSection(header: String, content: @Composable () -> Unit) {
 @Composable
 fun SettingsCard(content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().glass(RoundedRectangle(22.dp), clear.frost, blur = 8.dp)
+        Modifier.fillMaxWidth().then(SavelinGlass.modifier(RoundedRectangle(22.dp)))
             .padding(horizontal = 16.dp, vertical = 4.dp),
     ) { content() }
 }
@@ -91,7 +91,7 @@ fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(32.dp).glass(RoundedCornerShape(9.dp), clear.glass, blur = 2.dp),
+            Modifier.size(32.dp).then(SavelinGlass.modifier(RoundedCornerShape(9.dp))),
             contentAlignment = Alignment.Center,
         ) { AppIcons.Icon(icon, null, tint = clear.ink, size = 18.dp) }
         Spacer(Modifier.size(12.dp))
@@ -116,8 +116,12 @@ fun GlassSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
         checked = checked,
         onCheckedChange = onChange,
         colors = androidx.compose.material3.SwitchDefaults.colors(
-            checkedTrackColor = Candy.Mint,
-            checkedThumbColor = Color.White,
+            checkedTrackColor = clear.glass,
+            uncheckedTrackColor = clear.glass,
+            checkedThumbColor = clear.ink,
+            uncheckedThumbColor = clear.inkSoft,
+            checkedBorderColor = Candy.Mint,
+            uncheckedBorderColor = clear.line,
         ),
     )
 }
@@ -132,7 +136,8 @@ fun ChoiceTile(
 ) {
     Column(
         modifier.size(width = 96.dp, height = 112.dp)
-            .border(if (selected) 2.dp else 1.dp, if (selected) Candy.Sky else clear.line, RoundedCornerShape(16.dp))
+            .then(SavelinGlass.modifier(RoundedCornerShape(16.dp)))
+            .border(if (selected) 2.dp else 1.dp, if (selected) Candy.Sky else clear.rim, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

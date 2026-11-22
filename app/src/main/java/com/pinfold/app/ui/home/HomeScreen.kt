@@ -2,7 +2,6 @@ package com.pinfold.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,8 +21,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import com.pinfold.app.ui.glass.glass
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.ui.glass.GlassPill
+import com.pinfold.app.ui.glass.LightGlassChip
+import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.pressable
 import java.io.File
 
 @Composable
@@ -82,10 +82,10 @@ fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             if (query.trim().startsWith("http")) {
-                androidx.compose.material3.Button(
+                GlassPill(
                     onClick = { viewModel.saveLink(query.trim()); viewModel.onQueryChange("") },
                     modifier = Modifier.padding(horizontal = 16.dp),
-                ) { Text("Add this link") }
+                ) { Text("Add this link", color = com.pinfold.app.ui.glass.theme.clear.ink) }
             }
             if (items.isEmpty()) {
                 Text(
@@ -155,40 +155,41 @@ fun HomeScreen(
             }
         }
         quickMenu?.let { chosen ->
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { quickMenu = null },
-                title = { Text(chosen.bookmark.displayTitle.ifBlank { chosen.bookmark.title }) },
-                text = {
-                    Column {
-                        listOf("Open", "Details", "Important", "Reminder", "Share", "Delete").forEach { action ->
-                            Text(
-                                action,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    when (action) {
-                                        "Open" -> context.startActivity(
-                                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)),
-                                        )
-                                        "Details" -> onOpen(chosen)
-                                        "Important" -> viewModel.toggleImportant(chosen.bookmark)
-                                        "Reminder" -> viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L)
-                                        "Share" -> {
-                                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
-                                            }
-                                            context.startActivity(android.content.Intent.createChooser(intent, "Share"))
+            SavelinGlassDialog(
+                onDismiss = { quickMenu = null },
+                title = chosen.bookmark.displayTitle.ifBlank { chosen.bookmark.title },
+                dismiss = "Close",
+            ) {
+                listOf("Open", "Details", "Important", "Reminder", "Share", "Delete").forEach { action ->
+                    Text(
+                        action,
+                        color = com.pinfold.app.ui.glass.theme.clear.ink,
+                        modifier = Modifier.fillMaxWidth()
+                            .pressable {
+                                when (action) {
+                                    "Open" -> context.startActivity(
+                                        android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)),
+                                    )
+                                    "Details" -> onOpen(chosen)
+                                    "Important" -> viewModel.toggleImportant(chosen.bookmark)
+                                    "Reminder" -> viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L)
+                                    "Share" -> {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
                                         }
-                                        "Delete" -> viewModel.delete(chosen.bookmark)
+                                        context.startActivity(android.content.Intent.createChooser(intent, "Share"))
                                     }
-                                    quickMenu = null
-                                }.padding(vertical = 10.dp),
-                            )
-                        }
-                    }
-                },
-                confirmButton = { androidx.compose.material3.TextButton(onClick = { quickMenu = null }) { Text("Close") } },
-            )
+                                    "Delete" -> viewModel.delete(chosen.bookmark)
+                                }
+                                quickMenu = null
+                            }
+                            .padding(vertical = 10.dp),
+                    )
+                }
+            }
         }
+
     }
 }
 
@@ -229,15 +230,15 @@ private fun BookmarkCard(
                 Modifier.fillMaxWidth().padding(6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Box(
-                    Modifier.clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, com.pinfold.app.ui.glass.theme.clear.rim, RoundedCornerShape(10.dp)).background(com.pinfold.app.ui.glass.theme.clear.glass.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
-                ) {
-                    Text(bookmark.platform.ifBlank { "Web" }, color = com.pinfold.app.ui.glass.theme.clear.ink, style = MaterialTheme.typography.labelSmall)
-                }
+                LightGlassChip(
+                    label = bookmark.platform.ifBlank { "Web" },
+                    shape = RoundedCornerShape(10.dp),
+                )
                 if (bookmark.isImportant || hasReminder) {
-                    Row(Modifier.clip(androidx.compose.foundation.shape.CircleShape).border(1.dp, com.pinfold.app.ui.glass.theme.clear.rim, androidx.compose.foundation.shape.CircleShape).background(com.pinfold.app.ui.glass.theme.clear.glass.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape).padding(5.dp)) {
+                    LightGlassChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        contentDescription = "Bookmark status",
+                    ) {
                         if (bookmark.isImportant) com.pinfold.app.ui.components.AppIcons.Icon(
                             com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
                         )

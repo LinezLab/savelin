@@ -22,8 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassCircle
-import com.pinfold.app.ui.glass.GlassSettings
-import com.pinfold.app.ui.glass.glass
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.theme.clear
 
 @Composable
@@ -40,16 +39,9 @@ fun FloatingPillNav(
     modifier: Modifier = Modifier,
 ) {
     val colors = clear
-    val style = GlassSettings.style
     val pillAlpha by animateFloatAsState(if (visible) 1f else 0f, label = "pillAlpha")
     val settingsAlpha by animateFloatAsState(if (visible && !searchActive) 1f else 0f, label = "settingsAlpha")
-    val glassModifier = Modifier.glass(
-        Capsule,
-        colors.glass,
-        blur = style.blur.dp.coerceAtMost(8.dp),
-        lensHeight = 24.dp.coerceAtMost(style.refractionHeight.dp * 2f),
-        lensAmount = 40.dp.coerceAtMost(style.refractionAmount.dp * 2f),
-    )
+    val glassModifier = SavelinGlass.modifier(Capsule)
 
     BoxWithConstraints(modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
         Box(

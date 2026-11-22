@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
+import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.first
+import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.GlassStage
@@ -116,6 +115,26 @@ fun App(sharedText: String? = null) {
                             ),
                     )
                 }
+                if (showAdd) {
+                    SavelinGlassDialog(
+                        onDismiss = { showAdd = false },
+                        title = "Save a link",
+                        confirm = "Save",
+                        onConfirm = {
+                            if (draft.isNotBlank()) viewModel.saveLink(draft)
+                            draft = ""
+                            showAdd = false
+                        },
+                        dismiss = "Cancel",
+                    ) {
+                        GlassTextField(
+                            value = draft,
+                            onValueChange = { draft = it },
+                            placeholder = "Paste a link or shared text",
+                        )
+                    }
+                }
+
             }
         },
         chrome = {
@@ -135,26 +154,4 @@ fun App(sharedText: String? = null) {
             }
         }
     )
-    if (showAdd) {
-        AlertDialog(
-            onDismissRequest = { showAdd = false },
-            title = { Text("Save a link") },
-            text = {
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    placeholder = { Text("Paste a link or shared text") },
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (draft.isNotBlank()) viewModel.saveLink(draft)
-                    draft = ""
-                    showAdd = false
-                }) { Text("Save") }
-            },
-            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } },
-        )
-}
 }

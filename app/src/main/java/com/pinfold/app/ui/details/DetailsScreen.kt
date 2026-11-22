@@ -38,12 +38,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,9 +66,9 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
-import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.RoundedRectangle
-import com.pinfold.app.ui.glass.glass
+import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
@@ -89,7 +86,6 @@ fun DetailsScreen(
     val context = LocalContext.current
     val bookmark = item.bookmark
     val colors = clear
-    val style = GlassSettings.style
     val ink = colors.ink
 
     var expandedCaption by remember { mutableStateOf(false) }
@@ -152,8 +148,7 @@ fun DetailsScreen(
                 val heroHeight = minOf(maxHeight * 0.5f, 380.dp)
                 Box(
                     Modifier.fillMaxWidth().height(heroHeight).clip(RoundedRectangle(28.dp))
-                        .glass(RoundedRectangle(28.dp), colors.glass, blur = style.blur.dp,
-                            lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp),
+                        .then(SavelinGlass.modifier(RoundedRectangle(28.dp))),
                 ) {
                     if (imagePath != null) {
                         AsyncImage(
@@ -187,8 +182,7 @@ fun DetailsScreen(
 
             Column(
                 Modifier.fillMaxWidth()
-                    .glass(RoundedRectangle(28.dp), colors.glass, blur = style.blur.dp,
-                        lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
+                    .then(SavelinGlass.modifier(RoundedRectangle(28.dp)))
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -266,11 +260,10 @@ fun DetailsScreen(
                 }
 
                 Divider(color = colors.line)
-                OutlinedTextField(
+                GlassTextField(
                     value = notes,
                     onValueChange = { notes = it; viewModel.setNotes(bookmark, it) },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Notes",
                 )
 
                 GlassChip(onClick = { reminderOpen = true }, height = 40.dp, label = "Reminder") {
@@ -305,8 +298,7 @@ fun DetailsScreen(
                 Modifier.align(Alignment.Center)
                     .widthIn(min = 160.dp, max = maxWidth - 248.dp)
                     .height(56.dp)
-                    .glass(Capsule, colors.glass, blur = style.blur.dp,
-                        lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
+                    .then(SavelinGlass.modifier(Capsule))
                     .clip(Capsule),
                 contentAlignment = Alignment.Center,
             ) {
@@ -351,40 +343,31 @@ fun DetailsScreen(
         }
 
         if (reminderOpen) {
-            Box(Modifier.zIndex(20f).fillMaxSize().background(Color.Black.copy(alpha = 0.55f))) {
-                Column(
-                    Modifier.align(Alignment.Center).fillMaxWidth().padding(24.dp)
-                        .glass(RoundedRectangle(24.dp), colors.glass, blur = style.blur.dp,
-                            lensHeight = style.refractionHeight.dp, lensAmount = style.refractionAmount.dp)
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text("Set reminder", style = MaterialTheme.typography.headlineSmall, color = ink)
-                    Text(bookmark.displayTitle.ifBlank { bookmark.title }, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    OutlinedTextField(
-                        value = reminderText,
-                        onValueChange = { reminderText = it },
-                        label = { Text("When") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("In 1 hour", "Tonight", "Tomorrow morning", "Next week").forEach { label ->
-                            GlassChip(onClick = { reminderText = label }, height = 36.dp, label = label) {
-                                Text(label, color = ink, style = MaterialTheme.typography.bodySmall)
-                            }
+            SavelinGlassDialog(
+                onDismiss = { reminderOpen = false },
+                title = "Set reminder",
+                confirm = "Set reminder",
+                onConfirm = {
+                    if (reminderText.isNotBlank()) {
+                        viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
+                        reminderOpen = false
+                    }
+                },
+                confirmEnabled = reminderText.isNotBlank(),
+                dismiss = "Cancel",
+            ) {
+                Text(bookmark.displayTitle.ifBlank { bookmark.title }, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                GlassTextField(value = reminderText, onValueChange = { reminderText = it }, placeholder = "When")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("In 1 hour", "Tonight", "Tomorrow morning", "Next week").forEach { label ->
+                        GlassChip(onClick = { reminderText = label }, height = 36.dp, label = label) {
+                            Text(label, color = ink, style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { reminderOpen = false }) { Text("Cancel") }
-                        TextButton(onClick = {
-                            if (reminderText.isNotBlank()) {
-                                viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
-                                reminderOpen = false
-                            }
-                        }) { Text("Set reminder") }
-                        if (reminderText.isNotBlank()) {
-                            TextButton(onClick = { reminderText = ""; reminderOpen = false }) { Text("Remove reminder") }
-                        }
+                }
+                if (reminderText.isNotBlank()) {
+                    GlassChip(onClick = { reminderText = ""; reminderOpen = false }, height = 36.dp, label = "Remove reminder") {
+                        Text("Remove reminder", color = ink, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

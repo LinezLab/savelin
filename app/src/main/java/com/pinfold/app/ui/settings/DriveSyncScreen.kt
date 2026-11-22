@@ -4,12 +4,9 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,13 +16,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.pinfold.app.sync.GoogleDriveSignIn
 import com.pinfold.app.sync.SignInResult
 import com.pinfold.app.sync.SyncCrypto
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.glass.GlassPillButton
+import com.pinfold.app.ui.glass.GlassTextField
+import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
@@ -95,7 +94,7 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
         if (banner.isNotBlank()) {
             SettingsCard {
                 Text(banner, color = clear.ink, style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { banner = "" }) { Text("Dismiss") }
+                GlassPillButton(onClick = { banner = "" }, height = 40.dp) { Text("Dismiss", color = clear.ink) }
             }
         }
 
@@ -227,66 +226,59 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
     }
 
     if (showPassphrase) {
-        AlertDialog(
-            onDismissRequest = { showPassphrase = false },
-            title = { Text("Sync passphrase") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = passphrase,
-                        onValueChange = { passphrase = it },
-                        label = { Text("At least 12 characters") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = confirm,
-                        onValueChange = { confirm = it },
-                        label = { Text("Confirm passphrase") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text("Strength: ${if (passphrase.length >= 12) "Good" else "Too short"}")
-                }
+        SavelinGlassDialog(
+            onDismiss = { showPassphrase = false },
+            title = "Sync passphrase",
+            confirm = "Set",
+            onConfirm = {
+                if (passphrase.length >= 12 && passphrase == confirm) {
+                    viewModel.setDrivePassphrase(passphrase)
+                    viewModel.setSetting("drivePassphraseSet", true)
+                    showPassphrase = false
+                    banner = "Passphrase set. It is never stored or sent."
+                } else banner = "Passphrases must match and be at least 12 characters"
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (passphrase.length >= 12 && passphrase == confirm) {
-                        viewModel.setDrivePassphrase(passphrase)
-                        viewModel.setSetting("drivePassphraseSet", true)
-                        showPassphrase = false
-                        banner = "Passphrase set. It is never stored or sent."
-                    } else banner = "Passphrases must match and be at least 12 characters"
-                }) { Text("Set") }
-            },
-            dismissButton = { TextButton(onClick = { showPassphrase = false }) { Text("Cancel") } },
-        )
+            dismiss = "Cancel",
+        ) {
+            GlassTextField(
+                value = passphrase,
+                onValueChange = { passphrase = it },
+                placeholder = "At least 12 characters",
+                password = true,
+            )
+            GlassTextField(
+                value = confirm,
+                onValueChange = { confirm = it },
+                placeholder = "Confirm passphrase",
+                password = true,
+            )
+            Text("Strength: ${if (passphrase.length >= 12) "Good" else "Too short"}", color = clear.ink)
+        }
     }
 
+
     if (recovery.isNotBlank()) {
-        AlertDialog(
-            onDismissRequest = { recovery = "" },
-            title = { Text("Recovery key") },
-            text = {
-                Column {
-                    Text(recovery, style = MaterialTheme.typography.titleMedium, color = clear.ink)
-                    Text("Save this phrase. It is shown only once; there is no backdoor.", color = clear.inkSoft)
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(checked = confirmedRecovery, onCheckedChange = { confirmedRecovery = it })
-                        Text("I saved this recovery key")
-                    }
-                }
+        SavelinGlassDialog(
+            onDismiss = { recovery = "" },
+            title = "Recovery key",
+            confirm = "Done",
+            onConfirm = {
+                if (confirmedRecovery) {
+                    viewModel.setSetting("driveRecoverySaved", true)
+                    recovery = ""
+                    banner = "Recovery key saved"
+                } else banner = "Confirm you saved the recovery key"
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (confirmedRecovery) {
-                        viewModel.setSetting("driveRecoverySaved", true)
-                        recovery = ""
-                        banner = "Recovery key saved"
-                    } else banner = "Confirm you saved the recovery key"
-                }) { Text("Done") }
-            },
-            dismissButton = { TextButton(onClick = { recovery = "" }) { Text("Close") } },
-        )
+            confirmEnabled = confirmedRecovery,
+            dismiss = "Close",
+        ) {
+            Text(recovery, style = MaterialTheme.typography.titleMedium, color = clear.ink)
+            Text("Save this phrase. It is shown only once; there is no backdoor.", color = clear.inkSoft)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(checked = confirmedRecovery, onCheckedChange = { confirmedRecovery = it })
+                Text("I saved this recovery key", color = clear.ink)
+            }
+        }
     }
+
 }
