@@ -55,11 +55,18 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
     var banner by remember { mutableStateOf("") }
 
     fun recordSignIn(result: SignInResult) {
-        val (message, code, connected) = when (result) {
-            is SignInResult.Success -> "Connected" to 0 to true
-            is SignInResult.Cancelled -> "Sign-in cancelled. Nothing was changed" to 12501 to false
+        val message: String
+        val code: Int
+        val connected: Boolean
+        when (result) {
+            is SignInResult.Success -> {
+                message = "Connected"; code = 0; connected = true
+            }
+            is SignInResult.Cancelled -> {
+                message = "Sign-in cancelled. Nothing was changed"; code = 12501; connected = false
+            }
             is SignInResult.Failure -> {
-                val msg = when {
+                message = when {
                     result.code == 10 -> "The app is not registered with Google for this signing key. Open Sign-in checker and register this SHA-1 and package name"
                     result.code == 7 -> "No connection. Sync will retry"
                     result.message.contains("test user", true) -> "This Google account is not allowed yet. Add it as a test user in Google Cloud"
@@ -67,7 +74,8 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
                     result.code == 401 -> "Google access ended. Tap Reconnect"
                     else -> result.message
                 }
-                msg to result.code to false
+                code = result.code
+                connected = false
             }
         }
         banner = message
