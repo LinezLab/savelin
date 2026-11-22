@@ -59,6 +59,12 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             })
         }
 
+        SettingsSection("DIAGNOSTICS") {
+            SettingsCard {
+                SettingsRow(AppIcons.Info, Candy.Sky, "Glass engine", "Reduced — Canvas background fallback (no shader)")
+            }
+        }
+
         SettingsSection("GLASS") {
             SettingsCard {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

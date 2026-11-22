@@ -84,6 +84,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
+    fun openBackground() { settingsPageState.value = "BACKGROUND" }
     fun closeSettingsPage() { settingsPageState.value = "HOME" }
 
     fun setSearchActive(value: Boolean) {

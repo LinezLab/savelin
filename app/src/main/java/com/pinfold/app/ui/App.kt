@@ -74,7 +74,7 @@ fun App(sharedText: String? = null) {
     }
 
     GlassStage(
-        wallpaper = { Aurora(AuroraMoods.Desk) },
+        wallpaper = { com.pinfold.app.ui.background.GeneratedBackground(Modifier.fillMaxSize()) },
         screens = {
             Box(Modifier.fillMaxSize()) {
                 Box(
@@ -83,6 +83,8 @@ fun App(sharedText: String? = null) {
                     if (tab == HomeTab.SETTINGS) {
                         if (settingsPage == "GLASS_MOTION") {
                             com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
+                        } else if (settingsPage == "BACKGROUND") {
+                            com.pinfold.app.ui.settings.BackgroundScreen(viewModel)
                         } else {
                             SettingsScreen(viewModel)
                         }
@@ -90,11 +92,6 @@ fun App(sharedText: String? = null) {
                         HomeScreen(viewModel, onOpen = { detail = it })
                     }
                 }
-                val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                Box(
-                    Modifier.fillMaxWidth().height(topInset + 8.dp).align(Alignment.TopCenter)
-                        .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.40f), Color.Transparent))),
-                )
                 detail?.let { item ->
                     DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
                 }

@@ -66,6 +66,13 @@ data class AppSettings(
     val touchHoldEffect: Boolean = true,
     val transitionType: String = "GLASS_MORPH",
     val transitionCurve: String = "DRAWER",
+    val backgroundType: String = "GENERATED",
+    val backgroundStyle: String = "PETALS",
+    val backgroundHue: Float = 220f,
+    val backgroundLoopSeconds: Int = 40,
+    val backgroundAnimate: Boolean = true,
+    val backgroundDim: Float = 0.2f,
+    val backgroundDetails: String = "PICTURE",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -122,6 +129,13 @@ class SettingsRepository(private val context: Context) {
             touchHoldEffect = p[Keys.touchHoldEffect] ?: true,
             transitionType = p[Keys.transitionType] ?: "GLASS_MORPH",
             transitionCurve = p[Keys.transitionCurve] ?: "DRAWER",
+            backgroundType = p[Keys.backgroundType] ?: "GENERATED",
+            backgroundStyle = p[Keys.backgroundStyle] ?: "PETALS",
+            backgroundHue = p[Keys.backgroundHue] ?: 220f,
+            backgroundLoopSeconds = p[Keys.backgroundLoopSeconds] ?: 40,
+            backgroundAnimate = p[Keys.backgroundAnimate] ?: true,
+            backgroundDim = p[Keys.backgroundDim] ?: 0.2f,
+            backgroundDetails = p[Keys.backgroundDetails] ?: "PICTURE",
         )
     }
 
@@ -228,5 +242,12 @@ class SettingsRepository(private val context: Context) {
         val touchHoldEffect = booleanPreferencesKey("touchHoldEffect")
         val transitionType = stringPreferencesKey("transitionType")
         val transitionCurve = stringPreferencesKey("transitionCurve")
+        val backgroundType = stringPreferencesKey("backgroundType")
+        val backgroundStyle = stringPreferencesKey("backgroundStyle")
+        val backgroundHue = floatPreferencesKey("backgroundHue")
+        val backgroundLoopSeconds = intPreferencesKey("backgroundLoopSeconds")
+        val backgroundAnimate = booleanPreferencesKey("backgroundAnimate")
+        val backgroundDim = floatPreferencesKey("backgroundDim")
+        val backgroundDetails = stringPreferencesKey("backgroundDetails")
     }
 }

@@ -49,6 +49,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                     }
                 }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
+                SettingsRow(AppIcons.CustomImage, Candy.Mint, "Background", "${settings.backgroundStyle} · ${settings.backgroundLoopSeconds}s loop", onClick = viewModel::openBackground)
                 SettingsRow(AppIcons.Language, Candy.Sky, "App language", settings.language, onClick = { viewModel.setSetting("language", "English") })
                 SettingsRow(AppIcons.Haptics, Candy.Mint, "Haptic feedback", trailing = {
                     GlassSwitch(settings.haptics != "OFF") { viewModel.setHaptics(if (it) "LIGHT" else "OFF") }

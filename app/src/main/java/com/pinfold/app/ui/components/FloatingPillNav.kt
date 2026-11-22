@@ -1,13 +1,16 @@
 package com.pinfold.app.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateFloatAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,7 +23,6 @@ import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.glass
-import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 
 @Composable
@@ -38,69 +40,57 @@ fun FloatingPillNav(
 ) {
     val colors = clear
     val style = GlassSettings.style
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, label = "navAlpha")
+    val pillAlpha by animateFloatAsState(if (visible) 1f else 0f, label = "pillAlpha")
+    val settingsAlpha by animateFloatAsState(if (visible && !searchActive) 1f else 0f, label = "settingsAlpha")
+    val glassModifier = Modifier.glass(
+        Capsule,
+        colors.glass.copy(alpha = (colors.glass.alpha * 0.85f).coerceAtMost(1f)),
+        blur = style.blur.dp.coerceAtMost(8.dp),
+        lensHeight = 24.dp.coerceAtMost(style.refractionHeight.dp * 2f),
+        lensAmount = 40.dp.coerceAtMost(style.refractionAmount.dp * 2f),
+    )
 
-    Box(
-        modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 14.dp)
-            .height(64.dp)
-            .alpha(alpha)
-            .glass(
-                Capsule,
-                colors.glass,
-                blur = style.blur.dp,
-                lensHeight = style.refractionHeight.dp,
-                lensAmount = style.refractionAmount.dp,
-            )
-            .clip(Capsule)
-            .padding(6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (searchActive) {
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    placeholder = { androidx.compose.material3.Text("Search bookmarks", color = colors.inkSoft) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 46.dp, label = "Close search") {
-                    AppIcons.Icon(AppIcons.Close, "Close search", tint = colors.ink)
+    BoxWithConstraints(modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
+        Box(
+            Modifier.align(Alignment.BottomStart).alpha(pillAlpha)
+                .width(if (searchActive) maxWidth else 124.dp)
+                .height(60.dp)
+                .then(glassModifier)
+                .clip(Capsule)
+                .padding(6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (searchActive) {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        placeholder = { androidx.compose.material3.Text("Search bookmarks", color = colors.inkSoft) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 46.dp, label = "Close search") {
+                        AppIcons.Icon(AppIcons.Close, "Close search", tint = colors.ink)
+                    }
+                }
+            } else {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(56.dp)) {
+                        GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 48.dp, label = "Search") {
+                            AppIcons.Icon(AppIcons.Search, "Search", tint = colors.ink)
+                        }
+                    }
+                    Box(Modifier.size(56.dp)) {
+                        GlassCircle(onClick = onAdd, onLongClick = onAddLong, size = 48.dp, label = "Add link") {
+                            AppIcons.Icon(AppIcons.Add, "Add link", tint = colors.ink)
+                        }
+                    }
                 }
             }
-        } else {
-            Row(
-                Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly,
-            ) {
-                Box(Modifier.fillMaxWidth(0.33f)) {
-                    GlassCircle(
-                        onClick = onSearchToggle,
-                        onLongClick = onSearchToggle,
-                        size = 48.dp,
-                        label = "Search",
-                    ) { AppIcons.Icon(AppIcons.Search, "Search", tint = colors.ink) }
-                }
-                Box(Modifier.fillMaxWidth(0.33f)) {
-                    GlassCircle(
-                        onClick = onAdd,
-                        onLongClick = onAddLong,
-                        size = 48.dp,
-                        label = "Add link",
-                    ) { AppIcons.Icon(AppIcons.Add, "Add link", tint = colors.ink) }
-                }
-                Box(Modifier.fillMaxWidth(0.33f)) {
-                    GlassCircle(
-                        onClick = onSettings,
-                        onLongClick = onSettingsLong,
-                        size = 48.dp,
-                        label = "Settings",
-                    ) { AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.ink) }
-                }
+        }
+        Box(Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp).then(glassModifier).clip(Capsule)) {
+            GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings") {
+                AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.ink)
             }
         }
     }
