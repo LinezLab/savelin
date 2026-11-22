@@ -13,7 +13,7 @@ data class CleanedMetadata(
 object MetadataCleaner {
     private val INSTAGRAM_DESCRIPTION = Regex(
         """(?:([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*)?""" +
-            """(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4})\s*:\s*(["“])([\s\S]*)(["”])\s*\.?\s*$""",
+            """(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})\s*:\s*(["“])([\s\S]*)(["”])\s*\.?\s*$""",
     )
     private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
     private val PUNCTUATION_ONLY = Regex("^[\\s.\\-–—·•,;:!?…\"“”']+$")
