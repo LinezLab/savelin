@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.matchParentSize
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -74,7 +72,7 @@ fun GlassChoicePopUp(
     GlassOverlay(animatesOut = true) {
         val appear = rememberSpringAppear()
         Box(Modifier.fillMaxSize().padding(16.dp)) {
-            Box(Modifier.matchParentSize().clickable(onClick = onDismiss))
+            Box(Modifier.fillMaxSize().clickable(onClick = onDismiss))
             Column(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .floatingLayer {

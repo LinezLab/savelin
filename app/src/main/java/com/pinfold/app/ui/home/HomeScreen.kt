@@ -47,6 +47,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.MotionSettings

@@ -109,7 +109,7 @@ private fun DrawScope.aurora(t: Float, palette: List<Color>, soft: Boolean, wobb
         val wave = sin(2 * Math.PI * (t + phase)).toFloat() * wobble
         val angle = Math.PI / 4f * (phase * 2f) + wave * 0.12f
         val radius = reach * (0.65f + 0.28f * phase + 0.06f * cos(2 * Math.PI * (t + phase)).toFloat())
-        val centre = origin + Offset(cos(angle) * radius * 0.28f, -sin(angle) * radius * 0.28f)
+        val centre = origin + Offset(cos(angle).toFloat() * radius * 0.28f, -sin(angle).toFloat() * radius * 0.28f)
         val c = palette[i % palette.size]
         val ramp = if (soft) listOf(c.copy(alpha = 0.82f), c.copy(alpha = 0.5f), Color.Transparent)
         else listOf(c, c.copy(alpha = 0.72f), Color.Transparent)
