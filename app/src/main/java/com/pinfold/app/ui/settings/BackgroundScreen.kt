@@ -32,7 +32,7 @@ fun BackgroundScreen(viewModel: HomeViewModel) {
                 )
             }
             Row {
-                SettingsRow(AppIcons.Refresh, Candy.Mint, "Shuffle") { viewModel.setSetting("backgroundHue", (0..360).random().toFloat()) }
+                SettingsRow(AppIcons.Refetch, Candy.Mint, "Shuffle") { viewModel.setSetting("backgroundHue", (0..360).random().toFloat()) }
                 SettingsRow(AppIcons.Undo, Candy.Tomato, "Reset") { viewModel.setSetting("backgroundHue", 220f) }
             }
         }
