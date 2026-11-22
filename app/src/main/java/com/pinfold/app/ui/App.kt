@@ -61,14 +61,24 @@ fun App(sharedText: String? = null) {
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
     }
+    BackHandler(enabled = detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS) {
+        when {
+            detail != null -> detail = null
+            searchActive -> viewModel.setSearchActive(false)
+            settingsPage != "HOME" -> viewModel.closeSettingsPage()
+            tab == HomeTab.SETTINGS -> viewModel.selectTab(HomeTab.HOME)
+        }
+    }
     if (locked) {
         BiometricGate(onUnlock = { locked = false })
         return
+    }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
             draft = sharedText
             showAdd = true
         }
+    }
     GlassStage(
         wallpaper = { com.pinfold.app.ui.background.GeneratedBackground(Modifier.fillMaxSize()) },
         screens = {
