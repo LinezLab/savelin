@@ -56,6 +56,7 @@ object MetadataCleaner {
             .map { it.trim() }
             .firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
             .orEmpty()
+            .let { it.replace(HASHTAG, "").trim() }
             .take(80)
 
         val usableTitle = if (match != null && captionFirstLine.isNotBlank()) {
