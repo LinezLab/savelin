@@ -220,6 +220,7 @@ private fun DetailsContent(
         ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val heroHeight = minOf(maxHeight * 0.5f, 380.dp)
+                val heroMaxWidth = maxWidth
                 val heroFrame = Modifier.fillMaxWidth().height(heroHeight)
                 Box(
                     if (artworkMode) heroFrame
@@ -231,8 +232,8 @@ private fun DetailsContent(
                                 (bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()).coerceIn(0.35f, 3f)
                             else -> 0.8f
                         }
-                        val imageHeight = minOf(heroHeight, maxWidth / ratio)
-                        val imageWidth = minOf(maxWidth, imageHeight * ratio)
+                        val imageHeight = minOf(heroHeight, heroMaxWidth / ratio)
+                        val imageWidth = minOf(heroMaxWidth, imageHeight * ratio)
                         AsyncImage(
                             model = ImageRequest.Builder(context).data(File(imagePath)).build(),
                             contentDescription = bookmark.displayTitle,
