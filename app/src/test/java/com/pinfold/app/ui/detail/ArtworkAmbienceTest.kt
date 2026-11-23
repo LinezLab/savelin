@@ -132,4 +132,50 @@ class ArtworkAmbienceTest {
     fun accentHexIsEightDigits() {
         assertEquals("#FFD97123", Color(0xD9, 0x71, 0x23).hex())
     }
+
+    @Test
+    fun heroEdgeIsALongContinuousAlphaRampWithNoHardCut() {
+        assertTrue("feather must be long", HERO_EDGE_FEATHER_FRACTION >= 0.25f)
+        val start = heroEdgeFeatherStart
+        assertTrue("start=$start", start in 0.5f..0.8f)
+        assertEquals(1f, heroEdgeAlphaAt(0f), 0.0001f)
+        assertEquals(1f, heroEdgeAlphaAt(start), 0.0001f)
+        assertEquals(0f, heroEdgeAlphaAt(1f), 0.0001f)
+        assertEquals(0.5f, heroEdgeAlphaAt((start + 1f) / 2f), 0.02f)
+
+        var previous = 1f
+        var maxStep = 0f
+        for (i in 0..200) {
+            val progress = i / 200f
+            val alpha = heroEdgeAlphaAt(progress)
+            assertTrue("alpha increased at $progress", alpha <= previous + 0.0001f)
+            maxStep = maxOf(maxStep, previous - alpha)
+            previous = alpha
+        }
+        assertTrue("largest alpha step $maxStep must be imperceptible", maxStep <= 0.01f)
+    }
+
+    @Test
+    fun haloIsOversizedAndOpaqueAtTheHeroEdge() {
+        assertTrue(HERO_HALO_SCALE > 1f)
+        assertTrue(HERO_HALO_ALPHA > 0.9f)
+        assertTrue(HERO_HALO_OVERSHOOT_DP > HERO_HALO_TAIL_FEATHER_DP)
+        val hero = 400f
+        val box = hero + HERO_HALO_OVERSHOOT_DP
+        val tailStart = (box - HERO_HALO_TAIL_FEATHER_DP) / box
+        assertTrue("seam fraction must be above the halo tail", hero / box < tailStart)
+        assertEquals(1f, heroHaloAlphaAt(tailStart, hero / box), 0.0001f)
+        assertEquals(0f, heroHaloAlphaAt(tailStart, 1f), 0.0001f)
+    }
+
+    @Test
+    fun edgeWashIsDarkAndSampledFromTheArtworkTone() {
+        val base = extractArtworkTone(solid(0xFFD97123.toInt())).base
+        val wash = heroEdgeWash(base)
+        assertTrue(wash.red < base.red)
+        assertTrue(wash.green < base.green)
+        assertTrue(wash.blue < base.blue)
+        assertEquals(1f, wash.alpha, 0.0001f)
+        assertTrue(HERO_EDGE_WASH_ALPHA in 0.05f..0.4f)
+    }
 }
