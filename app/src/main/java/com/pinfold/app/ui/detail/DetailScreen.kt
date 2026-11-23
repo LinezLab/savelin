@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -26,12 +27,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -48,22 +54,7 @@ import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import java.io.File
 
-/** Fraction of the hero height over which the sharp artwork's alpha ramps from 1 to 0. */
-internal const val HERO_EDGE_FEATHER_FRACTION = 0.34f
-
-internal val heroEdgeFeatherStart: Float get() = 1f - HERO_EDGE_FEATHER_FRACTION
-
-/** Alpha of the sharp hero at a normalised vertical position (0 at its top, 1 at its bottom). */
-internal fun heroEdgeAlphaAt(progress: Float): Float = when {
-    progress <= heroEdgeFeatherStart -> 1f
-    progress >= 1f -> 0f
-    else -> (1f - progress) / HERO_EDGE_FEATHER_FRACTION
-}
-
-/**
- * Background-first detail screen: a sharp hero whose bottom alpha feathers into the artwork-derived
- * mesh held at that seam, plus a Back affordance. There are no player controls here.
- */
+/** Background-first detail screen: sharp artwork dissolving into its own ambient field. */
 @Composable
 fun DetailScreen(
     item: BookmarkWithTags,
@@ -76,30 +67,42 @@ fun DetailScreen(
         bookmark.imagePath?.takeIf { it.isNotBlank() }
             ?.let { File(it).takeIf { file -> file.isFile }?.absolutePath }
     }
-    val selection = rememberAmbienceSelection(bookmark.id, path, bookmark.platform, bookmark.siteName)
+    val selection = rememberAmbienceSelection(bookmark.id, path)
     val ambience = selection.settled ?: selection.current
+    val palette = ambience.palette
     val aspect = remember(bookmark.imageWidth, bookmark.imageHeight) {
         if (bookmark.imageWidth > 0 && bookmark.imageHeight > 0) {
             (bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()).coerceIn(0.42f, 2.6f)
         } else 1f
     }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { DiagnosticsLog.uiAction("Detail", "Open") }
 
-    Box(modifier.fillMaxSize().background(ambience.tone.base)) {
+    Box(modifier.fillMaxSize().background(palette.base)) {
+        Crossfade(
+            targetState = ambience,
+            animationSpec = if (reduceMotion) {
+                snap()
+            } else {
+                tween(durationMillis = crossfadeDurationMs(reduceMotion), easing = FastOutSlowInEasing)
+            },
+            label = "detailAmbience",
+        ) { target ->
+            AmbientBackdrop(target)
+        }
+
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val heroHeight = minOf(maxHeight * 0.66f, maxWidth / aspect)
-            Crossfade(
-                targetState = ambience,
-                animationSpec = if (reduceMotion) snap() else tween(
-                    durationMillis = crossfadeDurationMs(reduceMotion),
-                    easing = FastOutSlowInEasing,
-                ),
-                label = "detailAmbience",
-            ) { target ->
-                NowPlayingBackdrop(target, seam = { heroHeight })
+            val naturalHeight = maxWidth / aspect
+            val heroHeight = minOf(naturalHeight, maxHeight * 0.72f)
+            val heroScale = if (heroHeight >= naturalHeight - 1.dp) {
+                ContentScale.FillWidth
+            } else {
+                ContentScale.Crop
             }
-            SharpHero(path, heroHeight)
+            HeroHalo(ambience.image, palette, heroHeight)
+            SharpHero(path, palette, heroHeight, heroScale, context)
+            HeroEdgeWash(palette.base, heroHeight)
         }
 
         Box(
@@ -118,12 +121,57 @@ fun DetailScreen(
 }
 
 /**
- * The sharp artwork with a long alpha ramp at its bottom. The mask is scoped to this box with an
- * offscreen layer, so only the hero is feathered; the mesh behind it is untouched.
+ * Oversized blurred copy of the same artwork. It starts behind the hero and runs past its lower
+ * edge, so the hero's alpha ramp always reveals matching colour instead of a boundary.
  */
 @Composable
-private fun BoxScope.SharpHero(path: String?, heroHeight: Dp) {
-    if (path == null) return
+private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, heroHeight: Dp) {
+    val haloHeight = heroHeight + HALO_OVERSHOOT_DP.dp
+    val tailStart = haloTailStart(haloHeight.value)
+    Box(
+        Modifier.align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .height(haloHeight)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.Black,
+                        tailStart to Color.Black,
+                        1f to Color.Transparent,
+                    ),
+                    blendMode = BlendMode.DstIn,
+                )
+            },
+    ) {
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
+                    .scale(HALO_SCALE)
+                    .blur(HALO_BLUR_DP.dp)
+                    .alpha(HALO_ALPHA),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(Modifier.fillMaxSize().drawBehind {
+                drawPaletteField(palette, paletteBlooms(palette), 1.15f)
+            })
+        }
+    }
+}
+
+/** Sharp hero with a long, continuous alpha ramp at its lower edge. */
+@Composable
+private fun BoxScope.SharpHero(
+    path: String?,
+    palette: ArtworkPalette,
+    heroHeight: Dp,
+    heroScale: ContentScale,
+    context: android.content.Context,
+) {
     Box(
         Modifier.align(Alignment.TopCenter)
             .fillMaxWidth()
@@ -134,21 +182,47 @@ private fun BoxScope.SharpHero(path: String?, heroHeight: Dp) {
                 drawRect(
                     brush = Brush.verticalGradient(
                         0f to Color.Black,
-                        heroEdgeFeatherStart to Color.Black,
+                        heroFeatherStart to Color.Black,
                         1f to Color.Transparent,
                     ),
                     blendMode = BlendMode.DstIn,
                 )
             },
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(File(path)).build(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (path != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(File(path)).build(),
+                contentDescription = null,
+                contentScale = heroScale,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Box(Modifier.fillMaxSize().drawBehind {
+                drawPaletteField(palette, paletteBlooms(palette), 1.3f)
+            })
+        }
     }
+}
+
+/** Dark wash derived from the artwork, transparent at both ends of the feather band. */
+@Composable
+private fun BoxScope.HeroEdgeWash(base: Color, heroHeight: Dp) {
+    Box(
+        Modifier.align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .height(heroHeight)
+            .drawBehind {
+                val wash = blendColors(base, Color.Black, 0.42f).copy(alpha = HERO_WASH_ALPHA)
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        heroFeatherStart to Color.Transparent,
+                        (heroFeatherStart + 1f) / 2f to wash,
+                        1f to Color.Transparent,
+                    ),
+                )
+            },
+    )
 }
 
 private fun DrawScope.drawBackChevron() {
