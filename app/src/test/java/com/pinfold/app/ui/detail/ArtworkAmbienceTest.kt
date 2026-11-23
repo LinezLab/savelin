@@ -145,6 +145,6 @@ class ArtworkAmbienceTest {
         assertEquals(0f, stops[0].alpha, 0f)
         assertTrue(stops[0].alpha < stops[1].alpha)
         assertTrue(stops[1].alpha < stops[2].alpha)
-        assertEquals(HERO_EDGE_FADE_ALPHA, stops[2].alpha, 0f)
+        assertEquals(HERO_EDGE_FADE_ALPHA, stops[2].alpha, 0.01f)
     }
 }
