@@ -57,7 +57,8 @@ class ArtworkMeshTest {
         for (x in 1 until MESH_TEX) {
             val current = out[row + x]
             assertTrue("sample $x should not go backwards", current >= previous)
-            assertTrue("sample $x jumped $previous -> $current", current - previous <= 60)
+            val redStep = ((current shr 16) and 0xFF) - ((previous shr 16) and 0xFF)
+            assertTrue("sample $x jumped $previous -> $current", redStep in 0..20)
             previous = current
         }
         assertTrue(Color(out[row]).red < 32)
