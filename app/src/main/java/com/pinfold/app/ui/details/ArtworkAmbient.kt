@@ -282,12 +282,10 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    listOf(
-                        0f to Color.Black.copy(alpha = 0.34f),
-                        0.20f to Color.Transparent,
-                        0.62f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.62f),
-                    ),
+                    0f to Color.Black.copy(alpha = 0.34f),
+                    0.20f to Color.Transparent,
+                    0.62f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.62f),
                 ),
             ),
         )
