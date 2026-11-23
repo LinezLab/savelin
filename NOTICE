@@ -21,6 +21,18 @@ parsing and the local image copy + refetch approach are ported from its
 lib/services/metadata.dart and lib/services/image_store.dart.
 See third_party/POSTVAULT-MIT.txt.
 
+Shelf (https://github.com/iambhvsh/shelf)
+Copyright the Shelf contributors. Licensed under GPL-3.0. The direct-fetch,
+multi-User-Agent link-preview method used as the primary resolver in core-network
+was studied from Shelf's features/fetch package. No Shelf source is bundled.
+See docs/RECON-SHELF.md.
+
+Android-Link-Preview (https://github.com/vishalkumarsinghvi/Android-Link-Preview)
+Copyright the Android-Link-Preview contributors. MIT per its README. The metadata
+extraction concept is credited here; the library is NOT bundled and no source was
+copied. Savelin's ShelfStyleResolver is original Kotlin/OkHttp/Jsoup code.
+See docs/RECON-SHELF.md.
+
 Lucide icons (https://lucide.dev/)
 Copyright Lucide Icons and Contributors. Licensed under ISC. Only the icons
 actually used are bundled, as Android vector drawables under app/src/main/res/drawable.

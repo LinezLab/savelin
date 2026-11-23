@@ -5,7 +5,7 @@ A local-only Android app: share a link from any app and it appears as a Pinteres
 ## What it does
 
 - **Share to save.** Android's share sheet sends `text/plain` links (plus captions) straight into Savelin. Paste a link with **+** as well. The first URL in shared text is extracted, normalised and de-duplicated.
-- **Real previews when possible.** Reads public link-preview metadata (Open Graph / Twitter cards) with a mobile User-Agent first, then a crawler-identity retry. Instagram author/caption parsing follows PostVault's proven pattern. YouTube and Reddit have fast paths.
+- **Real previews when possible.** A Shelf-style direct fetch (WhatsApp then desktop User-Agent, 5s timeouts, text/html only) is tried FIRST for metadata and the image. If it cannot supply an image, the current Open Graph / Twitter-card mobile and crawler retries run. Instagram author/caption parsing follows PostVault. YouTube and Reddit have fast paths. See [docs/RECON-SHELF.md](docs/RECON-SHELF.md).
 - **Images stay on the device.** The preview image is downloaded, re-encoded as WebP (max 1080 px), stored in app-private storage with a blurhash, and never referenced by its expiring remote URL again.
 - **Graceful fallbacks.** If a login wall or empty tags block the preview, Savelin shows a generated tile with **Refetch image** and **Add custom image** actions. An opt-in proxy template is available in Settings for the hard cases.
 - **Organise.** Important, archived, tags, collections, notes, search (SQLite FTS), and reminders with notifications.
@@ -68,4 +68,4 @@ Download the universal APK from the Releases page; it works on every supported d
 
 ## Licences and references
 
-See [`NOTICE`](NOTICE) and [`third_party/`](third_party/) for Artefact (MIT/Apache-2.0), AndroidLiquidGlass (Apache-2.0) and PostVault (MIT) licences. Design and motion findings are in [`docs/RECON.md`](docs/RECON.md); the PostVault study and code recon are in [`docs/POSTVAULT.md`](docs/POSTVAULT.md) and [`docs/POSTVAULT-RECON.md`](docs/POSTVAULT-RECON.md).
+See [`NOTICE`](NOTICE) and [`third_party/`](third_party/) for Artefact (MIT/Apache-2.0), AndroidLiquidGlass (Apache-2.0), PostVault (MIT), Shelf (GPL-3.0, method study only) and Android-Link-Preview (MIT, attribution only) licences. Design and motion findings are in [`docs/RECON.md`](docs/RECON.md); the PostVault study is in [`docs/POSTVAULT.md`](docs/POSTVAULT.md) and [`docs/POSTVAULT-RECON.md`](docs/POSTVAULT-RECON.md); the Shelf study is in [`docs/RECON-SHELF.md`](docs/RECON-SHELF.md).

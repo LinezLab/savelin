@@ -9,11 +9,13 @@ import com.pinfold.app.data.model.FetchStatus
 import com.pinfold.app.data.model.NetworkLogEntry
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.diagnostics.LogLevel
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.PlatformDetector
 import com.pinfold.app.network.UrlNormalizer
 import com.pinfold.app.network.image.ImageStore
+import com.pinfold.app.network.image.StoredImage
 import com.pinfold.app.network.resolvers.HttpClientFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +43,13 @@ class LinkFetchWorker(
                 db.networkLogDao().insert(NetworkLogEntry(host = h, purpose = purpose, status = "OK"))
             }
         }
-        val fetcher = PreviewFetcher(client, logHost)
+        val fetcher = PreviewFetcher(
+            client = client,
+            onHost = logHost,
+            onBreadcrumb = { step, outcome, stepHost ->
+                DiagnosticsLog.log(LogLevel.INFO, "Preview/$step", "$outcome host=$stepHost")
+            },
+        )
         val proxyTemplate = if (currentSettings.proxiesEnabled) currentSettings.proxyTemplate else ""
 
         val fetched = runCatching { fetcher.fetch(normalized, userAgent, proxyTemplate) }
@@ -64,12 +72,28 @@ class LinkFetchWorker(
         if (id <= 0) return@withContext Result.success()
 
         val store = ImageStore(applicationContext, client)
-        val stored = preview.imageUrls.firstNotNullOfOrNull { url ->
-            runCatching { store.store(id, url) }.getOrNull()
+        val tryStore: (List<String>) -> Pair<StoredImage, String>? = { candidates ->
+            candidates.firstNotNullOfOrNull { candidate ->
+                runCatching { store.store(id, candidate) }.getOrNull()?.let { it to candidate }
+            }
         }
-        if (stored == null && preview.imageUrls.isNotEmpty()) {
-            DiagnosticsLog.issue("Preview", "image", "no image decoded host=$host")
+
+        var storedWithUrl = tryStore(preview.imageUrls)
+        var remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty()
+        if (storedWithUrl == null && preview.imageUrls.isNotEmpty()) {
+            DiagnosticsLog.issue("Preview", "image-primary", "no image decoded host=$host")
+            val fallback = runCatching { fetcher.fetchFallback(normalized, userAgent, proxyTemplate) }.getOrNull()
+            if (fallback != null) {
+                storedWithUrl = tryStore(fallback.imageUrls)
+                if (storedWithUrl != null) {
+                    remoteImageUrl = storedWithUrl.second
+                    DiagnosticsLog.log(LogLevel.INFO, "Preview/image", "fallback-ok host=$host")
+                } else {
+                    DiagnosticsLog.issue("Preview", "image-fallback", "no image decoded host=$host")
+                }
+            }
         }
+        val stored = storedWithUrl?.first
 
         val cleaned = MetadataCleaner.clean(
             title = preview.title,
@@ -94,7 +118,7 @@ class LinkFetchWorker(
                 siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
                 platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
                 author = preview.author,
-                remoteImageUrl = preview.imageUrls.firstOrNull(),
+                remoteImageUrl = remoteImageUrl,
                 imagePath = stored?.path ?: current.imagePath,
                 imageWidth = stored?.width ?: current.imageWidth,
                 imageHeight = stored?.height ?: current.imageHeight,
