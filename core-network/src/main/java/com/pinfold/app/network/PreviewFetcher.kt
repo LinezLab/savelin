@@ -2,9 +2,9 @@ package com.pinfold.app.network
 
 import com.pinfold.app.network.model.Preview
 import com.pinfold.app.network.resolvers.HtmlFetcher
-import com.pinfold.app.network.resolvers.OpenGraphResolver
 import com.pinfold.app.network.resolvers.PlatformFastPaths
 import com.pinfold.app.network.resolvers.ResolverContext
+import com.pinfold.app.network.resolvers.UniversalResolver
 import okhttp3.OkHttpClient
 import java.net.URI
 
@@ -15,18 +15,17 @@ class PreviewFetcher(
     suspend fun fetch(rawUrl: String, userAgent: String, proxyTemplate: String = ""): Preview {
         val expanded = expandShortener(rawUrl.trim(), userAgent)
         val url = UrlNormalizer.normalize(expanded)
-        val context = ResolverContext(client = client, userAgent = userAgent)
+        val context = ResolverContext(client = client, userAgent = userAgent, onHost = onHost)
         onHost(hostOf(url), "preview")
 
         val results = mutableListOf<Preview>()
         PlatformFastPaths().resolve(url, context)?.let(results::add)
-        OpenGraphResolver(userAgentOverride = MOBILE_UA).resolve(url, context)?.let(results::add)
-        OpenGraphResolver(userAgentOverride = context.crawlerUserAgent).resolve(url, context)?.let(results::add)
+        UniversalResolver().resolve(url, context)?.let(results::add)
 
         if (results.none { it.hasImage } && proxyTemplate.isNotBlank() && proxyTemplate.contains("{url}")) {
             val proxyUrl = proxyTemplate.replace("{url}", java.net.URLEncoder.encode(url, "UTF-8"))
             onHost(runCatching { URI.create(proxyUrl).host.orEmpty() }.getOrDefault(""), "opt-in proxy")
-            OpenGraphResolver(userAgentOverride = userAgent).resolve(proxyUrl, context)?.let(results::add)
+            UniversalResolver().resolve(proxyUrl, context)?.let(results::add)
         }
 
         val merged = merge(results)
@@ -36,7 +35,7 @@ class PreviewFetcher(
     private fun expandShortener(rawUrl: String, userAgent: String): String {
         if (!UrlNormalizer.isShortener(rawUrl)) return rawUrl
         return runCatching {
-            val context = ResolverContext(client = client, userAgent = userAgent)
+            val context = ResolverContext(client = client, userAgent = userAgent, onHost = onHost)
             HtmlFetcher.get(rawUrl, context, userAgent)?.second ?: rawUrl
         }.getOrDefault(rawUrl)
     }
@@ -53,6 +52,13 @@ class PreviewFetcher(
             caption = results.firstNonBlank { it.caption },
             imageUrls = results.flatMap { it.imageUrls }.distinct(),
             html = results.firstNonBlank { it.html },
+            contentType = results.firstNonBlank { it.contentType },
+            canonicalUrl = results.firstNonBlank { it.canonicalUrl },
+            faviconUrls = results.flatMap { it.faviconUrls }.distinct(),
+            language = results.firstNonBlank { it.language },
+            locale = results.firstNonBlank { it.locale },
+            publishedAt = results.firstNonBlank { it.publishedAt },
+            tags = MetadataCleaner.cleanTags(results.flatMap { it.tags }),
             source = primary.source,
         )
     }
@@ -61,8 +67,4 @@ class PreviewFetcher(
         firstOrNull { selector(it).isNotBlank() }?.let(selector).orEmpty()
 
     private fun hostOf(url: String): String = runCatching { URI.create(url).host.orEmpty() }.getOrDefault("")
-
-    private companion object {
-        const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
-    }
 }

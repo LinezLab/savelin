@@ -27,6 +27,20 @@ actually used are bundled, as Android vector drawables under app/src/main/res/dr
 See third_party/LUCIDE-ISC.txt. Note: fingerprint-pattern is Lucide's name for
 the biometric glyph, and ellipsis replaces the old more-horizontal.
 
+Preview extraction (no third-party API)
+
+Savelin does not use Microlink, Iframely Cloud, LinkPreview or any other hosted
+preview/favicon service: those need keys or rate limits and would receive every
+URL the user saves. By default the only hosts contacted are the site being
+saved and resources that site itself declares (images, icons, manifest, oEmbed).
+An optional user-supplied proxy is strictly opt-in.
+
+The on-device resolver follows the MIT-licensed link-preview-js idea of fetching
+the page and parsing its own metadata. It is an independent Kotlin implementation
+in core-network; no link-preview-js source, SDK or API key is bundled. Site
+coverage is achieved through open standards: Open Graph, Twitter Cards, JSON-LD,
+canonical/image_src links, HTML meta/title/time and site-declared oEmbed.
+
 The full licence texts are in third_party/. The Android app also ships an
 Open source licences screen in Settings.
 

@@ -12,6 +12,7 @@ import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.PlatformDetector
 import com.pinfold.app.network.UrlNormalizer
+import com.pinfold.app.network.image.FaviconStore
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.resolvers.HttpClientFactory
 import kotlinx.coroutines.CoroutineScope
@@ -35,11 +36,12 @@ class LinkFetchWorker(
 
         val normalized = UrlNormalizer.normalize(rawUrl)
         val client = HttpClientFactory.create()
-        val fetcher = PreviewFetcher(client) { host, purpose ->
+        val logHost: (String, String) -> Unit = { host, purpose ->
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 db.networkLogDao().insert(NetworkLogEntry(host = host, purpose = purpose, status = "OK"))
             }
         }
+        val fetcher = PreviewFetcher(client, logHost)
         val proxyTemplate = if (currentSettings.proxiesEnabled) currentSettings.proxyTemplate else ""
         val preview = runCatching { fetcher.fetch(normalized, userAgent, proxyTemplate) }.getOrElse {
             return Result.failure()
@@ -56,6 +58,8 @@ class LinkFetchWorker(
         )
         if (id <= 0) return Result.success()
 
+        FaviconStore(applicationContext, client, logHost).store(preview.url, preview.faviconUrls)
+
         val store = ImageStore(applicationContext, client)
         val stored = preview.imageUrls.firstNotNullOfOrNull { url ->
             runCatching { store.store(id, url) }.getOrNull()
@@ -68,6 +72,7 @@ class LinkFetchWorker(
             siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
             platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
             fallbackTitle = PlatformDetector.siteName(normalized),
+            contentTags = preview.tags,
         )
         val current = db.bookmarkDao().findById(id) ?: return Result.success()
         db.bookmarkDao().update(
@@ -94,7 +99,7 @@ class LinkFetchWorker(
                 updatedAt = System.currentTimeMillis(),
             ),
         )
-        cleaned.hashtags.forEach { tag ->
+        cleaned.tags.forEach { tag ->
             val existing = db.tagDao().findByName(tag)
             val tagId = existing?.id ?: db.tagDao().insert(com.pinfold.app.data.model.Tag(name = tag))
             if (tagId > 0) db.tagDao().link(com.pinfold.app.data.model.BookmarkTag(id, tagId))

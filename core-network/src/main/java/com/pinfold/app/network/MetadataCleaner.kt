@@ -1,5 +1,7 @@
 package com.pinfold.app.network
 
+import java.util.Locale
+
 data class CleanedMetadata(
     val displayTitle: String,
     val authorHandle: String,
@@ -8,6 +10,8 @@ data class CleanedMetadata(
     val commentsText: String,
     val postedAt: String,
     val hashtags: List<String>,
+    /** Union of article:tag / keywords / hashtags, normalised for the tag table. */
+    val tags: List<String>,
 )
 
 object MetadataCleaner {
@@ -15,8 +19,9 @@ object MetadataCleaner {
         """(?:([\d.,KkMm]+)\s+likes,\s*([\d.,KkMm]+)\s+comments\s*-\s*)?""" +
             """(.+?)\s+on\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})\s*:\s*(["“])([\s\S]*)(["”])\s*\.?\s*$""",
     )
-    private val HASHTAG = Regex("#[\\p{L}\\p{N}_]+")
-    private val PUNCTUATION_ONLY = Regex("^[\\s.\\-–—·•,;:!?…\"“”']+$")
+    private val HASHTAG = Regex("""#[\p{L}\p{N}_]+""")
+    private val PUNCTUATION_ONLY = Regex("""^[\s.\-–—·•,;:!?…"“”']+$""")
+    private const val MAX_TAGS = 8
 
     /** Drops dot-only lines, collapses blank runs and removes trailing hashtag-only lines. */
     fun cleanForDisplay(caption: String): String {
@@ -29,7 +34,27 @@ object MetadataCleaner {
             end--
         }
         val result = lines.take(end).joinToString("\n")
-        return result.replace(Regex("\\n{3,}"), "\n\n")
+        return result.replace(Regex("""\n{3,}"""), "\n\n")
+    }
+
+    /**
+     * article:tag, keywords and hashtags all arrive as messy free text. Keep 2–30 char labels,
+     * drop URLs and punctuation-only noise, deduplicate case-insensitively and cap at eight.
+     */
+    fun cleanTags(raw: Collection<String>): List<String> {
+        val seen = HashSet<String>()
+        val out = mutableListOf<String>()
+        for (entry in raw) {
+            for (part in entry.split(',', ';')) {
+                val cleaned = part.trim().trimStart('#').trim().replace(Regex("""\s+"""), " ")
+                if (cleaned.length !in 2..30) continue
+                if (cleaned.contains("://") || cleaned.startsWith("www.", ignoreCase = true)) continue
+                if (PUNCTUATION_ONLY.matches(cleaned)) continue
+                if (seen.add(cleaned.lowercase(Locale.ROOT))) out += cleaned
+                if (out.size >= MAX_TAGS) return out
+            }
+        }
+        return out
     }
 
     fun clean(
@@ -39,6 +64,7 @@ object MetadataCleaner {
         siteName: String,
         platform: String,
         fallbackTitle: String = "",
+        contentTags: List<String> = emptyList(),
     ): CleanedMetadata {
         val match = INSTAGRAM_DESCRIPTION.find(description)
         val likes = match?.groupValues?.get(1).orEmpty()
@@ -70,6 +96,7 @@ object MetadataCleaner {
         val displayTitle = usableTitle.ifBlank {
             if (handle.isNotBlank()) "@${handle.removePrefix("@")}" else fallbackTitle
         }
+        val hashtags = HASHTAG.findAll(caption).map { it.value }.distinct().toList()
 
         return CleanedMetadata(
             displayTitle = displayTitle,
@@ -78,7 +105,8 @@ object MetadataCleaner {
             likesText = likes,
             commentsText = comments,
             postedAt = posted,
-            hashtags = HASHTAG.findAll(caption).map { it.value }.distinct().toList(),
+            hashtags = hashtags,
+            tags = cleanTags(contentTags + hashtags),
         )
     }
 }
