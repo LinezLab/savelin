@@ -13,6 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -21,12 +23,41 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.diagnostics.LogLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+
+enum class DetailsBackgroundMode { ARTWORK, THEME, GENERATED }
+
+/**
+ * The dedicated Details background setting, resolved against whether the bookmark actually has a
+ * usable local image. ARTWORK is the default (fresh install and the legacy PICTURE value); it
+ * degrades to THEME only when there is no image to derive colours from. Pure and device-free.
+ */
+internal fun resolveDetailsBackgroundMode(setting: String?, hasImage: Boolean): DetailsBackgroundMode {
+    val normalized = setting?.trim()?.uppercase().orEmpty()
+    val requested = when (normalized) {
+        "GENERATED" -> DetailsBackgroundMode.GENERATED
+        "THEME", "SOLID" -> DetailsBackgroundMode.THEME
+        else -> DetailsBackgroundMode.ARTWORK
+    }
+    return if (requested == DetailsBackgroundMode.ARTWORK && !hasImage) {
+        DetailsBackgroundMode.THEME
+    } else {
+        requested
+    }
+}
+
+/** Kept high on purpose: a near-zero wash was indistinguishable from the old page. */
+internal const val BLOOM_ALPHA_PRIMARY = 0.78f
+internal const val BLOOM_ALPHA_SECONDARY = 0.56f
 
 data class ArtworkPalette(
     val base: Color,
@@ -60,14 +91,15 @@ internal fun rgbToHsv(r: Int, g: Int, b: Int): FloatArray {
 }
 
 /**
- * Buckets the downsampled artwork by hue and saturation, then averages each bucket. Every returned
- * colour is derived from the pixels: an orange image yields amber/burnt orange, a blue one yields
- * deep blue/cyan, and so on. No palette is hardcoded.
+ * Buckets the downsampled artwork by hue and saturation, then averages each bucket. Neutral and
+ * very dark pixels go into their own bucket so a near-black or grayscale artwork still produces
+ * at least three visible, derived accents instead of black.
  */
 internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
     data class Bin(var count: Int = 0, var r: Int = 0, var g: Int = 0, var b: Int = 0)
 
     val bins = Array(12) { Array(3) { Bin() } }
+    val neutral = Bin()
     var opaque = 0
     var totalR = 0
     var totalG = 0
@@ -82,7 +114,13 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
         totalG += g
         totalB += b
         val hsv = rgbToHsv(r, g, b)
-        if (hsv[1] < 0.16f || hsv[2] < 0.16f || hsv[2] > 0.985f) continue
+        if (hsv[1] < 0.16f || hsv[2] < 0.16f || hsv[2] > 0.985f) {
+            neutral.count++
+            neutral.r += r
+            neutral.g += g
+            neutral.b += b
+            continue
+        }
         val hueBin = min(11, (hsv[0] / 30f).toInt())
         val satBin = min(2, (hsv[1] * 3f).toInt())
         val bin = bins[hueBin][satBin]
@@ -104,6 +142,12 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
             ranked.add((bin.count.toFloat() * (0.35f + hsv[1])) to Color(r, g, b))
         }
     }
+    if (neutral.count > 0) {
+        val r = neutral.r / neutral.count
+        val g = neutral.g / neutral.count
+        val b = neutral.b / neutral.count
+        ranked.add((neutral.count * 0.30f) to Color(r, g, b))
+    }
     ranked.sortByDescending { it.first }
 
     val dominant = ranked.firstOrNull()?.second ?: run {
@@ -115,22 +159,22 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
         (dominant.green * 255f).toInt().coerceIn(0, 255),
         (dominant.blue * 255f).toInt().coerceIn(0, 255),
     )
-    val hue = dominantHsv[0]
+    val hue = if (dominantHsv[1] < 0.12f) 220f else dominantHsv[0]
     val saturation = dominantHsv[1]
     val value = dominantHsv[2]
     val base = Color.hsv(
         hue,
-        (saturation * 0.85f).coerceIn(0.06f, 1f),
-        (value * 0.22f).coerceIn(0.05f, 0.30f),
+        saturation.coerceIn(0.18f, 1f),
+        (value * 0.26f).coerceIn(0.12f, 0.34f),
     )
     val accents = mutableListOf<Color>()
     ranked.take(3).forEach { accents.add(it.second) }
-    listOf(24f, 336f, 52f, 308f).forEachIndexed { index, offset ->
+    listOf(24f, 336f, 180f, 52f, 308f).forEachIndexed { index, offset ->
         accents.add(
             Color.hsv(
                 (hue + offset) % 360f,
-                (saturation * (1f - index * 0.06f)).coerceIn(0.15f, 1f),
-                (value * (1.08f + index * 0.08f)).coerceIn(0.28f, 1f),
+                (saturation * (1f - index * 0.05f)).coerceIn(0.34f, 1f),
+                (value * (1.12f + index * 0.09f)).coerceIn(0.52f, 1f),
             ),
         )
     }
@@ -180,17 +224,24 @@ fun rememberArtworkAmbient(imagePath: String?, key: Any?): ArtworkAmbient? {
     var ambient by remember(key, imagePath) { mutableStateOf<ArtworkAmbient?>(null) }
     LaunchedEffect(key, imagePath) {
         val path = imagePath
-        ambient = if (path == null) null else withContext(Dispatchers.IO) {
+        val loaded = if (path == null) null else withContext(Dispatchers.IO) {
             val cacheKey = "$key|$path"
             cachedAmbient(cacheKey) { loadAmbient(path, cacheKey) }
         }
+        ambient = loaded
+        DiagnosticsLog.log(
+            LogLevel.INFO,
+            "Details/ambient",
+            "bookmark=$key image=${path?.let { File(it).name } ?: "none"} loaded=${loaded != null}",
+        )
     }
     return ambient
 }
 
 /**
- * Apple Music-style ambient presentation: base colour, enlarged downsampled artwork, artwork-derived
- * radial blooms, a dark readability gradient and a faint deterministic grain. No player controls.
+ * Artwork-derived ambient presentation: base colour, genuinely blurred full-bleed artwork,
+ * radial blooms from the extracted palette at clearly visible alpha, and readability scrims
+ * limited to the top and bottom so the sharp artwork and the blooms stay prominent.
  */
 @Composable
 fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modifier) {
@@ -199,24 +250,25 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
         Image(
             bitmap = ambient.blurred,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().blur(24.dp).alpha(0.88f),
             contentScale = ContentScale.Crop,
         )
         Box(
             Modifier.fillMaxSize().drawBehind {
                 val w = size.width
                 val h = size.height
-                val radius = maxOf(w, h) * 0.85f
+                val radius = maxOf(w, h) * 0.9f
                 palette.colors.forEachIndexed { index, source ->
                     val angle = index.toFloat() / palette.colors.size * 2f * Math.PI.toFloat()
                     val center = Offset(
-                        w * (0.5f + 0.32f * cos(angle)),
-                        h * (0.44f + 0.30f * sin(angle)),
+                        w * (0.5f + 0.34f * cos(angle)),
+                        h * (0.42f + 0.32f * sin(angle)),
                     )
-                    val tint = source.copy(alpha = if (index == 0) 0.66f else 0.46f)
+                    val alpha = if (index < 2) BLOOM_ALPHA_PRIMARY else BLOOM_ALPHA_SECONDARY
+                    val tint = source.copy(alpha = alpha)
                     drawCircle(
                         brush = Brush.radialGradient(
-                            listOf(tint, tint.copy(alpha = 0f)),
+                            listOf(tint, tint.copy(alpha = alpha * 0.45f), tint.copy(alpha = 0f)),
                             center = center,
                             radius = radius,
                         ),
@@ -231,11 +283,10 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
                     listOf(
-                        Color.Black.copy(alpha = 0.14f),
-                        Color.Black.copy(alpha = 0.06f),
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.34f),
-                        Color.Black.copy(alpha = 0.72f),
+                        0f to Color.Black.copy(alpha = 0.34f),
+                        0.20f to Color.Transparent,
+                        0.62f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.62f),
                     ),
                 ),
             ),
@@ -243,11 +294,11 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
         Box(
             Modifier.fillMaxSize().drawBehind {
                 val random = java.util.Random(ambient.key.hashCode().toLong())
-                repeat(420) {
+                repeat(360) {
                     val x = random.nextFloat() * size.width
                     val y = random.nextFloat() * size.height
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.018f + random.nextFloat() * 0.014f),
+                        color = Color.White.copy(alpha = 0.02f + random.nextFloat() * 0.02f),
                         radius = 0.6f + random.nextFloat() * 0.9f,
                         center = Offset(x, y),
                     )

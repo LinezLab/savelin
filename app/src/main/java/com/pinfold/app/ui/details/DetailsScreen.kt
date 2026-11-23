@@ -57,7 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,6 +70,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.diagnostics.LogLevel
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
@@ -105,14 +106,21 @@ fun DetailsScreen(
     val settings by viewModel.settings.collectAsState()
     val bookmark = item.bookmark
     val imagePath = bookmark.imagePath?.takeIf { File(it).exists() }
+    val mode = resolveDetailsBackgroundMode(settings.backgroundDetails, imagePath != null)
+    LaunchedEffect(bookmark.id, mode, imagePath) {
+        DiagnosticsLog.log(
+            LogLevel.INFO,
+            "Details/background",
+            "bookmark=" + bookmark.id + " mode=" + mode.name + " image=" + (imagePath?.let { File(it).name } ?: "none"),
+        )
+    }
     val ambient = rememberArtworkAmbient(imagePath, bookmark.id)
-    val artworkMode = settings.backgroundDetails == "ARTWORK" && imagePath != null
-    if (artworkMode) {
+    if (mode == DetailsBackgroundMode.ARTWORK) {
         CompositionLocalProvider(LocalClearColors provides DarkClear) {
-            DetailsContent(item, viewModel, onBack, modifier, imagePath, ambient)
+            DetailsContent(item, viewModel, onBack, modifier, imagePath, ambient, mode)
         }
     } else {
-        DetailsContent(item, viewModel, onBack, modifier, imagePath, ambient)
+        DetailsContent(item, viewModel, onBack, modifier, imagePath, ambient, mode)
     }
 }
 
@@ -125,13 +133,13 @@ private fun DetailsContent(
     modifier: Modifier = Modifier,
     imagePath: String?,
     ambient: ArtworkAmbient?,
+    mode: DetailsBackgroundMode,
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     val bookmark = item.bookmark
     val colors = clear
     val ink = colors.onGlass
-    val artworkMode = settings.backgroundDetails == "ARTWORK" && imagePath != null
 
     var expandedCaption by remember { mutableStateOf(false) }
     var cameraMenu by remember { mutableStateOf(false) }
@@ -176,40 +184,12 @@ private fun DetailsContent(
     }
 
     Box(modifier.fillMaxSize()) {
-        if (artworkMode) {
-            Crossfade(
-                targetState = ambient,
-                animationSpec = if (settings.reduceMotion) snap() else tween(360),
-                label = "detailsAmbient",
-            ) { state ->
-                if (state != null) {
-                    ArtworkAmbientBackground(state)
-                } else {
-                    Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))
-                }
-            }
-        } else {
-            when (settings.backgroundDetails) {
-                "GENERATED" -> GeneratedBackground(
-                    Modifier.fillMaxSize(), loopMs = settings.backgroundLoopSeconds * 1000, animate = settings.backgroundAnimate,
-                    style = settings.backgroundStyle, hue = settings.backgroundHue, dim = settings.backgroundDim,
-                    shape = settings.backgroundShape, source = settings.backgroundSource, fps = settings.backgroundFps,
-                )
-                else -> {
-                    val wall = GlassSettings.customWallpaper
-                    if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    else Box(Modifier.fillMaxSize().background(colors.wall.last()))
-                }
-            }
-            if (imagePath != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(File(imagePath)).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().blur(28.dp),
-                )
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.5f), Color.Black.copy(0.72f)))))
-            }
+        Crossfade(
+            targetState = bookmark.id,
+            animationSpec = if (settings.reduceMotion) snap() else tween(360),
+            label = "detailsBackground",
+        ) {
+            DetailsBackground(mode, imagePath, ambient, settings, colors)
         }
 
         Column(
@@ -219,11 +199,11 @@ private fun DetailsContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val heroHeight = minOf(maxHeight * 0.5f, 380.dp)
+                val heroHeight = minOf(maxHeight * 0.55f, 420.dp)
                 val heroMaxWidth = maxWidth
                 val heroFrame = Modifier.fillMaxWidth().height(heroHeight)
                 Box(
-                    if (artworkMode) heroFrame
+                    if (mode == DetailsBackgroundMode.ARTWORK) heroFrame
                     else heroFrame.clip(RoundedRectangle(28.dp)).then(SavelinGlass.modifier(RoundedRectangle(28.dp))),
                 ) {
                     if (imagePath != null) {
@@ -238,10 +218,10 @@ private fun DetailsContent(
                             model = ImageRequest.Builder(context).data(File(imagePath)).build(),
                             contentDescription = bookmark.displayTitle,
                             contentScale = ContentScale.Fit,
-                            modifier = if (artworkMode) Modifier.size(imageWidth, imageHeight).align(Alignment.Center)
+                            modifier = if (mode == DetailsBackgroundMode.ARTWORK) Modifier.size(imageWidth, imageHeight).align(Alignment.Center)
                             else Modifier.fillMaxSize(),
                         )
-                        if (artworkMode) {
+                        if (mode == DetailsBackgroundMode.ARTWORK) {
                             Box(
                                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(56.dp)
                                     .background(
@@ -508,6 +488,45 @@ private fun DetailsContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DetailsBackground(
+    mode: DetailsBackgroundMode,
+    imagePath: String?,
+    ambient: ArtworkAmbient?,
+    settings: com.pinfold.app.data.settings.AppSettings,
+    colors: com.pinfold.app.ui.glass.theme.ClearColors,
+) {
+    when (mode) {
+        DetailsBackgroundMode.ARTWORK -> {
+            when {
+                ambient != null -> ArtworkAmbientBackground(ambient)
+                imagePath != null -> {
+                    val context = LocalContext.current
+                    Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))
+                    AsyncImage(
+                        model = ImageRequest.Builder(context).data(File(imagePath)).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().alpha(0.6f),
+                    )
+                }
+                else -> Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))
+            }
+        }
+        DetailsBackgroundMode.GENERATED -> GeneratedBackground(
+            Modifier.fillMaxSize(), loopMs = settings.backgroundLoopSeconds * 1000,
+            animate = settings.backgroundAnimate,
+            style = settings.backgroundStyle, hue = settings.backgroundHue, dim = settings.backgroundDim,
+            shape = settings.backgroundShape, source = settings.backgroundSource, fps = settings.backgroundFps,
+        )
+        DetailsBackgroundMode.THEME -> {
+            val wall = GlassSettings.customWallpaper
+            if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            else Box(Modifier.fillMaxSize().background(colors.wall.last()))
         }
     }
 }

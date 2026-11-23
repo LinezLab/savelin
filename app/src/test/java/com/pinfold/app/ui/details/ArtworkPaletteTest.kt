@@ -50,4 +50,32 @@ class ArtworkPaletteTest {
         assertEquals(0f, hueOf(palette.dominant), 1f)
         assertTrue(palette.colors.isNotEmpty())
     }
+
+    @Test
+    fun detailsBackgroundModeIsArtworkByDefaultAndHonoursTheSetting() {
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(null, true))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("ARTWORK", true))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("PICTURE", true))
+        assertEquals(DetailsBackgroundMode.GENERATED, resolveDetailsBackgroundMode("GENERATED", true))
+        assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("THEME", true))
+        assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("SOLID", true))
+        assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("ARTWORK", false))
+    }
+
+    @Test
+    fun ambientUsesSeveralClearlyVisibleDerivedBlooms() {
+        val palette = extractArtworkPalette(solid(0xFF1E5ADC.toInt()))
+        assertTrue("accents=${palette.colors.size}", palette.colors.size >= 3)
+        assertTrue(BLOOM_ALPHA_PRIMARY >= 0.45f)
+        assertTrue(BLOOM_ALPHA_SECONDARY >= 0.45f)
+        assertTrue(palette.colors.distinct().size >= 3)
+    }
+
+    @Test
+    fun nearBlackArtworkStillProducesNonBlackAmbient() {
+        val palette = extractArtworkPalette(solid(0xFF0A0A10.toInt()))
+        assertTrue(palette.colors.size >= 3)
+        assertTrue(palette.colors.any { maxOf(it.red, it.green, it.blue) >= 0.2f })
+        assertTrue(maxOf(palette.base.red, palette.base.green, palette.base.blue) > 0f)
+    }
 }
