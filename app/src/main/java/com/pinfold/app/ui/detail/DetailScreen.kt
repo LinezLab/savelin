@@ -8,6 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
@@ -152,7 +153,7 @@ fun DetailScreen(
  * scopes the DstIn mask to this band so it cannot erase the hero above it or the backdrop behind it.
  */
 @Composable
-private fun HeroBottomBlend(ambience: ArtworkAmbience) {
+private fun BoxScope.HeroBottomBlend(ambience: ArtworkAmbience) {
     val blurred = ambience.image
     if (blurred != null) {
         Box(
