@@ -8,6 +8,7 @@ import java.util.Random
 import kotlin.math.max
 import kotlin.math.roundToInt
 
+internal const val MESH_PX = 120
 internal const val MESH_GRID = 6
 internal const val MESH_TEX = 32
 internal const val MESH_SAMPLE = 128
@@ -94,7 +95,7 @@ internal fun lerpArgb(from: Int, to: Int, t: Float): Int {
 /** Row zero is the artwork's last row; every other row is carried around itself, never reshuffled. */
 internal fun rotateBelowSeam(grid: IntArray, cols: Int, rows: Int, seed: Int): IntArray {
     if (rows <= 1 || cols <= 1) return grid
-    val random = Random(seed)
+    val random = Random(seed.toLong())
     val mirror = random.nextBoolean()
     val shift = random.nextInt(cols)
     val out = grid.copyOf()
