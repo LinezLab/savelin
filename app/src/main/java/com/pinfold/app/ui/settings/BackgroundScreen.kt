@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.pinfold.app.data.settings.AppSettings
 import com.pinfold.app.ui.background.GeneratedBackground
 import com.pinfold.app.ui.background.effectiveBackgroundFps
+import com.pinfold.app.ui.background.rememberAppInForeground
 import com.pinfold.app.ui.background.rememberPowerSaveMode
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
@@ -176,7 +176,7 @@ private fun BackgroundPreview(settings: AppSettings, wallpaper: androidx.compose
 
 @Composable
 private fun GeneratedPreview(settings: AppSettings) {
-    val windowVisible = LocalWindowInfo.current.isWindowVisible
+    val windowVisible = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
     val previewAnimate = settings.backgroundAnimate && !settings.reduceMotion
     val previewPaused = !windowVisible || powerSave
