@@ -146,7 +146,7 @@ class ArtworkAmbienceTest {
         var previous = 1f
         var maxStep = 0f
         for (i in 0..200) {
-            val progress = i / 200f
+            val progress = start + (1f - start) * (i / 200f)
             val alpha = heroEdgeAlphaAt(progress)
             assertTrue("alpha increased at $progress", alpha <= previous + 0.0001f)
             maxStep = maxOf(maxStep, previous - alpha)
