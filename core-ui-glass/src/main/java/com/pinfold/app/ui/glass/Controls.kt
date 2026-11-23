@@ -219,7 +219,10 @@ fun GlassSlider(
             Box(
                 Modifier.clip(Capsule).background(accent).height(6.dp).layout { m, cons ->
                     val p = m.measure(cons)
-                    layout((cons.maxWidth * drag.progress).fastRoundToInt(), p.height) { p.place(0, 0) }
+                    val maxWidth = cons.maxWidth.coerceAtLeast(0)
+                    val progress = drag.progress.fastCoerceIn(0f, 1f)
+                    val fillWidth = (maxWidth * progress).fastRoundToInt().coerceIn(0, maxWidth)
+                    layout(fillWidth, p.height.coerceAtLeast(0)) { p.place(0, 0) }
                 },
             )
         }

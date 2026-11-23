@@ -8,8 +8,12 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -24,14 +28,29 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 private val CREAM = Color(0xFFFFF4DF)
-private val SHADOW = Color(0xFF05061A)
 
-/**
- * The live app background. Every value comes from Settings: style picks the shape language, hue and
- * source pick the palette, loop/fps set the (deterministic) march of time, and dim is the readability
- * scrim. It is pure Canvas — no runtime shader, so it works everywhere and cannot crash a device
- * whose GL driver refuses a shader.
- */
+internal fun effectiveBackgroundFps(fps: Int): Int = if (fps <= 0) 30 else fps.coerceIn(1, 60)
+
+@Composable
+private fun rememberBackgroundProgress(
+    loop: Int,
+    running: Boolean,
+    style: String,
+    hue: Float,
+): androidx.compose.runtime.State<Float> = if (running) {
+    key(loop, running, style, hue) {
+        val transition = rememberInfiniteTransition(label = "background")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(loop, easing = LinearEasing), RepeatMode.Restart),
+            label = "loop",
+        )
+    }
+} else {
+    remember { mutableStateOf(0f) }
+}
+
 @Composable
 fun GeneratedBackground(
     modifier: Modifier = Modifier,
@@ -43,22 +62,22 @@ fun GeneratedBackground(
     shape: String = "SOFT",
     source: String = "PALETTE",
     fps: Int = 30,
+    paused: Boolean = false,
 ) {
-    val transition = rememberInfiniteTransition(label = "background")
-    val raw by if (animate) {
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(loopMs.coerceAtLeast(1000), easing = LinearEasing), RepeatMode.Restart),
-            label = "loop",
-        )
-    } else {
-        remember { androidx.compose.runtime.mutableStateOf(0f) }
+    val running = animate && !paused
+    val loop = loopMs.coerceIn(1000, 3_600_000)
+    val rate = rememberUpdatedState(effectiveBackgroundFps(fps))
+    val progressKey = rememberUpdatedState("$loop|$running|$style|$hue")
+    val raw by rememberBackgroundProgress(loop, running, style, hue)
+    val t by remember {
+        derivedStateOf {
+            progressKey.value
+            val r = rate.value
+            (raw * r).roundToInt().toFloat() / r
+        }
     }
-    val rate = fps.coerceIn(1, 60)
-    val t = (raw * rate).roundToInt().toFloat() / rate
     val palette = if (source == "WALLPAPER") {
-        (clear.wall + clear.blooms.map { it.first }).distinct()
+        (clear.wall + clear.blooms.map { it.first }).distinct().ifEmpty { listOf(CREAM, CREAM, CREAM, CREAM) }
     } else {
         val h = hue.coerceIn(0f, 360f)
         listOf(
@@ -73,6 +92,7 @@ fun GeneratedBackground(
     Canvas(modifier) {
         val w = size.width
         val h = size.height
+        if (!w.isFinite() || !h.isFinite() || w <= 0f || h <= 0f) return@Canvas
         drawRect(Brush.linearGradient(listOf(palette.last(), palette[palette.size / 2]), start = Offset(w, 0f), end = Offset(0f, h)))
         when (style) {
             "AURORA" -> aurora(t, palette, soft, wobble)
@@ -87,12 +107,12 @@ fun GeneratedBackground(
 private fun DrawScope.petals(t: Float, palette: List<Color>, soft: Boolean, wobble: Float) {
     val cx = size.width / 2f
     val cy = size.height * 0.46f
-    val reach = maxOf(size.width, size.height)
+    val reach = maxOf(size.width, size.height).coerceAtLeast(0f)
     for (i in 0 until 7) {
         val phase = i.toFloat() / 7f
         val angle = 2 * Math.PI.toFloat() * (phase + t * 0.18f * wobble)
         val pulse = 1f + 0.14f * sin(2 * Math.PI * (t + phase)).toFloat() * wobble
-        val radius = reach * (0.36f + 0.16f * phase) * pulse
+        val radius = (reach * (0.36f + 0.16f * phase) * pulse).coerceAtLeast(0f)
         val centre = Offset(cx + cos(angle) * radius * 0.42f, cy + sin(angle) * radius * 0.42f)
         val c = palette[i % palette.size]
         val colours = if (soft) listOf(c.copy(alpha = 0.86f), c.copy(alpha = 0.34f), Color.Transparent)
@@ -103,12 +123,12 @@ private fun DrawScope.petals(t: Float, palette: List<Color>, soft: Boolean, wobb
 
 private fun DrawScope.aurora(t: Float, palette: List<Color>, soft: Boolean, wobble: Float) {
     val origin = Offset(0f, size.height)
-    val reach = maxOf(size.width, size.height)
+    val reach = maxOf(size.width, size.height).coerceAtLeast(0f)
     for (i in 0 until 5) {
         val phase = i.toFloat() / 5f
         val wave = sin(2 * Math.PI * (t + phase)).toFloat() * wobble
         val angle = Math.PI / 4f * (phase * 2f) + wave * 0.12f
-        val radius = reach * (0.65f + 0.28f * phase + 0.06f * cos(2 * Math.PI * (t + phase)).toFloat())
+        val radius = (reach * (0.65f + 0.28f * phase + 0.06f * cos(2 * Math.PI * (t + phase)).toFloat())).coerceAtLeast(0f)
         val centre = origin + Offset(cos(angle).toFloat() * radius * 0.28f, -sin(angle).toFloat() * radius * 0.28f)
         val c = palette[i % palette.size]
         val ramp = if (soft) listOf(c.copy(alpha = 0.82f), c.copy(alpha = 0.5f), Color.Transparent)
@@ -118,7 +138,7 @@ private fun DrawScope.aurora(t: Float, palette: List<Color>, soft: Boolean, wobb
 }
 
 private fun DrawScope.mesh(t: Float, palette: List<Color>, soft: Boolean, wobble: Float) {
-    val reach = maxOf(size.width, size.height)
+    val reach = maxOf(size.width, size.height).coerceAtLeast(0f)
     for (row in 0..2) {
         for (col in 0..2) {
             val i = row * 3 + col
@@ -126,14 +146,15 @@ private fun DrawScope.mesh(t: Float, palette: List<Color>, soft: Boolean, wobble
             val driftY = 0.06f * cos(2 * Math.PI * (t + i * 0.17f)).toFloat() * wobble
             val centre = Offset(size.width * ((col + 0.5f) / 3f + driftX), size.height * ((row + 0.5f) / 3f + driftY))
             val c = palette[i % palette.size]
+            val radius = (reach * 0.5f).coerceAtLeast(0f)
             drawCircle(
                 Brush.radialGradient(
                     if (soft) listOf(c.copy(alpha = 0.78f), c.copy(alpha = 0.28f), Color.Transparent)
                     else listOf(c, c.copy(alpha = 0.7f), Color.Transparent),
                     center = centre,
-                    radius = reach * 0.5f,
+                    radius = radius,
                 ),
-                radius = reach * 0.5f,
+                radius = radius,
                 center = centre,
                 blendMode = BlendMode.SrcOver,
             )
@@ -147,7 +168,7 @@ private fun DrawScope.waves(t: Float, palette: List<Color>, soft: Boolean, wobbl
         val phase = i.toFloat() / bands
         val offset = sin(2 * PI.toFloat() * (t + phase)).toFloat() * size.height * 0.05f * wobble
         val y = size.height * (i + 0.5f) / bands + offset
-        val band = size.height / bands * 1.4f
+        val band = (size.height / bands * 1.4f).coerceAtLeast(0f)
         val c = palette[i % palette.size]
         drawRect(
             Brush.verticalGradient(
@@ -163,7 +184,7 @@ private fun DrawScope.waves(t: Float, palette: List<Color>, soft: Boolean, wobbl
     }
     drawCircle(
         Brush.radialGradient(listOf(CREAM.copy(alpha = 0.4f), Color.Transparent)),
-        radius = maxOf(size.width, size.height) * 0.6f,
+        radius = maxOf(size.width, size.height).coerceAtLeast(0f) * 0.6f,
         center = Offset(size.width * 0.8f, size.height * 0.15f),
         blendMode = BlendMode.Plus,
     )

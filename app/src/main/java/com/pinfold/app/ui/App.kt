@@ -43,6 +43,9 @@ import com.pinfold.app.ui.glass.GlassStage
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FloatingPillNav
+import com.pinfold.app.ui.background.effectiveBackgroundFps
+import com.pinfold.app.ui.background.rememberAppInForeground
+import com.pinfold.app.ui.background.rememberPowerSaveMode
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
@@ -63,6 +66,14 @@ fun App(sharedText: String? = null) {
     val navVisible by viewModel.navVisible.collectAsState()
     val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
+    val foreground = rememberAppInForeground()
+    val powerSave = rememberPowerSaveMode()
+    val backgroundCovered = tab == HomeTab.SETTINGS || detail != null || showAdd
+    val backgroundPaused = !foreground || backgroundCovered || powerSave
+    val backgroundAnimate = appearance.backgroundAnimate && !appearance.reduceMotion
+    LaunchedEffect(backgroundAnimate, backgroundPaused) {
+        DiagnosticsLog.uiAction("Background", "animate=" + backgroundAnimate + " paused=" + backgroundPaused + " fps=" + effectiveBackgroundFps(appearance.backgroundFps))
+    }
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
     }
@@ -106,13 +117,13 @@ fun App(sharedText: String? = null) {
                     val wall = GlassSettings.customWallpaper
                     if (wall != null) Image(wall, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     else com.pinfold.app.ui.background.GeneratedBackground(
-                        Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = bg.backgroundAnimate,
+                        Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = backgroundAnimate, paused = backgroundPaused,
                         style = bg.backgroundStyle, hue = bg.backgroundHue, dim = bg.backgroundDim,
                         shape = bg.backgroundShape, source = bg.backgroundSource, fps = bg.backgroundFps,
                     )
                 }
                 else -> com.pinfold.app.ui.background.GeneratedBackground(
-                    Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = bg.backgroundAnimate,
+                    Modifier.fillMaxSize(), loopMs = bg.backgroundLoopSeconds * 1000, animate = backgroundAnimate, paused = backgroundPaused,
                     style = bg.backgroundStyle, hue = bg.backgroundHue, dim = bg.backgroundDim,
                     shape = bg.backgroundShape, source = bg.backgroundSource, fps = bg.backgroundFps,
                 )
