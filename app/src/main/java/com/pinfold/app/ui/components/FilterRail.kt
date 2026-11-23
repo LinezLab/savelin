@@ -117,6 +117,8 @@ private fun RailSlot(
     onTooltip: (String) -> Unit,
 ) {
     val accent = if (selected) Candy.Sky else SavelinGlass.ink
+    val dark = clear.dark
+    val rim = clear.rim
     val label = if (count > 0) "$name ($count)" else name
     Box(
         Modifier
@@ -124,11 +126,11 @@ private fun RailSlot(
             .drawBehind {
                 if (selected) {
                     drawRoundRect(
-                        color = Color.White.copy(alpha = if (clear.dark) 0.12f else 0.26f),
+                        color = Color.White.copy(alpha = if (dark) 0.12f else 0.26f),
                         cornerRadius = CornerRadius(size.minDimension / 2),
                     )
                     drawRoundRect(
-                        color = clear.rim.copy(alpha = 0.5f),
+                        color = rim.copy(alpha = 0.5f),
                         cornerRadius = CornerRadius(size.minDimension / 2),
                         style = Stroke(width = 1.dp.toPx()),
                     )

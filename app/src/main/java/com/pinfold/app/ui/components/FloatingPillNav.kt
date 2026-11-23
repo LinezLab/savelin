@@ -3,12 +3,10 @@ package com.pinfold.app.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -32,14 +30,14 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule
+import com.pinfold.app.ui.glass.Feel
+import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlass
@@ -194,14 +192,15 @@ private fun NavGlyph(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = LocalHaptics.current
+    val dark = clear.dark
     Box(
         Modifier.size(size)
             .drawBehind {
                 if (pressed) {
                     drawRoundRect(
-                        color = Color.White.copy(alpha = if (clear.dark) 0.14f else 0.26f),
-                        cornerRadius = CornerRadius(size.minDimension / 2),
+                        color = Color.White.copy(alpha = if (dark) 0.14f else 0.26f),
+                        cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
                     )
                 }
             }
@@ -210,8 +209,8 @@ private fun NavGlyph(
                 interactionSource = source,
                 indication = null,
                 role = Role.Button,
-                onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextInsertion); onClick() },
-                onLongClick = onLongClick?.let { l -> { haptics.performHapticFeedback(HapticFeedbackType.LongPress); l() } },
+                onClick = { haptics?.play(Feel.Tap); onClick() },
+                onLongClick = onLongClick?.let { l -> { haptics?.play(Feel.Bloom); l() } },
             )
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,

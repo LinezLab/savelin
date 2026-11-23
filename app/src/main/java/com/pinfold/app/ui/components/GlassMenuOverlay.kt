@@ -28,8 +28,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.floatingLayer
+import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.GlassOverlay
 import com.pinfold.app.ui.glass.RoundedRectangle
@@ -105,14 +104,15 @@ private fun MenuRow(entry: GlassMenuItem, ink: Color, index: Int, onDismiss: () 
     val row = rememberMenuRow(index)
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = com.pinfold.app.ui.glass.LocalHaptics.current
+    val dark = clear.dark
     val tint = if (entry.destructive) Candy.Tomato else ink
     Row(
         Modifier.fillMaxWidth().revealRow(row).heightIn(min = 48.dp)
             .drawBehind {
                 if (pressed) {
                     drawRoundRect(
-                        color = Color.White.copy(alpha = if (clear.dark) 0.12f else 0.24f),
+                        color = Color.White.copy(alpha = if (dark) 0.12f else 0.24f),
                         cornerRadius = CornerRadius(18.dp.toPx()),
                     )
                 }
@@ -122,7 +122,7 @@ private fun MenuRow(entry: GlassMenuItem, ink: Color, index: Int, onDismiss: () 
                 indication = null,
                 role = Role.Button,
                 onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextInsertion)
+                    haptics?.play(Feel.Tap)
                     entry.onClick()
                     onDismiss()
                 },
