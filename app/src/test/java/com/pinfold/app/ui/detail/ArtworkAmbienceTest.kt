@@ -132,19 +132,4 @@ class ArtworkAmbienceTest {
     fun accentHexIsEightDigits() {
         assertEquals("#FFD97123", Color(0xD9, 0x71, 0x23).hex())
     }
-    @Test
-    fun heroBottomBlendCoversOnlyBottomEdgeWithSmoothGradient() {
-        // The sharp hero is drawn first; this overlay is painted afterwards but confined to its
-        // bottom 15-30% so the upper/main artwork stays sharp and uncovered.
-        assertTrue(HERO_BOTTOM_FADE_FRACTION in 0.15f..0.30f)
-        assertTrue(HERO_EDGE_BLUR_DP > 0f)
-        assertTrue(HERO_EDGE_FADE_ALPHA in 0.7f..1f)
-
-        val stops = heroBottomFadeColors(Color(0xFF223344.toInt()))
-        assertEquals(3, stops.size)
-        assertEquals(0f, stops[0].alpha, 0f)
-        assertTrue(stops[0].alpha < stops[1].alpha)
-        assertTrue(stops[1].alpha < stops[2].alpha)
-        assertEquals(HERO_EDGE_FADE_ALPHA, stops[2].alpha, 0.01f)
-    }
 }

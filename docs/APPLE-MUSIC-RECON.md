@@ -59,8 +59,6 @@ Sources (fetched 2026-11-23):
 6. The sharp original artwork is drawn full-width in the upper portion with its natural aspect
    ratio (cropped only when an extreme portrait would otherwise overflow), with **no** card,
    container, border or shadow.
-   Only the bottom ~26% of the hero is softly blended into the ambient background by an image-derived blur with a smooth gradient, so that edge is hidden without a hard line; the upper/main artwork stays sharp.
-
 7. Overlays are minimal: only a small safe Back affordance for now. No controls of any kind.
 8. Bookmark switches crossfade the whole ambient; Reduce motion swaps instantly. Palette and blurred
    bitmap are cached per bookmark so revisits are immediate and no work repeats on the main thread.
