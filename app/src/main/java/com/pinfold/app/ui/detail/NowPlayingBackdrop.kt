@@ -1,151 +1,83 @@
 package com.pinfold.app.ui.detail
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 
-internal const val BOTTOM_DIFFUSION_SCALE = 1.55f
-internal const val BOTTOM_DIFFUSION_HEIGHT = 0.54f
-internal const val BOTTOM_FADE_DP = 340f
+internal data class MeshDrawRegions(val heldHeight: Int, val meshTop: Int, val meshHeight: Int)
 
-/** Layered artwork field used when no stored preview exists: derived colour, never a flat fill. */
-internal fun DrawScope.drawToneField(tone: ArtworkTone, blooms: List<ToneBloom>, strength: Float = 1f) {
-    drawRect(
-        brush = Brush.linearGradient(
-            listOf(
-                lerp(tone.base, tone.dominant, 0.12f),
-                lerp(tone.base, tone.dominant, 0.28f),
-                tone.base,
-            ),
-        ),
+internal fun meshSeamY(seamPx: Float, surfaceHeight: Float): Float = seamPx.coerceIn(0f, surfaceHeight)
+
+internal fun meshDrawRegions(width: Float, height: Float, seamY: Float): MeshDrawRegions {
+    val seam = meshSeamY(seamY, height)
+    return MeshDrawRegions(
+        heldHeight = seam.toInt(),
+        meshTop = seam.toInt(),
+        meshHeight = (height - seam).toInt().coerceAtLeast(0),
     )
-    val width = size.width
-    val height = size.height
-    blooms.forEach { bloom ->
-        val center = Offset(width * bloom.x, height * bloom.y)
-        val radius = maxOf(width, height) * bloom.radius
-        val tint = bloom.color.copy(alpha = (bloom.alpha * strength).coerceIn(0f, 1f))
-        drawCircle(
-            brush = Brush.radialGradient(
-                listOf(tint, tint.copy(alpha = tint.alpha * 0.4f), Color.Transparent),
-                center = center,
-                radius = radius,
-            ),
-            radius = radius,
-            center = center,
-            blendMode = BlendMode.Screen,
-        )
-    }
 }
 
-private fun DrawScope.drawBlooms(blooms: List<ToneBloom>) {
-    val width = size.width
-    val height = size.height
-    blooms.forEach { bloom ->
-        val center = Offset(width * bloom.x, height * bloom.y)
-        val radius = maxOf(width, height) * bloom.radius
-        val tint = bloom.color.copy(alpha = bloom.alpha)
-        drawCircle(
-            brush = Brush.radialGradient(
-                listOf(tint, tint.copy(alpha = bloom.alpha * 0.4f), Color.Transparent),
-                center = center,
-                radius = radius,
-            ),
-            radius = radius,
-            center = center,
-            blendMode = BlendMode.Screen,
+private fun DrawScope.drawMesh(mesh: ImageBitmap, seamY: Float) {
+    val regions = meshDrawRegions(size.width, size.height, seamY)
+    val width = size.width.toInt().coerceAtLeast(1)
+    if (regions.heldHeight > 0) {
+        drawImage(
+            image = mesh,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(mesh.width, 1),
+            dstOffset = IntOffset.Zero,
+            dstSize = IntSize(width, regions.heldHeight),
+            alpha = 1f,
+            filterQuality = FilterQuality.Low,
+        )
+    }
+    if (regions.meshHeight > 0) {
+        drawImage(
+            image = mesh,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(mesh.width, mesh.height),
+            dstOffset = IntOffset(0, regions.meshTop),
+            dstSize = IntSize(width, regions.meshHeight),
+            alpha = 1f,
+            filterQuality = FilterQuality.Low,
         )
     }
 }
 
 /**
- * Apple Music style ambient: the same artwork enlarged and blurred behind the sharp hero,
- * palette-derived light blooms, and a heavy image-derived diffusion at the bottom. No bars,
- * panels, cards or app-default colours.
+ * Artwork-derived colour field behind the sharp hero: the sleeve's own bottom row is held above
+ * the seam and the full mesh continues below it, then a light scrim keeps foreground legible.
  */
 @Composable
-internal fun NowPlayingBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Modifier) {
+internal fun NowPlayingBackdrop(
+    ambience: ArtworkAmbience,
+    seam: () -> Dp,
+    modifier: Modifier = Modifier,
+) {
+    val mesh = remember(ambience.meshTexels) { meshBitmap(ambience.meshTexels) }
     val tone = ambience.tone
-    val blooms = remember(tone) { toneBlooms(tone) }
     DisposableEffect(ambience.id, ambience.source) {
-        logArtwork("Backdrop enter source=${ambience.source.name} buckets=${tone.buckets}")
+        logArtwork("Backdrop enter source=${ambience.source.name} mesh=${MESH_TEX}px")
         onDispose { logArtwork("Backdrop disposed source=${ambience.source.name}") }
     }
-
-    Box(modifier.fillMaxSize().background(tone.base)) {
-        if (ambience.image != null) {
-            Image(
-                bitmap = ambience.image,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
-                    .scale(AMBIENT_SCALE)
-                    .blur(AMBIENT_BLUR_DP.dp)
-                    .alpha(AMBIENT_IMAGE_ALPHA),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(Modifier.fillMaxSize().drawBehind { drawToneField(tone, blooms) })
-        }
-
-        Box(Modifier.fillMaxSize().drawBehind { drawBlooms(blooms) })
-
-        if (ambience.image != null) {
-            Image(
-                bitmap = ambience.image,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .fillMaxHeight(BOTTOM_DIFFUSION_HEIGHT)
-                    .scale(BOTTOM_DIFFUSION_SCALE)
-                    .blur(BOTTOM_DIFFUSION_BLUR_DP.dp)
-                    .alpha(BOTTOM_DIFFUSION_ALPHA),
-                contentScale = ContentScale.Crop,
-            )
-        }
-
-        Box(
-            Modifier.align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(BOTTOM_FADE_DP.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            tone.base.copy(alpha = BOTTOM_FADE_ALPHA * 0.55f),
-                            lerp(tone.base, Color.Black, 0.45f).copy(alpha = BOTTOM_FADE_ALPHA),
-                        ),
-                    ),
-                ),
-        )
-
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    0f to tone.base.copy(alpha = TOP_SCRIM_ALPHA),
-                    0.28f to Color.Transparent,
-                    0.64f to Color.Transparent,
-                    1f to tone.base.copy(alpha = 0.28f),
+    Canvas(modifier.fillMaxSize().background(tone.base)) {
+        drawMesh(mesh, seam().toPx())
+        drawRect(
+            Brush.verticalGradient(
+                listOf(
+                    Color.Black.copy(alpha = MESH_SCRIM_TOP_ALPHA),
+                    Color.Black.copy(alpha = MESH_SCRIM_BOTTOM_ALPHA),
                 ),
             ),
         )

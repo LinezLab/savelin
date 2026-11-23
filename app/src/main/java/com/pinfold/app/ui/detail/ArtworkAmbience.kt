@@ -17,7 +17,6 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.diagnostics.LogLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
@@ -27,15 +26,7 @@ internal const val ARTWORK_LOG_TAG = "SavelinArtwork"
 enum class DetailArtworkMode { ARTWORK }
 enum class ArtworkSource { IMAGE, FALLBACK }
 
-internal const val AMBIENT_IMAGE_ALPHA = 0.94f
-internal const val AMBIENT_SCALE = 1.36f
-internal const val AMBIENT_BLUR_DP = 52f
-internal const val BLOOM_ALPHA = 0.42f
-internal const val BOTTOM_DIFFUSION_ALPHA = 0.88f
-internal const val BOTTOM_DIFFUSION_BLUR_DP = 72f
-internal const val TOP_SCRIM_ALPHA = 0.34f
-internal const val BOTTOM_FADE_ALPHA = 0.90f
-internal const val CROSSFADE_MS = 380
+internal const val CROSSFADE_MS = 900
 
 internal fun logArtwork(message: String, level: LogLevel = LogLevel.INFO) {
     runCatching {
@@ -65,14 +56,7 @@ data class ArtworkAmbience(
     val image: ImageBitmap?,
     val tone: ArtworkTone,
     val source: ArtworkSource,
-)
-
-data class ToneBloom(
-    val x: Float,
-    val y: Float,
-    val radius: Float,
-    val color: Color,
-    val alpha: Float,
+    val meshTexels: IntArray,
 )
 
 internal fun Color.hex(): String = String.format(Locale.US, "#%08X", toArgb())
@@ -112,10 +96,7 @@ private fun liftAccent(color: Color, fallbackHue: Float): Color {
     return Color.hsv(if (hsv[1] < 0.12f) fallbackHue else hsv[0], 0.58f, 0.72f)
 }
 
-/**
- * Bucket the downsampled pixels by hue/saturation and average each bucket. Dark and neutral pixels
- * share a bucket so even a nearly black image still yields visible, image-derived accents.
- */
+/** Bucket the downsampled pixels by hue/saturation and average each bucket. */
 internal fun extractArtworkTone(pixels: IntArray): ArtworkTone {
     data class Bin(var count: Int = 0, var r: Int = 0, var g: Int = 0, var b: Int = 0)
 
@@ -204,28 +185,13 @@ internal fun fallbackTone(platform: String, site: String, seed: Long): ArtworkTo
     return ArtworkTone(Color.hsv(hue, 0.48f, 0.24f), accents.first(), accents, 0)
 }
 
-internal fun fallbackAmbience(id: Long, platform: String, site: String): ArtworkAmbience =
-    ArtworkAmbience(id, null, fallbackTone(platform, site, id), ArtworkSource.FALLBACK)
+internal fun fallbackAmbience(id: Long, platform: String, site: String): ArtworkAmbience {
+    val tone = fallbackTone(platform, site, id)
+    val grid = fallbackMeshGrid(tone, (id * 31L).toInt())
+    return ArtworkAmbience(id, null, tone, ArtworkSource.FALLBACK, meshTexels(grid))
+}
 
 internal fun toneAccentHexes(tone: ArtworkTone): List<String> = tone.accents.map { it.hex() }
-
-internal fun toneBlooms(tone: ArtworkTone): List<ToneBloom> {
-    val accents = tone.accents
-    if (accents.isEmpty()) return emptyList()
-    val spots = listOf(
-        0.18f to 0.16f, 0.84f to 0.24f, 0.30f to 0.74f,
-        0.78f to 0.80f, 0.52f to 0.42f,
-    )
-    return spots.mapIndexed { index, (x, y) ->
-        ToneBloom(
-            x = x,
-            y = y,
-            radius = 0.46f + (index % 3) * 0.12f,
-            color = accents[index % accents.size],
-            alpha = if (index < 2) BLOOM_ALPHA else BLOOM_ALPHA * 0.62f,
-        )
-    }
-}
 
 internal fun crossfadeChanged(previousId: Long?, currentId: Long): Boolean =
     previousId != null && previousId != currentId
@@ -237,12 +203,15 @@ data class ArtworkSnapshot(
     val source: ArtworkSource,
     val paletteBuckets: Int,
     val accents: List<String>,
+    val meshGrid: Int = MESH_GRID,
+    val meshTexels: Int = MESH_TEX,
 ) {
     val summary: String
-        get() = "mode=${mode.name} source=${source.name} palette=$paletteBuckets accents=${accents.size}"
+        get() = "mode=${mode.name} source=${source.name} palette=$paletteBuckets accents=${accents.size} " +
+            "mesh=${meshGrid}x${meshGrid}/$meshTexels"
 }
 
-/** Mode, source, palette and alphas only — never an id, path, title or URL. */
+/** Mode, source, palette and mesh shape only — never an id, path, title or URL. */
 object ArtworkDiagnostics {
     @Volatile
     private var last: ArtworkSnapshot? = null
@@ -262,8 +231,9 @@ object ArtworkDiagnostics {
             appendLine("Artwork background diagnostics (redacted)")
             appendLine("mode=${d.mode.name} source=${d.source.name}")
             appendLine("paletteBuckets=${d.paletteBuckets} accents=${d.accents.joinToString(", ")}")
-            append("alphas: image=$AMBIENT_IMAGE_ALPHA bloom=$BLOOM_ALPHA ")
-            append("bottom=$BOTTOM_DIFFUSION_ALPHA top=$TOP_SCRIM_ALPHA fade=$BOTTOM_FADE_ALPHA")
+            appendLine("mesh: grid=${d.meshGrid}x${d.meshGrid} texels=${d.meshTexels} " +
+                "blur=$MESH_BLUR_RADIUS passes=$MESH_BLUR_PASSES")
+            append("seam=anchored scrim=$MESH_SCRIM_TOP_ALPHA..$MESH_SCRIM_BOTTOM_ALPHA fade=${CROSSFADE_MS}ms")
         }
     }
 }
@@ -315,18 +285,19 @@ private fun decodeScaled(path: String, maxDimension: Int): Bitmap? {
 internal fun loadAmbience(id: Long, path: String, platform: String, site: String): ArtworkAmbience {
     val cacheKey = AmbienceKey(id, path)
     cachedAmbience(cacheKey)?.let { return it }
-    val palettePixels = decodeScaled(path, 56) ?: return fallbackAmbience(id, platform, site)
-    val soft = decodeScaled(path, 112) ?: return fallbackAmbience(id, platform, site)
-    val pixels = IntArray(palettePixels.width * palettePixels.height)
-    palettePixels.getPixels(pixels, 0, palettePixels.width, 0, 0, palettePixels.width, palettePixels.height)
-    val tone = extractArtworkTone(pixels)
+    val source = decodeScaled(path, MESH_PX) ?: return fallbackAmbience(id, platform, site)
+    val pixels = IntArray(source.width * source.height)
+    source.getPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+    val tone = extractArtworkTone(downsamplePixels(pixels, source.width, source.height, 2))
     if (tone.buckets == 0 || tone.accents.isEmpty() || tone.accents.any(::isInvisible)) {
         artworkIssue("palette", "reason=emptyOrInvisible buckets=${tone.buckets}")
         return fallbackAmbience(id, platform, site)
     }
-    val result = ArtworkAmbience(id, soft.asImageBitmap(), tone, ArtworkSource.IMAGE)
+    val texels = meshTexelsOf(pixels, source.width, source.height, (id * 31L).toInt())
+        ?: return fallbackAmbience(id, platform, site)
+    val result = ArtworkAmbience(id, source.asImageBitmap(), tone, ArtworkSource.IMAGE, texels)
     cacheAmbience(cacheKey, result)
-    logArtwork("Ambient loaded source=IMAGE buckets=${tone.buckets} accents=${toneAccentHexes(tone).joinToString(",")}")
+    logArtwork("Ambient loaded source=IMAGE buckets=${tone.buckets} mesh=${MESH_GRID}x${MESH_GRID} texels=$MESH_TEX")
     return result
 }
 

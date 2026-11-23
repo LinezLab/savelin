@@ -21,6 +21,13 @@ parsing and the local image copy + refetch approach are ported from its
 lib/services/metadata.dart and lib/services/image_store.dart.
 See third_party/POSTVAULT-MIT.txt.
 
+BitChord (https://github.com/kushagrasinghx/BitChord)
+Copyright the BitChord contributors. Licensed under GPL-3.0. The artwork-derived mesh backdrop in
+the detail screen (six-by-six colour grid, seam-held first row, cyclic rearrangement, baked box
+blur and scrim) is an independent Kotlin translation of the algorithm in its now-playing player.
+No source file was copied verbatim and no reference identifier appears in app code.
+See third_party/BITCHORD-GPL.txt.
+
 Shelf (https://github.com/iambhvsh/shelf)
 Copyright the Shelf contributors. Licensed under GPL-3.0. The direct-fetch,
 multi-User-Agent link-preview method used as the primary resolver in core-network

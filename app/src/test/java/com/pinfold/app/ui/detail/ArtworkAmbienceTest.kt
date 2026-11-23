@@ -81,19 +81,8 @@ class ArtworkAmbienceTest {
         assertEquals(ArtworkSource.FALLBACK, ambient.source)
         assertEquals(null, ambient.image)
         assertEquals(42L, ambient.id)
-    }
-
-    @Test
-    fun bloomsAreDerivedFromTheArtworkPalette() {
-        val tone = extractArtworkTone(solid(0xFF1E5ADC.toInt()))
-        val blooms = toneBlooms(tone)
-        assertEquals(5, blooms.size)
-        assertEquals(5, blooms.map { it.x to it.y }.distinct().size)
-        assertTrue(blooms.all { it.radius in 0.4f..0.8f })
-        assertTrue(blooms.all { it.color in tone.accents })
-        assertTrue(blooms.any { hueOf(it.color) in 195f..235f })
-        assertEquals(BLOOM_ALPHA, blooms[0].alpha)
-        assertEquals(BLOOM_ALPHA, blooms[1].alpha)
+        assertEquals(MESH_TEX * MESH_TEX, ambient.meshTexels.size)
+        assertTrue(ambient.meshTexels.all { (it ushr 24) == 0xFF })
     }
 
     @Test
@@ -103,11 +92,11 @@ class ArtworkAmbienceTest {
         assertTrue(crossfadeChanged(7L, 8L))
         assertEquals(0, crossfadeDurationMs(true))
         assertEquals(CROSSFADE_MS, crossfadeDurationMs(false))
-        assertTrue(CROSSFADE_MS > 0)
+        assertEquals(900, CROSSFADE_MS)
     }
 
     @Test
-    fun diagnosticsContainOnlyModeSourcePaletteAndAlphas() {
+    fun diagnosticsDescribeTheMeshAndStayRedacted() {
         ArtworkDiagnostics.record(
             ArtworkSnapshot(
                 mode = DetailArtworkMode.ARTWORK,
@@ -120,12 +109,13 @@ class ArtworkAmbienceTest {
         assertTrue(text.contains("mode=ARTWORK source=IMAGE"))
         assertTrue(text.contains("paletteBuckets=5"))
         assertTrue(text.contains("#FFD97123"))
-        assertTrue(text.contains("image=$AMBIENT_IMAGE_ALPHA"))
-        assertTrue(text.contains("bottom=$BOTTOM_DIFFUSION_ALPHA"))
+        assertTrue(text.contains("mesh: grid=6x6 texels=32"))
+        assertTrue(text.contains("seam=anchored"))
+        assertTrue(text.contains("fade=900ms"))
         assertFalse(text.contains("bookmarkId"))
         assertFalse(text.contains("path="))
         assertFalse(text.contains("url="))
-        assertTrue(ArtworkDiagnostics.last()!!.summary.contains("source=IMAGE"))
+        assertTrue(ArtworkDiagnostics.last()!!.summary.contains("mesh=6x6/32"))
     }
 
     @Test
@@ -153,29 +143,5 @@ class ArtworkAmbienceTest {
             previous = alpha
         }
         assertTrue("largest alpha step $maxStep must be imperceptible", maxStep <= 0.01f)
-    }
-
-    @Test
-    fun haloIsOversizedAndOpaqueAtTheHeroEdge() {
-        assertTrue(HERO_HALO_SCALE > 1f)
-        assertTrue(HERO_HALO_ALPHA > 0.9f)
-        assertTrue(HERO_HALO_OVERSHOOT_DP > HERO_HALO_TAIL_FEATHER_DP)
-        val hero = 400f
-        val box = hero + HERO_HALO_OVERSHOOT_DP
-        val tailStart = (box - HERO_HALO_TAIL_FEATHER_DP) / box
-        assertTrue("seam fraction must be above the halo tail", hero / box < tailStart)
-        assertEquals(1f, heroHaloAlphaAt(tailStart, hero / box), 0.0001f)
-        assertEquals(0f, heroHaloAlphaAt(tailStart, 1f), 0.0001f)
-    }
-
-    @Test
-    fun edgeWashIsDarkAndSampledFromTheArtworkTone() {
-        val base = extractArtworkTone(solid(0xFFD97123.toInt())).base
-        val wash = heroEdgeWash(base)
-        assertTrue(wash.red < base.red)
-        assertTrue(wash.green < base.green)
-        assertTrue(wash.blue < base.blue)
-        assertEquals(1f, wash.alpha, 0.0001f)
-        assertTrue(HERO_EDGE_WASH_ALPHA in 0.05f..0.4f)
     }
 }
