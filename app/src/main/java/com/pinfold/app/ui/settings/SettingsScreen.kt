@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
@@ -151,10 +152,19 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
             SettingsCard {
                 SettingsRow(AppIcons.Licences, Candy.Sky, "Open source licences")
                 SettingsRow(AppIcons.Lock, Candy.Mint, "Privacy promises")
-                SettingsRow(AppIcons.Info, Candy.Grape, "Version", "1.1.0")
+                SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context),
+                    onLongClick = {
+                        val report = CrashReporter.writeTestReport(context)
+                        context.copyDiagnosticsText(report)
+                        toast = "Sample crash report written + copied"
+                    })
                 SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
                     context.copyDiagnosticsText(DiagnosticsLog.format())
                     toast = "Diagnostics copied (redacted)"
+                }
+                SettingsRow(AppIcons.NetworkLog, Candy.Mint, "Copy full diagnostics", "Last crash report + events") {
+                    context.copyDiagnosticsText(CrashReporter.fullDiagnostics(context))
+                    toast = "Full diagnostics copied (redacted)"
                 }
             }
         }

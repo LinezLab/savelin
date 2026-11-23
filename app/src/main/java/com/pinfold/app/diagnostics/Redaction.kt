@@ -22,6 +22,7 @@ fun redact(input: String): String {
 
 private fun hostOnly(url: String): String {
     val scheme = url.substringBefore("://")
-    val authority = url.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#').substringBefore('@')
+    var authority = url.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#')
+    if ('@' in authority) authority = authority.substringAfter('@')
     return if (authority.isEmpty()) "$scheme://<host>" else "$scheme://$authority"
 }

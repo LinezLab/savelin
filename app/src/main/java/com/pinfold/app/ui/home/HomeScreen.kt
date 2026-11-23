@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassPill
@@ -57,11 +58,6 @@ import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import java.io.File
-
-private sealed interface HomeGridKey {
-    data object Filters : HomeGridKey
-    data class Bookmark(val id: Long) : HomeGridKey
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -133,7 +129,7 @@ fun HomeScreen(
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
-            items(distinctItems, key = { HomeGridKey.Bookmark(it.bookmark.id) }) { item ->
+            items(distinctItems, key = { "bookmark-${it.bookmark.id}" }, contentType = { "bookmark" }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(
                         placementSpec = SpringMotion.listPlace(),
@@ -146,8 +142,9 @@ fun HomeScreen(
                     showAuthorLine = settings.cardShowAuthorLine,
                     captionStyle = settings.cardCaptionStyle,
                     limitTall = settings.limitTallImages,
-                    onMore = { quickMenu = item },
+                    onMore = { DiagnosticsLog.uiAction("Home", "More menu"); quickMenu = item },
                     onClick = {
+                        DiagnosticsLog.uiAction("Home", "Open details")
                         viewModel.recordOpen(item.bookmark)
                         onOpen(item)
                     },
@@ -204,9 +201,9 @@ fun HomeScreen(
                 .padding(start = 16.dp, end = 16.dp, bottom = 78.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            FilterChip(AppIcons.Search, "Search", searchActive) { viewModel.setSearchActive(true) }
-            FilterChip(AppIcons.Important, "Important", importantFilter) { viewModel.toggleImportantFilter() }
-            FilterChip(AppIcons.Reminder, "Due", reminderFilter) { viewModel.toggleReminderFilter() }
+            FilterChip(AppIcons.Search, "Search", searchActive) { DiagnosticsLog.uiAction("Home", "Search"); viewModel.setSearchActive(true) }
+            FilterChip(AppIcons.Important, "Important", importantFilter) { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() }
+            FilterChip(AppIcons.Reminder, "Due", reminderFilter) { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() }
         }
     }
 }

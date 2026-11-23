@@ -89,11 +89,12 @@ fun SettingsRow(
     title: String,
     subtitle: String? = null,
     trailing: @Composable () -> Unit = { Chevron() },
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = if (subtitle == null) 64.dp else 80.dp)
-            .pressable(onClick = onClick)
+            .pressable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

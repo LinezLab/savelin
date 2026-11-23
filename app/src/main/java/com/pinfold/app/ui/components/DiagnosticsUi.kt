@@ -35,12 +35,12 @@ fun DiagnosticsToast(message: String, onDone: () -> Unit) {
         }
     }
     LaunchedEffect(message) {
-        delay(3200)
+        delay(3600)
         onDone()
     }
 }
 
-/** On the launch after a crash: copy the redacted report and say so in a glass toast. */
+/** On the launch after a crash: copy the full redacted report and say so in a glass toast. */
 @Composable
 fun CrashReportNotice() {
     val context = LocalContext.current
@@ -50,7 +50,8 @@ fun CrashReportNotice() {
     LaunchedEffect(pending) {
         context.copyDiagnosticsText(pending)
         CrashReporter.clearPending()
+        CrashReporter.logcat(pending)
         toast = true
     }
-    if (toast) DiagnosticsToast("Crash log copied to clipboard (redacted)") { toast = false }
+    if (toast) DiagnosticsToast("Full crash report copied to clipboard (redacted)") { toast = false }
 }

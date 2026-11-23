@@ -3,6 +3,7 @@ package com.pinfold.app.diagnostics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 enum class LogLevel { INFO, WARN, ERROR }
 
@@ -19,8 +20,15 @@ object DiagnosticsLog {
         while (events.size > MAX_EVENTS) events.removeFirst()
     }
 
+    /** Structured UI breadcrumb: screen + action only, never a title, URL or token. */
+    fun uiAction(screen: String, action: String) = log(LogLevel.INFO, "UI/$screen", action)
+
     @Synchronized
     fun snapshot(): List<LogEvent> = events.toList()
+
+    @Synchronized
+    fun snapshotLast(limit: Int): List<LogEvent> =
+        if (limit <= 0 || events.isEmpty()) emptyList() else events.takeLast(minOf(limit, events.size))
 
     @Synchronized
     fun clear() {
@@ -29,12 +37,13 @@ object DiagnosticsLog {
 
     val size: Int @Synchronized get() = events.size
 
-    fun format(): String {
-        val lines = snapshot()
+    fun format(limit: Int = Int.MAX_VALUE): String {
+        val lines = if (limit >= events.size) snapshot() else snapshotLast(limit)
         if (lines.isEmpty()) return "Savelin diagnostics: no events recorded."
         val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        stamp.timeZone = TimeZone.getTimeZone("UTC")
         return buildString {
-            appendLine("Savelin diagnostics (redacted)")
+            appendLine("Savelin diagnostics (redacted, times UTC)")
             for (event in lines) {
                 append('[').append(stamp.format(Date(event.time))).append("] ")
                     .append(event.level.name).append('/').append(event.tag).append(": ").appendLine(event.message)

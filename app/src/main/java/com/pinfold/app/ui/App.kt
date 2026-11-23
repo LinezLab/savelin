@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import kotlinx.coroutines.flow.first
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.Aurora
@@ -70,7 +71,15 @@ fun App(sharedText: String? = null) {
     LaunchedEffect(appearance.reduceMotion) {
         MotionSettings.updateReduceMotion(appearance.reduceMotion)
     }
+    LaunchedEffect(tab, settingsPage, detail?.bookmark?.id) {
+        DiagnosticsLog.uiAction("Nav", "screen=" + when {
+            detail != null -> "Details"
+            tab == HomeTab.SETTINGS -> settingsPage.ifBlank { "Settings" }
+            else -> "Home"
+        })
+    }
     BackHandler(enabled = detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS) {
+        DiagnosticsLog.uiAction("Nav", "Back")
         when {
             detail != null -> detail = null
             searchActive -> viewModel.setSearchActive(false)
@@ -170,11 +179,11 @@ fun App(sharedText: String? = null) {
                     searchActive = searchActive,
                     query = query,
                     visible = navVisible && detail == null && !showAdd && tab != HomeTab.SETTINGS,
-                    onSearchToggle = { viewModel.setSearchActive(!searchActive) },
+                    onSearchToggle = { DiagnosticsLog.uiAction("Nav", if (searchActive) "Search close" else "Search open"); viewModel.setSearchActive(!searchActive) },
                     onQueryChange = viewModel::onQueryChange,
                     onAdd = { showAdd = true },
                     onAddLong = { showAdd = true },
-                    onSettings = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                    onSettings = { DiagnosticsLog.uiAction("Nav", "Settings"); viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                     onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )

@@ -63,6 +63,7 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
@@ -120,6 +121,7 @@ fun DetailsScreen(
     }
 
     BackHandler(enabled = cameraMenu || moreMenu || reminderOpen) {
+        DiagnosticsLog.uiAction("Details", "Back")
         when {
             cameraMenu -> cameraMenu = false
             moreMenu -> moreMenu = false
@@ -131,6 +133,7 @@ fun DetailsScreen(
         val value = if (original) bookmark.url else com.pinfold.app.network.UrlNormalizer.normalize(bookmark.url)
         val manager = context.getSystemService(android.content.ClipboardManager::class.java)
         manager?.setPrimaryClip(android.content.ClipData.newPlainText("link", value))
+        DiagnosticsLog.uiAction("Details", "Copy link")
         copied = true
     }
 
