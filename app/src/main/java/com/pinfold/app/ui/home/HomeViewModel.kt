@@ -49,7 +49,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsPageState = MutableStateFlow("HOME")
     val settingsPage: StateFlow<String> = settingsPageState.asStateFlow()
     private val searchActiveState = MutableStateFlow(false)
-    private val navVisibleState = MutableStateFlow(true)
     private val importantOnly = MutableStateFlow(false)
     private val reminderOnly = MutableStateFlow(false)
 
@@ -62,7 +61,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val searchActive: StateFlow<Boolean> = searchActiveState.asStateFlow()
-    val navVisible: StateFlow<Boolean> = navVisibleState.asStateFlow()
     val importantFilter: StateFlow<Boolean> = importantOnly.asStateFlow()
     val reminderFilter: StateFlow<Boolean> = reminderOnly.asStateFlow()
 
@@ -168,16 +166,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchActive(value: Boolean) {
         searchActiveState.value = value
-        navVisibleState.value = true
         if (!value) {
             query.value = ""
             importantOnly.value = false
             reminderOnly.value = false
         }
-    }
-
-    fun setNavVisible(value: Boolean) {
-        navVisibleState.value = value || searchActiveState.value
     }
 
     fun toggleImportantFilter() {

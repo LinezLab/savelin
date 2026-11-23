@@ -78,7 +78,7 @@ data class AppSettings(
     val backgroundLoopSeconds: Int = 40,
     val backgroundAnimate: Boolean = true,
     val backgroundDim: Float = 0.2f,
-    val backgroundDetails: String = "PICTURE",
+    val backgroundDetails: String = "ARTWORK",
     val backgroundShape: String = "SOFT",
     val backgroundSource: String = "PALETTE",
     val backgroundFps: Int = 0,
@@ -104,6 +104,7 @@ data class AppSettings(
 
 class SettingsRepository(private val context: Context) {
     val settings: Flow<AppSettings> = context.settingsStore.data.map { p ->
+        val storedDetails = p[Keys.backgroundDetails]
         AppSettings(
             offlineMode = p[Keys.offlineMode] ?: false,
             tapPreference = p[Keys.tapPreference] ?: "OPEN",
@@ -167,7 +168,11 @@ class SettingsRepository(private val context: Context) {
             backgroundLoopSeconds = p[Keys.backgroundLoopSeconds] ?: 40,
             backgroundAnimate = p[Keys.backgroundAnimate] ?: true,
             backgroundDim = p[Keys.backgroundDim] ?: 0.2f,
-            backgroundDetails = p[Keys.backgroundDetails] ?: "PICTURE",
+            backgroundDetails = when (storedDetails) {
+                null, "PICTURE" -> "ARTWORK"
+                "SOLID" -> "THEME"
+                else -> storedDetails ?: "ARTWORK"
+            },
             backgroundShape = p[Keys.backgroundShape] ?: "SOFT",
             backgroundSource = p[Keys.backgroundSource] ?: "PALETTE",
             backgroundFps = p[Keys.backgroundFps] ?: 0,

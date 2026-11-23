@@ -86,15 +86,6 @@ fun HomeScreen(
     }
     var quickMenu by remember { mutableStateOf<BookmarkWithTags?>(null) }
 
-    val lastScroll = remember { intArrayOf(0) }
-    LaunchedEffect(gridState.firstVisibleItemScrollOffset, gridState.firstVisibleItemIndex) {
-        if (!searchActive) {
-            val offset = gridState.firstVisibleItemScrollOffset
-            viewModel.setNavVisible(gridState.firstVisibleItemIndex == 0 || offset < lastScroll[0])
-            lastScroll[0] = offset
-        }
-    }
-
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
         if (searchActive && query.isNotBlank()) {

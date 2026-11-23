@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -69,7 +71,7 @@ fun FloatingPillNav(
     val pillAlpha by animateFloatAsState(if (visible) 1f else 0f, SpringMotion.popOpen(), label = "pillAlpha")
     val settingsAlpha by animateFloatAsState(if (visible && !searchActive) 1f else 0f, SpringMotion.popOpen(), label = "settingsAlpha")
 
-    BoxWithConstraints(modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
+    BoxWithConstraints(modifier.fillMaxWidth().wrapContentHeight().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
         val shape = RoundedCornerShape(lerp(30.dp, 20.dp, morph))
         Box(
             Modifier.align(Alignment.BottomStart).alpha(pillAlpha)

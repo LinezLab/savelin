@@ -68,7 +68,6 @@ fun App(sharedText: String? = null) {
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
-    val navVisible by viewModel.navVisible.collectAsState()
     val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
     val context = LocalContext.current
@@ -203,7 +202,7 @@ fun App(sharedText: String? = null) {
                     FloatingPillNav(
                         searchActive = searchActive,
                         query = query,
-                        visible = navVisible,
+                        visible = true,
                         onSearchToggle = { DiagnosticsLog.uiAction("Nav", if (searchActive) "Search close" else "Search open"); viewModel.setSearchActive(!searchActive) },
                         onQueryChange = viewModel::onQueryChange,
                         onAdd = { showAdd = true },
@@ -218,9 +217,10 @@ fun App(sharedText: String? = null) {
                     important = viewModel.importantFilter.collectAsState().value,
                     due = viewModel.reminderFilter.collectAsState().value,
                     dueCount = dueCount,
-                    visible = navVisible && !searchActive,
+                    visible = !searchActive,
                     onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
                     onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
+                    modifier = Modifier.align(Alignment.BottomEnd),
                 )
             }
         }

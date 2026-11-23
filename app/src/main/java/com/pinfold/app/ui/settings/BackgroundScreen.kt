@@ -151,9 +151,9 @@ fun BackgroundScreen(viewModel: HomeViewModel) {
                 SettingsChoiceRow(
                     icon = AppIcons.Appearance,
                     tileColor = Candy.Grape,
-                    title = "Details screen background",
+                    title = "Details background",
                     subtitle = settings.backgroundDetails,
-                    options = listOf("PICTURE", "GENERATED", "SOLID"),
+                    options = listOf("ARTWORK", "THEME", "GENERATED"),
                     onSelect = { viewModel.setSetting("backgroundDetails", it) },
                 )
             }
