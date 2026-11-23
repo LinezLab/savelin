@@ -165,7 +165,7 @@ object MetadataParser {
     }
 
     internal fun hostOf(url: String): String =
-        runCatching { URI.create(url).host?.lowercase(Locale.ROOT)?.removePrefix("www.") }.getOrDefault("")
+        runCatching { URI.create(url).host?.lowercase(Locale.ROOT)?.removePrefix("www.") }.getOrNull().orEmpty()
 
     internal fun sameSite(a: String, b: String): Boolean {
         val hostA = hostOf(a)
