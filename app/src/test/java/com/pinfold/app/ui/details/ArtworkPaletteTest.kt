@@ -69,6 +69,7 @@ class ArtworkPaletteTest {
         assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(null, false))
         assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("PICTURE", false))
         assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(" artwork ", false))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(" artwork ", true))
         assertEquals(DetailsBackgroundMode.GENERATED, resolveDetailsBackgroundMode("generated", false))
         assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode(" solid ", false))
     }
@@ -126,5 +127,54 @@ class ArtworkPaletteTest {
     @Test
     fun argbHexIsEightDigits() {
         assertEquals("#FFD97123", Color(0xD9, 0x71, 0x23).argbHex())
+    }
+
+    @Test
+    fun ambientBloomsAreDerivedFromArtworkAndLayeredWithoutFlatFill() {
+        val palette = extractArtworkPalette(solid(0xFF1E5ADC.toInt()))
+        val blooms = ambientBlooms(palette)
+        assertEquals(8, blooms.size)
+        assertEquals(2, blooms.count { it.alpha == BLOOM_ALPHA_PRIMARY })
+        assertEquals(3, blooms.count { it.alpha == BLOOM_ALPHA_SECONDARY })
+        assertEquals(3, blooms.count { it.alpha == BLOOM_ALPHA_TERTIARY })
+        assertEquals(8, blooms.map { it.x to it.y }.distinct().size)
+        assertTrue(blooms.all { it.radius in 0.4f..0.9f })
+        assertTrue(blooms.all { it.color.alpha >= 0.95f })
+        assertTrue(blooms.any { hueOf(it.color) in 195f..235f })
+        assertTrue(blooms.map { hueOf(it.color) }.distinct().size >= 3)
+    }
+
+    @Test
+    fun readabilityScrimStaysSubtleAndTransparentInTheMiddle() {
+        assertTrue(SCRIM_TOP_ALPHA in 0.2f..0.4f)
+        assertTrue(SCRIM_BOTTOM_ALPHA in 0.4f..0.6f)
+        assertTrue(SCRIM_BOTTOM_ALPHA > SCRIM_TOP_ALPHA)
+        assertTrue(ARTWORK_IMAGE_ALPHA < 1f)
+        assertTrue(ARTWORK_SCALE > 1f)
+    }
+
+    @Test
+    fun diagnosticsReportModeImagePaletteAndAlphas() {
+        ArtworkDiagnostics.record(
+            ArtworkDecision(
+                bookmarkId = 7L,
+                setting = "ARTWORK",
+                mode = DetailsBackgroundMode.ARTWORK,
+                imageAvailable = true,
+                imageFile = "preview.jpg",
+                source = ArtworkSource.IMAGE,
+                bucketCount = 5,
+                accents = listOf("#FFD97123"),
+                anyBlackOrTransparent = false,
+                composed = true,
+                crossfadeChanged = false,
+            ),
+        )
+        val text = ArtworkDiagnostics.format()
+        assertTrue(text.contains("resolvedMode=ARTWORK"))
+        assertTrue(text.contains("imageAvailable=true"))
+        assertTrue(text.contains("#FFD97123"))
+        assertTrue(text.contains("bloomPrimary=$BLOOM_ALPHA_PRIMARY"))
+        assertTrue(text.contains("scrimBottom=$SCRIM_BOTTOM_ALPHA"))
     }
 }

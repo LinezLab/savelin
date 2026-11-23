@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -77,12 +79,51 @@ internal fun resolveDetailsBackgroundMode(setting: String?, hasImage: Boolean): 
     }
 }
 
-/** Kept high on purpose: a near-zero wash was indistinguishable from the old page. */
-internal const val BLOOM_ALPHA_PRIMARY = 0.78f
-internal const val BLOOM_ALPHA_SECONDARY = 0.56f
-internal const val ARTWORK_IMAGE_ALPHA = 0.88f
-internal const val SCRIM_TOP_ALPHA = 0.34f
-internal const val SCRIM_BOTTOM_ALPHA = 0.62f
+internal const val BLOOM_ALPHA_PRIMARY = 0.72f
+internal const val BLOOM_ALPHA_SECONDARY = 0.50f
+internal const val BLOOM_ALPHA_TERTIARY = 0.30f
+internal const val ARTWORK_IMAGE_ALPHA = 0.84f
+internal const val ARTWORK_SCALE = 1.28f
+internal const val SCRIM_TOP_ALPHA = 0.30f
+internal const val SCRIM_BOTTOM_ALPHA = 0.54f
+
+internal data class AmbientBloom(
+    val x: Float,
+    val y: Float,
+    val radius: Float,
+    val color: Color,
+    val alpha: Float,
+)
+
+internal fun ambientBlooms(palette: ArtworkPalette): List<AmbientBloom> {
+    val accents = palette.colors
+    if (accents.isEmpty()) return emptyList()
+    val placements = listOf(
+        0.20f to 0.18f, 0.80f to 0.22f, 0.28f to 0.70f, 0.74f to 0.72f,
+        0.50f to 0.44f, 0.08f to 0.52f, 0.92f to 0.56f, 0.50f to 0.06f,
+    )
+    return placements.mapIndexed { index, (x, y) ->
+        val source = accents[index % accents.size]
+        val hsv = rgbToHsv(
+            (source.red * 255f).toInt().coerceIn(0, 255),
+            (source.green * 255f).toInt().coerceIn(0, 255),
+            (source.blue * 255f).toInt().coerceIn(0, 255),
+        )
+        val saturation = (hsv[1] * (1f - (index % 3) * 0.10f)).coerceIn(0.26f, 1f)
+        val value = (hsv[2] * (1f + (index % 4) * 0.05f)).coerceIn(0.52f, 1f)
+        val color = lerp(
+            Color.hsv(hsv[0], saturation, value),
+            palette.base,
+            if (index % 3 == 2) 0.16f else 0f,
+        )
+        val alpha = when {
+            index < 2 -> BLOOM_ALPHA_PRIMARY
+            index < 5 -> BLOOM_ALPHA_SECONDARY
+            else -> BLOOM_ALPHA_TERTIARY
+        }
+        AmbientBloom(x, y, 0.50f + (index % 3) * 0.16f, color, alpha)
+    }
+}
 
 data class ArtworkPalette(
     val base: Color,
@@ -295,8 +336,9 @@ object ArtworkDiagnostics {
             appendLine("source=${d.source?.name ?: "none"} paletteBuckets=${d.bucketCount}")
             appendLine("accents=${d.accents.joinToString(", ")}")
             appendLine("anyBlackOrTransparent=${d.anyBlackOrTransparent} composed=${d.composed} crossfadeChanged=${d.crossfadeChanged}")
-            append("layers: blur=$ARTWORK_IMAGE_ALPHA bloomPrimary=$BLOOM_ALPHA_PRIMARY ")
-            append("bloomSecondary=$BLOOM_ALPHA_SECONDARY scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA")
+            append("layers: blur=$ARTWORK_IMAGE_ALPHA scale=$ARTWORK_SCALE bloomPrimary=$BLOOM_ALPHA_PRIMARY ")
+            append("bloomSecondary=$BLOOM_ALPHA_SECONDARY bloomTertiary=$BLOOM_ALPHA_TERTIARY ")
+            append("scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA")
         }
     }
 }
@@ -402,10 +444,31 @@ fun rememberArtworkAmbient(
     return ambient ?: fallbackAmbient(key, platform, site)
 }
 
+data class AmbientSelection(val current: ArtworkAmbient, val settled: ArtworkAmbient?)
+
 /**
- * Artwork-derived ambient presentation: base colour, blurred full-bleed artwork (or a guaranteed
- * non-flat generated gradient), radial blooms from the extracted palette at clearly visible alpha,
- * and readability scrims limited to the top and bottom.
+ * Holds the previous composed ambient until the next bookmark's artwork has actually been sampled, so
+ * a switch crossfades two real palettes instead of flashing a placeholder gradient.
+ */
+@Composable
+fun rememberDetailsAmbient(
+    imagePath: String?,
+    key: Any?,
+    platform: String = "",
+    site: String = "",
+): AmbientSelection {
+    val current = rememberArtworkAmbient(imagePath, key, platform, site)
+    var settled by remember { mutableStateOf<ArtworkAmbient?>(null) }
+    LaunchedEffect(current.key, imagePath, platform, site) {
+        if (imagePath == null || current.source == ArtworkSource.IMAGE) settled = current
+    }
+    return AmbientSelection(current, settled)
+}
+
+/**
+ * Full-screen artwork environment: base, enlarged blurred artwork, palette-derived radial blooms,
+ * a light readability gradient and a quiet grain layer. The sharp hero is drawn by the caller above
+ * all of these layers.
  */
 @Composable
 fun ArtworkAmbientBackground(
@@ -414,8 +477,10 @@ fun ArtworkAmbientBackground(
     seed: Long = ambient.key.hashCode().toLong(),
 ) {
     val palette = ambient.palette
-    val layers = "blur=$ARTWORK_IMAGE_ALPHA bloomPrimary=$BLOOM_ALPHA_PRIMARY " +
-        "bloomSecondary=$BLOOM_ALPHA_SECONDARY scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA"
+    val blooms = ambientBlooms(palette)
+    val layers = "blur=$ARTWORK_IMAGE_ALPHA scale=$ARTWORK_SCALE " +
+        "bloomPrimary=$BLOOM_ALPHA_PRIMARY bloomSecondary=$BLOOM_ALPHA_SECONDARY " +
+        "bloomTertiary=$BLOOM_ALPHA_TERTIARY scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA"
     DisposableEffect(ambient.key, ambient.source) {
         logArtwork("Compose ENTER key=${ambient.key} source=${ambient.source.name} $layers")
         ArtworkDiagnostics.update { it.copy(composed = true) }
@@ -429,12 +494,12 @@ fun ArtworkAmbientBackground(
             Image(
                 bitmap = ambient.blurred,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize().blur(24.dp).alpha(ARTWORK_IMAGE_ALPHA),
+                modifier = Modifier.fillMaxSize().scale(ARTWORK_SCALE).blur(36.dp).alpha(ARTWORK_IMAGE_ALPHA),
                 contentScale = ContentScale.Crop,
             )
         } else {
             Box(
-                Modifier.fillMaxSize().background(
+                Modifier.fillMaxSize().scale(ARTWORK_SCALE).blur(24.dp).background(
                     Brush.linearGradient(palette.colors.map { it.copy(alpha = ARTWORK_IMAGE_ALPHA) } + palette.base),
                 ),
             )
@@ -443,18 +508,13 @@ fun ArtworkAmbientBackground(
             Modifier.fillMaxSize().drawBehind {
                 val w = size.width
                 val h = size.height
-                val radius = maxOf(w, h) * 0.9f
-                palette.colors.forEachIndexed { index, source ->
-                    val angle = index.toFloat() / palette.colors.size * 2f * Math.PI.toFloat()
-                    val center = Offset(
-                        w * (0.5f + 0.34f * cos(angle)),
-                        h * (0.42f + 0.32f * sin(angle)),
-                    )
-                    val alpha = if (index < 2) BLOOM_ALPHA_PRIMARY else BLOOM_ALPHA_SECONDARY
-                    val tint = source.copy(alpha = alpha)
+                blooms.forEach { bloom ->
+                    val center = Offset(w * bloom.x, h * bloom.y)
+                    val radius = maxOf(w, h) * bloom.radius
+                    val tint = bloom.color.copy(alpha = bloom.alpha)
                     drawCircle(
                         brush = Brush.radialGradient(
-                            listOf(tint, tint.copy(alpha = alpha * 0.45f), tint.copy(alpha = 0f)),
+                            listOf(tint, tint.copy(alpha = bloom.alpha * 0.45f), tint.copy(alpha = 0f)),
                             center = center,
                             radius = radius,
                         ),
@@ -468,10 +528,10 @@ fun ArtworkAmbientBackground(
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = SCRIM_TOP_ALPHA),
-                    0.20f to Color.Transparent,
-                    0.62f to Color.Transparent,
-                    1f to Color.Black.copy(alpha = SCRIM_BOTTOM_ALPHA),
+                    0f to palette.base.copy(alpha = SCRIM_TOP_ALPHA),
+                    0.24f to Color.Transparent,
+                    0.58f to Color.Transparent,
+                    1f to palette.base.copy(alpha = SCRIM_BOTTOM_ALPHA),
                 ),
             ),
         )
@@ -482,7 +542,7 @@ fun ArtworkAmbientBackground(
                     val x = random.nextFloat() * size.width
                     val y = random.nextFloat() * size.height
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.02f + random.nextFloat() * 0.02f),
+                        color = Color.White.copy(alpha = 0.016f + random.nextFloat() * 0.018f),
                         radius = 0.6f + random.nextFloat() * 0.9f,
                         center = Offset(x, y),
                     )
