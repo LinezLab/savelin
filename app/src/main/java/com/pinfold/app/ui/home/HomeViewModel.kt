@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -122,7 +124,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val result = com.pinfold.app.sync.DriveRest.listAppdata(token)
             onResult(result.fold(
                 onSuccess = { "Connected to Drive app data folder ($it objects)" },
-                onFailure = { "Connection failed: ${it.message}" },
+                onFailure = {
+                    val detail = com.pinfold.app.diagnostics.redact(it.message ?: "no detail")
+                    val message = "Connection failed (${it.javaClass.simpleName}): $detail"
+                    com.pinfold.app.diagnostics.DiagnosticsLog.issue("Drive", "test connection", detail)
+                    message
+                },
             ))
         }
     }
@@ -144,9 +151,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     val now = System.currentTimeMillis()
                     settingsRepository.set(com.pinfold.app.data.settings.AppSettings::driveLastSuccessAt.name, now)
                     settingsRepository.set(com.pinfold.app.data.settings.AppSettings::driveLastAttemptAt.name, now)
+                    settingsRepository.set("driveLastError", "")
                     onResult("Sync finished", true)
                 },
-                onFailure = { onResult("Sync failed: ${it.message}", false) },
+                onFailure = {
+                    val detail = com.pinfold.app.diagnostics.redact(it.message ?: "no detail")
+                    val message = "Sync failed (${it.javaClass.simpleName}): $detail"
+                    viewModelScope.launch { settingsRepository.set("driveLastError", message) }
+                    com.pinfold.app.diagnostics.DiagnosticsLog.issue("Drive", "sync", detail)
+                    onResult(message, false)
+                },
             )
         }
     }
@@ -178,6 +192,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectTab(value: HomeTab) {
         tab.value = value
+        if (value != HomeTab.SETTINGS) settingsPageState.value = "HOME"
     }
 
     fun setOffline(value: Boolean) = viewModelScope.launch { settingsRepository.setOfflineMode(value) }
@@ -217,6 +232,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun saveLink(raw: String) {
         val url = extractUrl(raw) ?: return
         val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setInputData(workDataOf(LinkFetchWorker.KEY_URL to url))
             .build()
         WorkManager.getInstance(getApplication<Application>()).enqueue(request)
@@ -246,6 +262,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refetch(item: Bookmark) {
         val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setInputData(workDataOf(LinkFetchWorker.KEY_URL to item.url))
             .build()
         WorkManager.getInstance(getApplication<Application>()).enqueue(request)

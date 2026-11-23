@@ -8,6 +8,7 @@ import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.FetchStatus
 import com.pinfold.app.data.model.NetworkLogEntry
 import com.pinfold.app.data.settings.SettingsRepository
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.PlatformDetector
@@ -19,32 +20,38 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LinkFetchWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
-        val rawUrl = inputData.getString(KEY_URL) ?: return Result.failure()
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val rawUrl = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
         val db = PinfoldDatabase.get(applicationContext)
-        val settings = SettingsRepository(applicationContext).settings
-        // One-shot read of settings is enough here; the flow's current value is the first emission.
-        val currentSettings = settings.first()
-        if (currentSettings.offlineMode) return Result.success()
+        val currentSettings = SettingsRepository(applicationContext).settings.first()
+        if (currentSettings.offlineMode) return@withContext Result.success()
         val userAgent = currentSettings.previewUserAgent
 
         val normalized = UrlNormalizer.normalize(rawUrl)
         val client = HttpClientFactory.create()
-        val logHost: (String, String) -> Unit = { host, purpose ->
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                db.networkLogDao().insert(NetworkLogEntry(host = host, purpose = purpose, status = "OK"))
+        val host = runCatching { java.net.URI.create(normalized).host.orEmpty() }.getOrDefault("")
+        val logHost: (String, String) -> Unit = { h, purpose ->
+            CoroutineScope(Dispatchers.IO).launch {
+                db.networkLogDao().insert(NetworkLogEntry(host = h, purpose = purpose, status = "OK"))
             }
         }
-        val fetcher = PreviewFetcher(client, logHost)
+        val onIssue: (String, String, String) -> Unit = { scope, what, why -> DiagnosticsLog.issue(scope, what, why) }
+        val fetcher = PreviewFetcher(client, logHost, onIssue)
         val proxyTemplate = if (currentSettings.proxiesEnabled) currentSettings.proxyTemplate else ""
-        val preview = runCatching { fetcher.fetch(normalized, userAgent, proxyTemplate) }.getOrElse {
-            return Result.failure()
+
+        val fetched = runCatching { fetcher.fetch(normalized, userAgent, proxyTemplate) }
+        val preview = fetched.getOrNull()
+        if (preview == null) {
+            val why = fetched.exceptionOrNull()?.let { "${it.javaClass.simpleName} host=$host" } ?: "host=$host"
+            DiagnosticsLog.issue("Preview", "fetch", why)
+            return@withContext if (runAttemptCount >= 5) Result.failure() else Result.retry()
         }
 
         val existing = db.bookmarkDao().findByNormalizedUrl(normalized)
@@ -56,13 +63,19 @@ class LinkFetchWorker(
                 fetchStatus = FetchStatus.PENDING,
             ),
         )
-        if (id <= 0) return Result.success()
+        if (id <= 0) return@withContext Result.success()
 
-        FaviconStore(applicationContext, client, logHost).store(preview.url, preview.faviconUrls)
+        val favicon = FaviconStore(applicationContext, client, logHost).store(preview.url, preview.faviconUrls)
+        if (favicon.isBlank() && preview.faviconUrls.isNotEmpty()) {
+            DiagnosticsLog.issue("Favicon", "download", "no icon decoded host=$host")
+        }
 
         val store = ImageStore(applicationContext, client)
         val stored = preview.imageUrls.firstNotNullOfOrNull { url ->
             runCatching { store.store(id, url) }.getOrNull()
+        }
+        if (stored == null && preview.imageUrls.isNotEmpty()) {
+            DiagnosticsLog.issue("Preview", "image", "no image decoded host=$host")
         }
 
         val cleaned = MetadataCleaner.clean(
@@ -74,7 +87,7 @@ class LinkFetchWorker(
             fallbackTitle = PlatformDetector.siteName(normalized),
             contentTags = preview.tags,
         )
-        val current = db.bookmarkDao().findById(id) ?: return Result.success()
+        val current = db.bookmarkDao().findById(id) ?: return@withContext Result.success()
         db.bookmarkDao().update(
             current.copy(
                 title = cleaned.displayTitle,
@@ -100,11 +113,10 @@ class LinkFetchWorker(
             ),
         )
         cleaned.tags.forEach { tag ->
-            val existing = db.tagDao().findByName(tag)
-            val tagId = existing?.id ?: db.tagDao().insert(com.pinfold.app.data.model.Tag(name = tag))
+            val tagId = db.tagDao().findByName(tag)?.id ?: db.tagDao().insert(com.pinfold.app.data.model.Tag(name = tag))
             if (tagId > 0) db.tagDao().link(com.pinfold.app.data.model.BookmarkTag(id, tagId))
         }
-        return Result.success()
+        return@withContext Result.success()
     }
 
     companion object {

@@ -40,7 +40,6 @@ import com.pinfold.app.ui.glass.Capsule as GlassCapsule
 import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlass
-import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import kotlinx.coroutines.delay
 
@@ -116,7 +115,7 @@ private fun RailSlot(
     onToggle: () -> Unit,
     onTooltip: (String) -> Unit,
 ) {
-    val accent = if (selected) Candy.Sky else SavelinGlass.ink
+    val accent = clear.onGlass
     val dark = clear.dark
     val rim = clear.rim
     val label = if (count > 0) "$name ($count)" else name
@@ -124,11 +123,13 @@ private fun RailSlot(
         Modifier
             .size(width = 52.dp, height = 52.dp)
             .drawBehind {
+                drawRoundRect(
+                    color = Color.White.copy(alpha = if (selected) {
+                        if (dark) 0.18f else 0.32f
+                    } else if (dark) 0.08f else 0.14f),
+                    cornerRadius = CornerRadius(size.minDimension / 2),
+                )
                 if (selected) {
-                    drawRoundRect(
-                        color = Color.White.copy(alpha = if (dark) 0.12f else 0.26f),
-                        cornerRadius = CornerRadius(size.minDimension / 2),
-                    )
                     drawRoundRect(
                         color = rim.copy(alpha = 0.5f),
                         cornerRadius = CornerRadius(size.minDimension / 2),

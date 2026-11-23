@@ -36,8 +36,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import kotlinx.coroutines.flow.first
+import com.pinfold.app.ui.glass.LocalGlassOverlayHost
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
@@ -96,15 +98,6 @@ fun App(sharedText: String? = null) {
             else -> "Home"
         })
     }
-    BackHandler(enabled = detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS) {
-        DiagnosticsLog.uiAction("Nav", "Back")
-        when {
-            detail != null -> detail = null
-            searchActive -> viewModel.setSearchActive(false)
-            settingsPage != "HOME" -> viewModel.closeSettingsPage()
-            tab == HomeTab.SETTINGS -> viewModel.selectTab(HomeTab.HOME)
-        }
-    }
     if (locked) {
         BiometricGate(onUnlock = { locked = false })
         return
@@ -137,6 +130,16 @@ fun App(sharedText: String? = null) {
             }
         },
         screens = {
+            val overlaysOpen = LocalGlassOverlayHost.current?.hasOverlays == true
+            BackHandler(enabled = !overlaysOpen && (detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS)) {
+                DiagnosticsLog.uiAction("Nav", "Back")
+                when {
+                    detail != null -> detail = null
+                    searchActive -> viewModel.setSearchActive(false)
+                    settingsPage != "HOME" -> viewModel.closeSettingsPage()
+                    tab == HomeTab.SETTINGS -> viewModel.selectTab(HomeTab.HOME)
+                }
+            }
             val shadeColors = com.pinfold.app.ui.glass.theme.clear
             val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             val shadeHeight = topInset + appearance.topShadeHeight.dp
@@ -192,29 +195,34 @@ fun App(sharedText: String? = null) {
             }
         },
         chrome = {
-            Box(Modifier.fillMaxSize().imePadding()) {
-                FloatingPillNav(
-                    searchActive = searchActive,
-                    query = query,
-                    visible = navVisible && detail == null && !showAdd && tab != HomeTab.SETTINGS,
-                    onSearchToggle = { DiagnosticsLog.uiAction("Nav", if (searchActive) "Search close" else "Search open"); viewModel.setSearchActive(!searchActive) },
-                    onQueryChange = viewModel::onQueryChange,
-                    onAdd = { showAdd = true },
-                    onAddLong = { showAdd = true },
-                    onSettings = { DiagnosticsLog.uiAction("Nav", "Settings"); viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
-                    onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
-                    modifier = Modifier.align(Alignment.BottomCenter),
+            val overlaysOpen = LocalGlassOverlayHost.current?.hasOverlays == true
+            val homeChromeVisible = detail == null && !showAdd && tab != HomeTab.SETTINGS &&
+                settingsPage == "HOME" && !overlaysOpen && CrashReporter.pendingLog.isNullOrBlank()
+            if (homeChromeVisible) {
+                Box(Modifier.fillMaxSize().imePadding()) {
+                    FloatingPillNav(
+                        searchActive = searchActive,
+                        query = query,
+                        visible = navVisible,
+                        onSearchToggle = { DiagnosticsLog.uiAction("Nav", if (searchActive) "Search close" else "Search open"); viewModel.setSearchActive(!searchActive) },
+                        onQueryChange = viewModel::onQueryChange,
+                        onAdd = { showAdd = true },
+                        onAddLong = { showAdd = true },
+                        onSettings = { DiagnosticsLog.uiAction("Nav", "Settings"); viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                        onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+                val dueCount = viewModel.reminderIds.collectAsState().value.size
+                FilterRail(
+                    important = viewModel.importantFilter.collectAsState().value,
+                    due = viewModel.reminderFilter.collectAsState().value,
+                    dueCount = dueCount,
+                    visible = navVisible && !searchActive,
+                    onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
+                    onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
                 )
             }
-            val dueCount = viewModel.reminderIds.collectAsState().value.size
-            FilterRail(
-                important = viewModel.importantFilter.collectAsState().value,
-                due = viewModel.reminderFilter.collectAsState().value,
-                dueCount = dueCount,
-                visible = navVisible && detail == null && !showAdd && tab != HomeTab.SETTINGS && !searchActive,
-                onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
-                onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
-            )
         }
     )
 }

@@ -3,6 +3,7 @@ package com.pinfold.app.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -75,11 +76,16 @@ fun SettingsSection(header: String, content: @Composable () -> Unit) {
 
 /** A taller glass card with breathing room on all sides, so 200 % text and RTL stay readable. */
 @Composable
-fun SettingsCard(content: @Composable () -> Unit) {
+fun SettingsCard(
+    contentPadding: PaddingValues = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+    verticalArrangement: Arrangement.Vertical? = null,
+    content: @Composable () -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 6.dp)
             .then(SavelinGlass.modifier(RoundedRectangle(22.dp)))
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+            .padding(contentPadding),
+        verticalArrangement = verticalArrangement ?: Arrangement.Top,
     ) { content() }
 }
 
@@ -188,15 +194,20 @@ fun ExpandableRow(title: String, icon: Int, expanded: Boolean, onToggle: () -> U
 
 @Composable
 fun FineSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
-    Text(
-        "$label: ${(value * 100).toInt() / 100f}",
-        style = MaterialTheme.typography.bodyMedium,
-        color = clear.onGlass,
-    )
-    GlassSlider(
-        value = value.coerceIn(range),
-        onChange = onChange,
-        range = range,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "$label: ${(value * 100).toInt() / 100f}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = clear.onGlass,
+        )
+        GlassSlider(
+            value = value.coerceIn(range),
+            onChange = onChange,
+            range = range,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }

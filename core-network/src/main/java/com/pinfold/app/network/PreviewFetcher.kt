@@ -1,6 +1,7 @@
 package com.pinfold.app.network
 
 import com.pinfold.app.network.model.Preview
+import com.pinfold.app.network.resolvers.FetchedResource
 import com.pinfold.app.network.resolvers.HtmlFetcher
 import com.pinfold.app.network.resolvers.PlatformFastPaths
 import com.pinfold.app.network.resolvers.ResolverContext
@@ -11,12 +12,16 @@ import java.net.URI
 class PreviewFetcher(
     private val client: OkHttpClient,
     private val onHost: (host: String, purpose: String) -> Unit = { _, _ -> },
+    private val onIssue: (scope: String, what: String, why: String) -> Unit = { _, _, _ -> },
+    /** Offline/tests can feed recorded bytes; production leaves it null and uses [HtmlFetcher]. */
+    private val fetchOverride: ((url: String, context: ResolverContext, userAgent: String) -> FetchedResource?)? = null,
 ) {
     suspend fun fetch(rawUrl: String, userAgent: String, proxyTemplate: String = ""): Preview {
         val expanded = expandShortener(rawUrl.trim(), userAgent)
         val url = UrlNormalizer.normalize(expanded)
-        val context = ResolverContext(client = client, userAgent = userAgent, onHost = onHost)
-        onHost(hostOf(url), "preview")
+        val context = context(userAgent)
+        val host = hostOf(url)
+        onHost(host, "preview")
 
         val results = mutableListOf<Preview>()
         PlatformFastPaths().resolve(url, context)?.let(results::add)
@@ -28,15 +33,25 @@ class PreviewFetcher(
             UniversalResolver().resolve(proxyUrl, context)?.let(results::add)
         }
 
+        if (results.isEmpty()) {
+            onIssue("Preview", "parse", "no metadata extracted host=$host")
+        }
         val merged = merge(results)
         return merged.copy(url = url, platform = merged.platform.ifBlank { PlatformDetector.platform(url) })
     }
 
+    private fun context(userAgent: String): ResolverContext = ResolverContext(
+        client = client,
+        userAgent = userAgent,
+        onHost = onHost,
+        onIssue = onIssue,
+        fetch = fetchOverride ?: { url, ctx, ua -> HtmlFetcher.fetch(url, ctx, ua) },
+    )
+
     private fun expandShortener(rawUrl: String, userAgent: String): String {
         if (!UrlNormalizer.isShortener(rawUrl)) return rawUrl
         return runCatching {
-            val context = ResolverContext(client = client, userAgent = userAgent, onHost = onHost)
-            HtmlFetcher.get(rawUrl, context, userAgent)?.second ?: rawUrl
+            HtmlFetcher.get(rawUrl, context(userAgent), userAgent)?.second ?: rawUrl
         }.getOrDefault(rawUrl)
     }
 

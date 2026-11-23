@@ -1,9 +1,11 @@
 package com.pinfold.app.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,7 +89,10 @@ private fun ComponentDetail(component: GlassComponent, viewModel: HomeViewModel,
     val mode = ComponentGlass.mode(component)
     val editable = mode == ComponentStyleMode.CUSTOM
     val style = ComponentGlass.effective(component)
-    SettingsCard {
+    SettingsCard(
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         Text(
             "${component.label} · ${ComponentGlass.source(component)}",
             style = MaterialTheme.typography.titleMedium,
@@ -154,12 +159,12 @@ private fun update(
 @Composable
 private fun ComponentSample(component: GlassComponent) {
     Box(
-        Modifier.fillMaxWidth().height(88.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().heightIn(min = 132.dp).clip(RoundedCornerShape(14.dp))
             .background(Brush.linearGradient(listOf(Candy.Bubblegum, Candy.Sky, Candy.Mint))),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(width = 96.dp, height = 44.dp)
+            Modifier.size(width = 132.dp, height = 58.dp)
                 .then(SavelinGlass.modifierFor(component, RoundedRectangle(12.dp))),
             contentAlignment = Alignment.Center,
         ) {

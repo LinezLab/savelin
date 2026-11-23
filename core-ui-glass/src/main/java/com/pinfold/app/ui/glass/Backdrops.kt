@@ -195,6 +195,9 @@ class GlassOverlayHost {
      */
     var stillHolds by mutableStateOf(0)
 
+    /** True while a sheet, dialog, menu or toast is composed in this portal. */
+    val hasOverlays: Boolean get() = entries.isNotEmpty()
+
     internal fun register(entry: OverlayEntry) {
         entries.removeAll { it.key === entry.key }
         entries.add(entry)

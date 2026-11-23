@@ -197,12 +197,12 @@ private fun NavGlyph(
     Box(
         Modifier.size(size)
             .drawBehind {
-                if (pressed) {
-                    drawRoundRect(
-                        color = Color.White.copy(alpha = if (dark) 0.14f else 0.26f),
-                        cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
-                    )
-                }
+                drawRoundRect(
+                    color = Color.White.copy(alpha = if (pressed) {
+                        if (dark) 0.20f else 0.34f
+                    } else if (dark) 0.08f else 0.14f),
+                    cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
+                )
             }
             .graphicsLayer { val s = if (pressed) 0.9f else 1f; scaleX = s; scaleY = s }
             .combinedClickable(

@@ -131,7 +131,17 @@ private fun MenuRow(entry: GlassMenuItem, ink: Color, index: Int, onDismiss: () 
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcons.Icon(entry.icon, null, tint = tint, size = 20.dp)
+        Box(
+            Modifier.size(32.dp).drawBehind {
+                drawRoundRect(
+                    color = Color.White.copy(alpha = if (dark) 0.10f else 0.18f),
+                    cornerRadius = CornerRadius(10.dp.toPx()),
+                )
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            AppIcons.Icon(entry.icon, null, tint = tint, size = 18.dp)
+        }
         Spacer(Modifier.size(12.dp))
         Text(entry.label, color = tint, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

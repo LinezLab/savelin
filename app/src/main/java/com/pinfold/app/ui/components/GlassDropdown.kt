@@ -1,5 +1,6 @@
 package com.pinfold.app.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +71,7 @@ fun GlassChoicePopUp(
     onDismiss: () -> Unit,
 ) {
     GlassOverlay(animatesOut = true) {
+        BackHandler(onBack = onDismiss)
         val appear = rememberSpringAppear()
         Box(Modifier.fillMaxSize().padding(16.dp)) {
             Box(Modifier.fillMaxSize().clickable(onClick = onDismiss))

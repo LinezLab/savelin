@@ -162,9 +162,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                     context.copyDiagnosticsText(DiagnosticsLog.format())
                     toast = "Diagnostics copied (redacted)"
                 }
-                SettingsRow(AppIcons.NetworkLog, Candy.Mint, "Copy full diagnostics", "Last crash report + events") {
+                SettingsRow(AppIcons.NetworkLog, Candy.Mint, "Copy full diagnostics", "Last crash report + events + issues") {
                     context.copyDiagnosticsText(CrashReporter.fullDiagnostics(context))
                     toast = "Full diagnostics copied (redacted)"
+                }
+                SettingsRow(AppIcons.Warning, Candy.Tomato, "Copy issues log", "${DiagnosticsLog.issueCount} recorded") {
+                    context.copyDiagnosticsText(DiagnosticsLog.formatIssues())
+                    toast = "Issues log copied (redacted)"
                 }
             }
         }

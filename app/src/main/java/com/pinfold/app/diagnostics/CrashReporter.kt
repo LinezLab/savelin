@@ -46,6 +46,7 @@ object CrashReporter {
                 val metadata = runCatching { deviceInfo(context) }.getOrElse { "App/device metadata unavailable" }
                 val report = runCatching { buildReport(throwable, thread.name, metadata, events = events) }
                     .getOrElse { "Uncaught ${throwable.javaClass.name} on ${thread.name} (full report unavailable: ${it.javaClass.name})" }
+                runCatching { DiagnosticsLog.issue("UI", "crash", throwable.javaClass.name + " on " + thread.name) }
                 runCatching { DiagnosticsLog.log(LogLevel.ERROR, "Crash", "Full crash report written (${report.length} chars)") }
                 logcat(report)
                 runCatching { writeReports(context, report) }
@@ -90,6 +91,9 @@ object CrashReporter {
         }
         appendLine("-- CURRENT REDACTED EVENT LOG (last $RECENT_EVENT_COUNT) --")
         append(DiagnosticsLog.format(RECENT_EVENT_COUNT))
+        appendLine()
+        appendLine("-- RECORDED ISSUES (what failed and why) --")
+        append(DiagnosticsLog.formatIssues())
     }
 
     @Suppress("Deprecation")
@@ -206,6 +210,17 @@ object CrashReporter {
                     append('[').append(eventStamp.format(Date(event.time))).append("] ")
                         .append(event.level.name).append('/').append(redact(event.tag)).append(": ")
                         .appendLine(redact(event.message))
+                }
+            }
+            appendLine("-- RECORDED ISSUES (what failed and why) --")
+            val recordedIssues = DiagnosticsLog.issueSnapshot()
+            if (recordedIssues.isEmpty()) {
+                appendLine("(none)")
+            } else {
+                for (issue in recordedIssues.takeLast(RECENT_EVENT_COUNT)) {
+                    append('[').append(eventStamp.format(Date(issue.time))).append("] ")
+                        .append(redact(issue.scope)).append(": ").append(redact(issue.what))
+                        .append(" — ").appendLine(redact(issue.why))
                 }
             }
             appendLine("========== END SAVELIN DIAGNOSTICS ==========")

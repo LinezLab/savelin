@@ -258,7 +258,11 @@ fun DetailsScreen(
                     GlassTag(bookmark.platform.ifBlank { "Web" })
                     if (bookmark.authorHandle.isNotBlank()) GlassTag("@${bookmark.authorHandle}")
                     if (bookmark.postedAt.isNotBlank()) GlassTag(bookmark.postedAt)
-                    if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = ink, size = 16.dp)
+                    if (bookmark.isImportant) {
+                        LightGlassChip(shape = CircleShape, contentDescription = "Important") {
+                            AppIcons.Icon(AppIcons.Important, null, tint = ink, size = 16.dp)
+                        }
+                    }
                 }
 
                 var titleExpanded by remember { mutableStateOf(false) }
@@ -305,8 +309,8 @@ fun DetailsScreen(
                         Text(caption, style = MaterialTheme.typography.bodyMedium, color = ink,
                             maxLines = if (expandedCaption) Int.MAX_VALUE else 4, overflow = TextOverflow.Ellipsis)
                     }
-                    Box(Modifier.size(44.dp).pressable(onClick = { expandedCaption = !expandedCaption }), contentAlignment = Alignment.Center) {
-                        AppIcons.Icon(AppIcons.Expand, "Expand caption", tint = ink)
+                    GlassCircle(onClick = { expandedCaption = !expandedCaption }, size = 44.dp, label = "Expand caption", ink = ink) {
+                        AppIcons.Icon(AppIcons.Expand, null, tint = ink)
                     }
                 }
 

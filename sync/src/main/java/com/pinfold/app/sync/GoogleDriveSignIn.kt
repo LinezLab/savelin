@@ -2,6 +2,7 @@ package com.pinfold.app.sync
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.result.ActivityResultLauncher
@@ -21,60 +22,99 @@ sealed interface SignInResult {
     data object Cancelled : SignInResult
 }
 
-/** Android OAuth client: identified by package name + signing certificate, no client id in the app. */
+/**
+ * Android OAuth client: identified by package name + signing certificate, no client id in the app.
+ *
+ * The launcher is registered by the host Activity before it is STARTED (see [DriveSignInHost]). One
+ * sign-in attempt owns one callback; a result is dispatched exactly once, so a late launcher result
+ * or an intent delivered to onNewIntent/onResume can never fire a stale callback.
+ */
 class GoogleDriveSignIn(private val activity: FragmentActivity) {
     private val scope = Scope("https://www.googleapis.com/auth/drive.appdata")
     private var callback: ((SignInResult) -> Unit)? = null
+    private var generation = 0
+    private var awaiting = false
 
-    // Registration is only legal before the Activity is STARTED. The host Activity creates this
-    // helper that early; the fallback keeps a late/unsafe construction from crashing the app.
     private val launcher: ActivityResultLauncher<IntentSenderRequest>? = runCatching {
         activity.registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_CANCELED) {
-                callback?.invoke(SignInResult.Cancelled)
-                return@registerForActivityResult
-            }
-            try {
-                val authorization = Identity.getAuthorizationClient(activity)
-                    .getAuthorizationResultFromIntent(result.data)
-                val token = authorization.accessToken.orEmpty()
-                callback?.invoke(SignInResult.Success(token))
-            } catch (e: ApiException) {
-                callback?.invoke(SignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", e.statusCode))
-            } catch (e: Exception) {
-                callback?.invoke(SignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", -1))
-            }
+            onLauncherResult(result.resultCode, result.data)
         }
     }.getOrNull()
 
+    private fun dispatch(result: SignInResult) {
+        val cb = callback ?: return
+        callback = null
+        awaiting = false
+        cb(result)
+    }
+
     fun signIn(onResult: (SignInResult) -> Unit) {
+        generation++
         callback = onResult
+        awaiting = true
         val target = launcher
         if (target == null) {
-            onResult(SignInResult.Failure("Sign-in is unavailable in this context", -1))
+            dispatch(SignInResult.Failure("Sign-in is unavailable in this context", -1))
             return
         }
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(scope))
             .build()
+        val mine = generation
         Identity.getAuthorizationClient(activity)
             .authorize(request)
             .addOnSuccessListener { authorization ->
+                if (mine != generation || !awaiting) return@addOnSuccessListener
                 if (authorization.hasResolution()) {
                     val pendingIntent = authorization.pendingIntent
                     if (pendingIntent != null) {
                         target.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
                     } else {
-                        onResult(SignInResult.Failure("Sign-in resolution was empty", -1))
+                        dispatch(SignInResult.Failure("Sign-in resolution was empty", -1))
                     }
                 } else {
-                    onResult(SignInResult.Success(authorization.accessToken.orEmpty()))
+                    val token = authorization.accessToken.orEmpty()
+                    if (token.isBlank()) dispatch(SignInResult.Failure("Google did not return an access token", -1))
+                    else dispatch(SignInResult.Success(token))
                 }
             }
             .addOnFailureListener { error ->
+                if (mine != generation) return@addOnFailureListener
                 val code = (error as? ApiException)?.statusCode ?: -1
-                onResult(SignInResult.Failure(error.localizedMessage ?: "Google sign-in failed", code))
+                dispatch(SignInResult.Failure(error.localizedMessage ?: "Google sign-in failed", code))
             }
+    }
+
+    private fun onLauncherResult(resultCode: Int, data: Intent?) {
+        if (!awaiting) return
+        if (resultCode == Activity.RESULT_CANCELED) {
+            dispatch(SignInResult.Cancelled)
+            return
+        }
+        try {
+            val authorization = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(data)
+            val token = authorization.accessToken.orEmpty()
+            if (token.isBlank()) dispatch(SignInResult.Failure("Google did not return an access token", -1))
+            else dispatch(SignInResult.Success(token))
+        } catch (e: ApiException) {
+            dispatch(SignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", e.statusCode))
+        } catch (e: Exception) {
+            dispatch(SignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", -1))
+        }
+    }
+
+    /** MainActivity is singleTask: a resolution may return through onNewIntent instead of the launcher. */
+    fun onNewIntent(intent: Intent?) = inspect(intent)
+
+    /** Also inspect the launching intent on resume, then clear it so it cannot fire twice. */
+    fun onResume(intent: Intent?) = inspect(intent)
+
+    private fun inspect(intent: Intent?) {
+        if (!awaiting || intent == null) return
+        val token = runCatching {
+            Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(intent).accessToken
+        }.getOrNull()
+        if (!token.isNullOrBlank()) dispatch(SignInResult.Success(token))
     }
 
     fun playServices(context: Context): Pair<Boolean, String> {
@@ -113,8 +153,7 @@ class GoogleDriveSignIn(private val activity: FragmentActivity) {
 
 /**
  * Implemented by the host Activity. The sign-in helper is created in the Activity before it is
- * STARTED, because result launchers can only be registered that early. Creating it from a composable
- * (which runs after STARTED) threw IllegalStateException on the main thread.
+ * STARTED, because result launchers can only be registered that early.
  */
 interface DriveSignInHost {
     val driveSignIn: GoogleDriveSignIn

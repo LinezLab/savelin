@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.sync.DriveSignInHost
 import com.pinfold.app.sync.SignInResult
 import com.pinfold.app.sync.SyncCrypto
@@ -52,35 +53,39 @@ fun DriveSyncScreen(viewModel: HomeViewModel) {
     var banner by remember { mutableStateOf("") }
 
     fun recordSignIn(result: SignInResult) {
-        val message: String
-        val code: Int
-        val connected: Boolean
         when (result) {
             is SignInResult.Success -> {
                 latest.setDriveToken(result.token)
-                message = "Connected"; code = 0; connected = true
+                val message = "Connected"
+                banner = message
+                latest.setSetting("driveSyncEnabled", true)
+                latest.setSetting("driveLastSignInAt", System.currentTimeMillis())
+                latest.setSetting("driveLastSignInMessage", message)
+                latest.setSetting("driveLastSignInCode", 0)
+                DiagnosticsLog.uiAction("Drive", "sign-in ok")
             }
             is SignInResult.Cancelled -> {
-                message = "Sign-in cancelled. Nothing was changed"; code = 12501; connected = false
+                banner = "Sign-in cancelled (12501). Nothing was changed."
+                DiagnosticsLog.uiAction("Drive", "sign-in cancelled 12501")
             }
             is SignInResult.Failure -> {
-                message = when {
+                val message = when {
+                    result.code == 12501 -> "Sign-in cancelled (12501). Nothing was changed."
                     result.code == 10 -> "The app is not registered with Google for this signing key. Open Sign-in checker and register this SHA-1 and package name"
                     result.code == 7 -> "No connection. Sync will retry"
                     result.message.contains("test user", true) -> "This Google account is not allowed yet. Add it as a test user in Google Cloud"
                     result.code == 403 -> "Drive access is not enabled for this app. Enable the Drive API and the app data scope"
                     result.code == 401 -> "Google access ended. Tap Reconnect"
-                    else -> result.message
+                    else -> "Sign-in failed (${result.code}): ${result.message}"
                 }
-                code = result.code
-                connected = false
+                banner = message
+                latest.setSetting("driveSyncEnabled", false)
+                latest.setSetting("driveLastSignInAt", System.currentTimeMillis())
+                latest.setSetting("driveLastSignInMessage", message)
+                latest.setSetting("driveLastSignInCode", result.code)
+                DiagnosticsLog.issue("Drive", "sign-in", "${result.code}: $message")
             }
         }
-        banner = message
-        latest.setSetting("driveSyncEnabled", connected)
-        latest.setSetting("driveLastSignInAt", System.currentTimeMillis())
-        latest.setSetting("driveLastSignInMessage", message)
-        latest.setSetting("driveLastSignInCode", code)
     }
 
     val signedIn = settings.driveSyncEnabled

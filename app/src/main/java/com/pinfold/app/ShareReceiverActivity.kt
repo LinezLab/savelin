@@ -4,7 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import android.app.Activity
+import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -12,6 +14,7 @@ import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.FetchStatus
 import com.pinfold.app.data.settings.SettingsRepository
+import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.LinkExtractor
 import com.pinfold.app.network.PlatformDetector
 import com.pinfold.app.network.UrlNormalizer
@@ -48,6 +51,7 @@ class ShareReceiverActivity : Activity() {
         val message = runBlocking(Dispatchers.IO) {
             val settings = SettingsRepository(applicationContext).settings.first()
             if (links.isEmpty()) {
+                DiagnosticsLog.issue("Share", "extract", "no web link found")
                 "No web link found"
             } else if (settings.offlineMode) {
                 save(links, source)
@@ -85,6 +89,7 @@ class ShareReceiverActivity : Activity() {
             )
             if (id > 0) {
                 val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                     .setInputData(workDataOf(LinkFetchWorker.KEY_URL to normalized))
                     .build()
                 WorkManager.getInstance(applicationContext)

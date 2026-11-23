@@ -2,6 +2,7 @@ package com.pinfold.app.network.resolvers
 
 import okhttp3.Request
 import okio.Buffer
+import java.net.URI
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import kotlin.math.min
@@ -17,11 +18,19 @@ data class FetchedResource(
 object HtmlFetcher {
     fun get(url: String, context: ResolverContext, userAgent: String = context.userAgent): Pair<String, String>? {
         val resource = fetch(url, context, userAgent) ?: return null
-        if (resource.statusCode !in 200..299) return null
+        if (resource.statusCode !in 200..299) {
+            context.onIssue("Preview", "HTTP ${resource.statusCode}", "host=${hostOf(url)}")
+            return null
+        }
         return decode(resource) to resource.finalUrl
     }
 
-    fun fetch(url: String, context: ResolverContext, userAgent: String = context.userAgent): FetchedResource? = runCatching {
+    /**
+     * Reads at most [ResolverContext.maxBodyBytes]. Chunks are appended with [okio.BufferedSource.read]
+     * rather than `readByteArray(n)`: the latter throws EOFException when a short final chunk arrives,
+     * which used to be swallowed and silently turned a working preview into an empty one.
+     */
+    fun fetch(url: String, context: ResolverContext, userAgent: String = context.userAgent): FetchedResource? = try {
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", userAgent)
@@ -33,9 +42,8 @@ object HtmlFetcher {
             val source = body.source()
             val buffer = Buffer()
             while (!source.exhausted() && buffer.size < context.maxBodyBytes) {
-                val chunk = source.readByteArray(min(4096L, context.maxBodyBytes - buffer.size))
-                if (chunk.isEmpty()) break
-                buffer.write(chunk)
+                val read = source.read(buffer, min(4096L, context.maxBodyBytes - buffer.size))
+                if (read == -1L) break
             }
             FetchedResource(
                 bytes = buffer.readByteArray(),
@@ -44,7 +52,10 @@ object HtmlFetcher {
                 statusCode = response.code,
             )
         }
-    }.getOrNull()
+    } catch (t: Throwable) {
+        context.onIssue("Preview", "fetch", "${t.javaClass.simpleName} host=${hostOf(url)}")
+        null
+    }
 
     /**
      * Charset precedence: HTTP Content-Type, then in-document <meta charset>/<meta http-equiv>, then UTF-8.
@@ -66,6 +77,9 @@ object HtmlFetcher {
         return META_CHARSET.find(head)?.groupValues?.get(1)
             ?: META_HTTP_EQUIV.find(head)?.groupValues?.get(1)
     }
+
+    private fun hostOf(url: String): String =
+        runCatching { URI.create(url).host.orEmpty() }.getOrDefault("")
 
     private val CHARSET_PARAM = Regex("""charset\s*=\s*["']?([^;"'\s]+)""", RegexOption.IGNORE_CASE)
     private val META_CHARSET = Regex("""<meta[^>]*?charset\s*=\s*["']?([A-Za-z0-9._:-]+)""", RegexOption.IGNORE_CASE)

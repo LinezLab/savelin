@@ -53,6 +53,7 @@ import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.rememberPhotoInk
 import com.pinfold.app.ui.components.rememberPhotoPreview
 import com.pinfold.app.ui.glass.GlassChip
+import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.MotionSettings
@@ -319,12 +320,13 @@ private fun BookmarkCard(
                         Text(subtitle, color = clear.onGlassSoft, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
-                Box(Modifier.size(40.dp).pressable(onClick = onMore, pressedScale = 0.86f), contentAlignment = Alignment.Center) {
-                    com.pinfold.app.ui.components.AppIcons.Icon(
-                        com.pinfold.app.ui.components.AppIcons.More,
-                        "More options",
-                        tint = clear.onGlass,
-                    )
+                GlassCircle(
+                    onClick = onMore,
+                    size = 40.dp,
+                    label = "More options",
+                    ink = clear.onGlass,
+                ) {
+                    AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
                 }
             }
         }
