@@ -26,7 +26,9 @@ class OEmbedParserTest {
 
     @Test
     fun ignoresMalformedJsonAndMissingLinks() {
-        assertEquals("", OEmbedParser.parse("not json"))
+        val empty = OEmbedParser.parse("not json")
+        assertEquals("", empty.title)
+        assertEquals("", empty.thumbnailUrl)
         assertEquals("", OEmbedParser.findJsonEndpoint("<html></html>", pageUrl))
     }
 }

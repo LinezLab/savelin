@@ -13,6 +13,9 @@ data class ResolverContext(
     val crawlerUserAgent: String = "facebookexternalhit/1.1",
     val maxBodyBytes: Long = 512L * 1024,
     val onHost: (host: String, purpose: String) -> Unit = { _, _ -> },
+    /** Injectable so resolvers can be tested with recorded bytes and no socket or Android runtime. */
+    val fetch: (url: String, context: ResolverContext, userAgent: String) -> FetchedResource? =
+        { url, context, userAgent -> HtmlFetcher.fetch(url, context, userAgent) },
 )
 
 interface Resolver {

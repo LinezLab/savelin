@@ -25,7 +25,7 @@ class UniversalResolver(
     }
 
     private fun attempt(url: String, context: ResolverContext, userAgent: String): Attempt? {
-        val resource = HtmlFetcher.fetch(url, context, userAgent) ?: return null
+        val resource = context.fetch(url, context, userAgent) ?: return null
         val contentType = resource.contentType.substringBefore(';').trim()
         val kind = ContentClassifier.kind(resource.finalUrl, contentType)
         if (kind == ContentClassifier.Kind.IMAGE || kind == ContentClassifier.Kind.MEDIA ||
@@ -58,7 +58,7 @@ class UniversalResolver(
         val endpoint = OEmbedParser.findJsonEndpoint(html, preview.url)
         if (endpoint.isBlank() || !MetadataParser.sameSite(endpoint, preview.url)) return preview
         context.onHost(MetadataParser.hostOf(endpoint), "oEmbed")
-        val resource = HtmlFetcher.fetch(endpoint, context.copy(maxBodyBytes = 64L * 1024), context.userAgent)
+        val resource = context.fetch(endpoint, context.copy(maxBodyBytes = 64L * 1024), context.userAgent)
             ?: return preview
         if (resource.statusCode !in 200..299) return preview
         val data = OEmbedParser.parse(HtmlFetcher.decode(resource))
@@ -81,7 +81,7 @@ class UniversalResolver(
         val manifest = MetadataParser.manifestUrl(html, preview.url)
         if (manifest.isBlank() || !MetadataParser.sameSite(manifest, preview.url)) return preview
         context.onHost(MetadataParser.hostOf(manifest), "manifest")
-        val resource = HtmlFetcher.fetch(manifest, context.copy(maxBodyBytes = 32L * 1024), context.userAgent)
+        val resource = context.fetch(manifest, context.copy(maxBodyBytes = 32L * 1024), context.userAgent)
             ?: return preview
         if (resource.statusCode !in 200..299) return preview
         val icon = MetadataParser.iconFromManifest(HtmlFetcher.decode(resource), resource.finalUrl)

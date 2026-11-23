@@ -1,11 +1,7 @@
 package com.pinfold.app.network.resolvers
 
 import kotlinx.coroutines.runBlocking
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Protocol
-import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,25 +10,28 @@ import org.junit.Test
 class UniversalResolverTest {
     private class Fake(val body: String, val contentType: String, val code: Int = 200)
 
-    private fun client(routes: Map<String, Fake>, requested: MutableList<String> = mutableListOf()): OkHttpClient =
-        OkHttpClient.Builder()
-            .addInterceptor(Interceptor { chain ->
-                val url = chain.request().url.toString()
-                requested += url
-                val fake = routes[url] ?: Fake("", "text/plain", 404)
-                Response.Builder()
-                    .request(chain.request())
-                    .protocol(Protocol.HTTP_1_1)
-                    .code(fake.code)
-                    .message("OK")
-                    .header("Content-Type", fake.contentType)
-                    .body(fake.body.toByteArray(Charsets.UTF_8).toResponseBody())
-                    .build()
-            })
-            .build()
+    private fun context(
+        routes: Map<String, Fake>,
+        requested: MutableList<String> = mutableListOf(),
+        onHost: (String, String) -> Unit = { _, _ -> },
+    ): ResolverContext = ResolverContext(
+        client = OkHttpClient(),
+        userAgent = "test-agent",
+        onHost = onHost,
+        fetch = { url, _, _ ->
+            requested += url
+            val fake = routes[url] ?: Fake("", "text/plain", 404)
+            FetchedResource(
+                bytes = fake.body.toByteArray(Charsets.UTF_8),
+                finalUrl = url,
+                contentType = fake.contentType,
+                statusCode = fake.code,
+            )
+        },
+    )
 
     private fun resolve(url: String, routes: Map<String, Fake>, requested: MutableList<String> = mutableListOf()) =
-        runBlocking { UniversalResolver().resolve(url, ResolverContext(client(routes, requested), "test-agent")) }
+        runBlocking { UniversalResolver().resolve(url, context(routes, requested)) }
 
     @Test
     fun directImageUsesItselfAsPreviewAndFilenameAsTitle() {
@@ -69,8 +68,9 @@ class UniversalResolverTest {
             page to Fake(Fixtures.html("oembed_page.html"), "text/html; charset=UTF-8"),
             endpoint to Fake(json, "application/json; charset=UTF-8"),
         )
-        val context = ResolverContext(client(routes), "test-agent", onHost = { host, purpose -> hosts += "$purpose:$host" })
-        val preview = runBlocking { UniversalResolver().resolve(page, context) }!!
+        val preview = runBlocking {
+            UniversalResolver().resolve(page, context(routes, onHost = { host, purpose -> hosts += "$purpose:$host" }))
+        }!!
 
         assertEquals("A quiet film", preview.title)
         assertEquals("Ada", preview.author)
@@ -94,7 +94,10 @@ class UniversalResolverTest {
         val manifest = "https://site.example.com/app.webmanifest"
         val json = """{"name":"Site","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"},{"src":"/icons/icon-512.png","sizes":"512x512"}]}"""
         val html = """<html><head><link rel="manifest" href="/app.webmanifest"></head></html>"""
-        val preview = resolve(page, mapOf(page to Fake(html, "text/html"), manifest to Fake(json, "application/manifest+json")))!!
+        val preview = resolve(
+            page,
+            mapOf(page to Fake(html, "text/html"), manifest to Fake(json, "application/manifest+json")),
+        )!!
         assertEquals("https://site.example.com/icons/icon-512.png", preview.faviconUrls.first())
     }
 }
