@@ -118,4 +118,48 @@ class PreviewFetcherTest {
         assertEquals(listOf("legacy"), calls)
         assertTrue(result.hasImage)
     }
+
+    @Test
+    fun instagramUsesLegacyChainFirstAndSkipsShelfStyle() = runBlocking {
+        val hosts = listOf(
+            "https://instagram.com/reel/ABC/?igsh=xyz",
+            "https://www.instagram.com/reel/ABC/?igsh=xyz",
+            "https://m.instagram.com/reel/ABC/?igsh=xyz",
+        )
+        hosts.forEach { url ->
+            val calls = mutableListOf<String>()
+            var shelfCalls = 0
+            val legacyPreview = primary.copy(
+                title = "Legacy title",
+                imageUrls = listOf("https://cdn.example.com/legacy.jpg"),
+                source = "legacy",
+            )
+            val fetcher = PreviewFetcher(
+                client = OkHttpClient(),
+                primaryResolver = FakeResolver("shelf-primary", primary) { shelfCalls++ },
+                legacyResolvers = listOf(FakeResolver("legacy", legacyPreview) { calls += it }),
+            )
+
+            val result = fetcher.fetch(url, "ua")
+
+            assertEquals(0, shelfCalls)
+            assertEquals(listOf("legacy"), calls)
+            assertEquals("Legacy title", result.title)
+            assertEquals(listOf("https://cdn.example.com/legacy.jpg"), result.imageUrls)
+        }
+    }
+
+    @Test
+    fun nonInstagramUsesShelfStyleFirst() = runBlocking {
+        val calls = mutableListOf<String>()
+        val fetcher = PreviewFetcher(
+            client = OkHttpClient(),
+            primaryResolver = FakeResolver("shelf-primary", primary.copy(imageUrls = emptyList())) { calls += it },
+            legacyResolvers = listOf(FakeResolver("legacy", primary.copy(source = "legacy")) { calls += it }),
+        )
+
+        fetcher.fetch("https://example.com/article", "ua")
+
+        assertEquals(listOf("shelf-primary", "legacy"), calls)
+    }
 }

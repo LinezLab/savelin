@@ -69,8 +69,11 @@ dependencies, no new repository, no JitPack artifact, no GPL code copied. Attrib
 ## Savelin integration
 
 - `ShelfStyleResolver` is the **first** step in `PreviewFetcher` (before `PlatformFastPaths` and the
-  two `OpenGraphResolver` passes). It provides both metadata and the image candidate.
-- If it yields a usable image, the legacy chain is skipped (one fetch, no duplicate requests).
+  two `OpenGraphResolver` passes) for every host **except Instagram**. Instagram links
+  (`instagram.com`, `www.instagram.com`, `m.instagram.com`, including normalized variants) use the
+  original resolver chain as the first/primary path and skip Shelf entirely.
+- If the primary step yields a usable image, the remaining chain is skipped (one fetch, no duplicate
+  requests).
 - If it yields metadata but no image — or no usable result at all — the current chain runs, including
   the mobile/crawler retry and the opt-in proxy. `merge()` prefers primary metadata and appends all
   image candidates.

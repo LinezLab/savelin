@@ -13,9 +13,11 @@ import java.net.URI
 /**
  * Resolves a URL into metadata and image candidates.
  *
- * The Shelf-style direct fetch is the FIRST step ([ShelfStyleResolver]). When it produces a usable
- * image the existing resolvers are skipped. Otherwise the current chain (platform fast paths,
- * mobile/crawler Open Graph retry and the optional user proxy) runs and its images are appended.
+ * The Shelf-style direct fetch is the FIRST step ([ShelfStyleResolver]) for every host except
+ * Instagram, which uses the original resolver chain first and skips Shelf entirely. When the
+ * primary step produces a usable image the remaining resolvers are skipped. Otherwise the current
+ * chain (platform fast paths, mobile/crawler Open Graph retry and the optional user proxy) runs and
+ * its images are appended.
  *
  * All callbacks carry a step name, a fixed outcome and a host only — never a URL or a title.
  */
@@ -30,19 +32,23 @@ class PreviewFetcher(
         val (url, context, host) = prepare(rawUrl, userAgent)
         val results = mutableListOf<Preview>()
 
-        val primary = resolveSafely(
-            primaryResolver ?: ShelfStyleResolver(
-                onAttempt = { outcome -> onBreadcrumb("shelf-attempt", outcome, host) },
-            ),
-            url,
-            context,
-            "shelf-primary",
-            host,
-        )
-        if (primary != null) results += primary
-
-        if (primary == null || primary.imageUrls.isEmpty()) {
+        if (isInstagramHost(host)) {
             runLegacy(url, context, host, proxyTemplate, results)
+        } else {
+            val primary = resolveSafely(
+                primaryResolver ?: ShelfStyleResolver(
+                    onAttempt = { outcome -> onBreadcrumb("shelf-attempt", outcome, host) },
+                ),
+                url,
+                context,
+                "shelf-primary",
+                host,
+            )
+            if (primary != null) results += primary
+
+            if (primary == null || primary.imageUrls.isEmpty()) {
+                runLegacy(url, context, host, proxyTemplate, results)
+            }
         }
         return finalize(results, url)
     }
@@ -149,5 +155,12 @@ class PreviewFetcher(
             OpenGraphResolver(userAgentOverride = MOBILE_UA),
             OpenGraphResolver(userAgentOverride = "facebookexternalhit/1.1"),
         )
+
+        internal fun isInstagramHost(host: String): Boolean {
+            val normalized = host.trim().lowercase().removeSuffix(".")
+            return normalized == "instagram.com" ||
+                normalized == "www.instagram.com" ||
+                normalized == "m.instagram.com"
+        }
     }
 }
