@@ -61,8 +61,8 @@ class ArtworkMeshTest {
             assertTrue("sample $x jumped $previous -> $current", redStep in 0..20)
             previous = current
         }
-        assertTrue(Color(out[row]).red < 32)
-        assertTrue(Color(out[row + MESH_TEX - 1]).red > 220)
+        assertTrue(((out[row] shr 16) and 0xFF) < 32)
+        assertTrue(((out[row + MESH_TEX - 1] shr 16) and 0xFF) > 220)
     }
 
     @Test
