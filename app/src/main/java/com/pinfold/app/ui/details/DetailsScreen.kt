@@ -188,8 +188,8 @@ private fun DetailsContent(
             targetState = bookmark.id,
             animationSpec = if (settings.reduceMotion) snap() else tween(360),
             label = "detailsBackground",
-        ) {
-            DetailsBackground(mode, imagePath, ambient, settings, colors)
+        ) { id ->
+            DetailsBackground(id, mode, imagePath, ambient, settings, colors)
         }
 
         Column(
@@ -494,6 +494,7 @@ private fun DetailsContent(
 
 @Composable
 private fun DetailsBackground(
+    bookmarkId: Long,
     mode: DetailsBackgroundMode,
     imagePath: String?,
     ambient: ArtworkAmbient?,
@@ -503,7 +504,7 @@ private fun DetailsBackground(
     when (mode) {
         DetailsBackgroundMode.ARTWORK -> {
             when {
-                ambient != null -> ArtworkAmbientBackground(ambient)
+                ambient != null -> ArtworkAmbientBackground(ambient, seed = bookmarkId)
                 imagePath != null -> {
                     val context = LocalContext.current
                     Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))

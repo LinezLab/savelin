@@ -244,7 +244,7 @@ fun rememberArtworkAmbient(imagePath: String?, key: Any?): ArtworkAmbient? {
  * limited to the top and bottom so the sharp artwork and the blooms stay prominent.
  */
 @Composable
-fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modifier) {
+fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modifier, seed: Long = ambient.key.hashCode().toLong()) {
     val palette = ambient.palette
     Box(modifier.fillMaxSize().background(palette.base)) {
         Image(
@@ -291,7 +291,7 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
         )
         Box(
             Modifier.fillMaxSize().drawBehind {
-                val random = java.util.Random(ambient.key.hashCode().toLong())
+                val random = java.util.Random(seed)
                 repeat(360) {
                     val x = random.nextFloat() * size.width
                     val y = random.nextFloat() * size.height
