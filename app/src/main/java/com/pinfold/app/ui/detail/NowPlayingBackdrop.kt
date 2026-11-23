@@ -80,9 +80,10 @@ private fun DrawScope.drawBlooms(blooms: List<ToneBloom>) {
 }
 
 /**
- * Apple Music style ambient: the same artwork enlarged and blurred behind the sharp hero,
+ * Full-screen ambient backdrop: the same artwork enlarged and blurred behind the sharp hero,
  * palette-derived light blooms, and a heavy image-derived diffusion at the bottom. No bars,
- * panels, cards or app-default colours.
+ * panels, cards or app-default colours. This stays behind everything; the hero bottom-edge blend is
+ * drawn above the sharp hero in DetailScreen.
  */
 @Composable
 internal fun NowPlayingBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Modifier) {
