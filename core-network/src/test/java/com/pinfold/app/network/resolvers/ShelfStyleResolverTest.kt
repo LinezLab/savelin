@@ -45,7 +45,7 @@ class ShelfStyleResolverTest {
 
         val bigImg = """<html><body><img src="big.jpg" width="640" height="480"><img src="tiny.jpg" width="32" height="32"></body></html>"""
         assertEquals(
-            "https://example.com/a/big.jpg",
+            "https://example.com/big.jpg",
             ShelfStyleResolver.parse(bigImg, "https://example.com/a").imageUrls.single(),
         )
     }
