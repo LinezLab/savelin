@@ -55,7 +55,7 @@ import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
 import com.pinfold.app.ui.home.HomeScreen
-import com.pinfold.app.ui.details.DetailsScreen
+import com.pinfold.app.ui.detail.DetailScreen
 import com.pinfold.app.ui.settings.SettingsScreen
 import com.pinfold.app.data.model.BookmarkWithTags
 @Composable
@@ -161,7 +161,7 @@ fun App(sharedText: String? = null) {
                     }
                 }
                 detail?.let { item ->
-                    DetailsScreen(item = item, viewModel = viewModel, onBack = { detail = null })
+                    DetailScreen(item = item, reduceMotion = appearance.reduceMotion, onBack = { detail = null })
                 }
                 if (appearance.topShade) {
                     val glass = GlassSettings.style

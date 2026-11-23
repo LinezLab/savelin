@@ -21,7 +21,7 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.copyDiagnosticsText
-import com.pinfold.app.ui.details.ArtworkDiagnostics
+import com.pinfold.app.ui.detail.ArtworkDiagnostics
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
