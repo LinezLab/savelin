@@ -2,6 +2,7 @@ package com.pinfold.app.ui.detail
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min

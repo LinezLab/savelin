@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -146,7 +147,7 @@ internal fun AmbientBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Mod
         if (GRAIN_ALPHA > 0f) {
             Box(Modifier.fillMaxSize().drawBehind {
                 drawRect(
-                    brush = ImageShader(grain, TileMode.Repeated, TileMode.Repeated),
+                    brush = ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated)),
                     alpha = GRAIN_ALPHA,
                 )
             })
