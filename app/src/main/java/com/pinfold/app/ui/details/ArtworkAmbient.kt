@@ -125,10 +125,16 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
     )
     val accents = mutableListOf<Color>()
     ranked.take(3).forEach { accents.add(it.second) }
-    accents.add(Color.hsv((hue + 24f) % 360f, (saturation * 1.05f).coerceIn(0.15f, 1f), (value * 1.08f).coerceIn(0.28f, 1f)))
-    accents.add(Color.hsv((hue + 336f) % 360f, (saturation * 1.05f).coerceIn(0.15f, 1f), (value * 1.08f).coerceIn(0.28f, 1f)))
-    while (accents.size < 4) accents.add(dominant)
-    return ArtworkPalette(base, dominant, accents.distinct())
+    listOf(24f, 336f, 52f, 308f).forEachIndexed { index, offset ->
+        accents.add(
+            Color.hsv(
+                (hue + offset) % 360f,
+                (saturation * (1f - index * 0.06f)).coerceIn(0.15f, 1f),
+                (value * (1.08f + index * 0.08f)).coerceIn(0.28f, 1f),
+            ),
+        )
+    }
+    return ArtworkPalette(base, dominant, accents.distinct().take(6))
 }
 
 private val ambientCache = LinkedHashMap<String, ArtworkAmbient>()
