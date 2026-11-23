@@ -203,13 +203,6 @@ private fun BookmarkCard(
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, SpringMotion.listFade()) }
     val bookmark = item.bookmark
-    val context = LocalContext.current
-    val faviconPath = run {
-        val host = runCatching {
-            java.net.URI.create(bookmark.url).host?.lowercase(java.util.Locale.ROOT)?.removePrefix("www.")
-        }.getOrNull().orEmpty()
-        if (host.isBlank()) "" else com.pinfold.app.network.image.FaviconPaths.pathFor(context, host)
-    }.takeIf { it.isNotBlank() && File(it).exists() }
     val model = imageModel()
     val preview = rememberPhotoPreview(bookmark.imagePath, bookmark.blurhash)
     val photoInk = rememberPhotoInk(preview)
@@ -257,24 +250,16 @@ private fun BookmarkCard(
                     photo = preview,
                     photoInk = photoInk,
                     icon = {
-                        if (faviconPath != null) {
-                            AsyncImage(
-                                model = faviconPath,
-                                contentDescription = sourceName,
-                                modifier = Modifier.size(14.dp).clip(CircleShape),
+                        Box(
+                            Modifier.size(14.dp).clip(CircleShape)
+                                .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                sourceName.take(1).uppercase(),
+                                color = photoInk ?: clear.ink,
+                                style = MaterialTheme.typography.labelSmall,
                             )
-                        } else {
-                            Box(
-                                Modifier.size(14.dp).clip(CircleShape)
-                                    .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    sourceName.take(1).uppercase(),
-                                    color = photoInk ?: clear.ink,
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
                         }
                     },
                 )

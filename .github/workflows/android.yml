@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        abi: [arm64-v8a, armeabi-v7a, x86_64, x86, universal]
+        abi: [universal]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -167,7 +167,7 @@ jobs:
             echo "| \`$abi\` | [$name](https://github.com/LinezLab/savelin/releases/download/$TAG/$name) | $size | \`$sum\` |" >> release-body.md
           done
           echo "" >> release-body.md
-          echo "Pick \`universal\` if unsure. \`arm64-v8a\` is for most modern phones, \`armeabi-v7a\` for older 32-bit ARM devices, and the x86 builds are for emulators." >> release-body.md
+          echo "This release ships a single universal APK that runs on every supported device." >> release-body.md
           echo "" >> release-body.md
           echo "## Changelog" >> release-body.md
           echo "" >> release-body.md
