@@ -1,5 +1,6 @@
 package com.pinfold.app.network.resolvers
 
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -31,7 +32,7 @@ class UniversalResolverTest {
             .build()
 
     private fun resolve(url: String, routes: Map<String, Fake>, requested: MutableList<String> = mutableListOf()) =
-        UniversalResolver().resolve(url, ResolverContext(client(routes, requested), "test-agent"))
+        runBlocking { UniversalResolver().resolve(url, ResolverContext(client(routes, requested), "test-agent")) }
 
     @Test
     fun directImageUsesItselfAsPreviewAndFilenameAsTitle() {
@@ -69,7 +70,7 @@ class UniversalResolverTest {
             endpoint to Fake(json, "application/json; charset=UTF-8"),
         )
         val context = ResolverContext(client(routes), "test-agent", onHost = { host, purpose -> hosts += "$purpose:$host" })
-        val preview = UniversalResolver().resolve(page, context)!!
+        val preview = runBlocking { UniversalResolver().resolve(page, context) }!!
 
         assertEquals("A quiet film", preview.title)
         assertEquals("Ada", preview.author)
