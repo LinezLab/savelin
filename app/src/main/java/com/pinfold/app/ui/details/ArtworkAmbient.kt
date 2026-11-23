@@ -2,11 +2,13 @@ package com.pinfold.app.ui.details
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.DiagnosticsLog
@@ -29,47 +32,76 @@ import com.pinfold.app.diagnostics.LogLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
+internal const val ARTWORK_LOG_TAG = "SavelinArtwork"
+
 enum class DetailsBackgroundMode { ARTWORK, THEME, GENERATED }
 
+enum class ArtworkSource { IMAGE, FALLBACK }
+
+/** One entry point for both Logcat (tag SavelinArtwork) and the redacted in-app log. */
+internal fun logArtwork(message: String, level: LogLevel = LogLevel.INFO) {
+    runCatching {
+        when (level) {
+            LogLevel.INFO -> Log.d(ARTWORK_LOG_TAG, message)
+            LogLevel.WARN -> Log.w(ARTWORK_LOG_TAG, message)
+            LogLevel.ERROR -> Log.e(ARTWORK_LOG_TAG, message)
+        }
+    }
+    DiagnosticsLog.log(level, ARTWORK_LOG_TAG, message)
+}
+
+/** Failure breadcrumb in the structured issues log as well as Logcat. */
+internal fun artworkIssue(what: String, why: String) {
+    DiagnosticsLog.issue("Artwork", what, why)
+    logArtwork("Issue what=$what why=$why", LogLevel.ERROR)
+}
+
 /**
- * The dedicated Details background setting, resolved against whether the bookmark actually has a
- * usable local image. ARTWORK is the default (fresh install and the legacy PICTURE value); it
- * degrades to THEME only when there is no image to derive colours from. Pure and device-free.
+ * ARTWORK is the unambiguous default. A missing local image is no longer a reason to fall back to
+ * the old THEME page: the caller derives a visibly different artwork-like palette instead. Legacy
+ * PICTURE/SOLID values from older installs still map to ARTWORK/THEME.
  */
+@Suppress("UNUSED_PARAMETER")
 internal fun resolveDetailsBackgroundMode(setting: String?, hasImage: Boolean): DetailsBackgroundMode {
-    val normalized = setting?.trim()?.uppercase().orEmpty()
-    val requested = when (normalized) {
+    val normalized = setting?.trim()?.uppercase(Locale.US).orEmpty()
+    return when (normalized) {
         "GENERATED" -> DetailsBackgroundMode.GENERATED
         "THEME", "SOLID" -> DetailsBackgroundMode.THEME
         else -> DetailsBackgroundMode.ARTWORK
-    }
-    return if (requested == DetailsBackgroundMode.ARTWORK && !hasImage) {
-        DetailsBackgroundMode.THEME
-    } else {
-        requested
     }
 }
 
 /** Kept high on purpose: a near-zero wash was indistinguishable from the old page. */
 internal const val BLOOM_ALPHA_PRIMARY = 0.78f
 internal const val BLOOM_ALPHA_SECONDARY = 0.56f
+internal const val ARTWORK_IMAGE_ALPHA = 0.88f
+internal const val SCRIM_TOP_ALPHA = 0.34f
+internal const val SCRIM_BOTTOM_ALPHA = 0.62f
 
 data class ArtworkPalette(
     val base: Color,
     val dominant: Color,
     val colors: List<Color>,
+    val bucketCount: Int = 0,
 )
 
 data class ArtworkAmbient(
     val key: String,
-    val blurred: ImageBitmap,
+    val blurred: ImageBitmap?,
     val palette: ArtworkPalette,
+    val source: ArtworkSource = ArtworkSource.IMAGE,
 )
+
+internal fun Color.argbHex(): String = String.format(Locale.US, "#%08X", toArgb())
+
+internal fun isEffectivelyBlackOrTransparent(color: Color): Boolean =
+    color.alpha < 0.12f || maxOf(color.red, color.green, color.blue) < 0.14f
 
 /** Pure RGB to HSV: keeps palette extraction testable without an Android runtime. */
 internal fun rgbToHsv(r: Int, g: Int, b: Int): FloatArray {
@@ -88,6 +120,17 @@ internal fun rgbToHsv(r: Int, g: Int, b: Int): FloatArray {
     val hue = if (rawHue < 0f) rawHue + 360f else rawHue
     val saturation = if (maxChannel == 0f) 0f else delta / maxChannel
     return floatArrayOf(hue, saturation, maxChannel)
+}
+
+private fun liftAccent(color: Color, fallbackHue: Float): Color {
+    if (color.alpha >= 0.95f && maxOf(color.red, color.green, color.blue) >= 0.30f) return color
+    val hsv = rgbToHsv(
+        (color.red * 255f).toInt().coerceIn(0, 255),
+        (color.green * 255f).toInt().coerceIn(0, 255),
+        (color.blue * 255f).toInt().coerceIn(0, 255),
+    )
+    val hue = if (hsv[1] < 0.12f) fallbackHue else hsv[0]
+    return Color.hsv(hue, 0.55f, 0.66f)
 }
 
 /**
@@ -149,6 +192,7 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
         ranked.add((neutral.count * 0.30f) to Color(r, g, b))
     }
     ranked.sortByDescending { it.first }
+    val bucketCount = ranked.size
 
     val dominant = ranked.firstOrNull()?.second ?: run {
         val count = max(1, opaque)
@@ -168,7 +212,7 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
         (value * 0.26f).coerceIn(0.12f, 0.34f),
     )
     val accents = mutableListOf<Color>()
-    ranked.take(3).forEach { accents.add(it.second) }
+    ranked.take(3).forEach { accents.add(liftAccent(it.second, hue)) }
     listOf(24f, 336f, 180f, 52f, 308f).forEachIndexed { index, offset ->
         accents.add(
             Color.hsv(
@@ -178,7 +222,83 @@ internal fun extractArtworkPalette(pixels: IntArray): ArtworkPalette {
             ),
         )
     }
-    return ArtworkPalette(base, dominant, accents.distinct().take(6))
+    return ArtworkPalette(base, dominant, accents.distinct().take(6), bucketCount)
+}
+
+/**
+ * Deterministic, visibly non-flat palette for bookmarks with no local preview. Derived from
+ * platform/site/seed (never from a title, caption, author or URL) so the details page is still an
+ * artwork background rather than the old flat theme page.
+ */
+internal fun fallbackPalette(platform: String, site: String, seed: Long): ArtworkPalette {
+    val basis = "$platform|$site|$seed"
+    var hash = 7L
+    for (ch in basis) hash = hash * 31L + ch.code.toLong()
+    val hue = Math.floorMod(hash, 360L).toFloat()
+    val accents = listOf(
+        Color.hsv(hue, 0.74f, 0.94f),
+        Color.hsv((hue + 148f) % 360f, 0.66f, 0.86f),
+        Color.hsv((hue + 256f) % 360f, 0.58f, 0.80f),
+        Color.hsv((hue + 52f) % 360f, 0.48f, 0.72f),
+    )
+    return ArtworkPalette(Color.hsv(hue, 0.46f, 0.22f), accents.first(), accents, bucketCount = 0)
+}
+
+internal fun fallbackAmbient(key: Any?, platform: String, site: String): ArtworkAmbient {
+    val seed = (key?.hashCode() ?: 0).toLong()
+    return ArtworkAmbient("$key|fallback", null, fallbackPalette(platform, site, seed), ArtworkSource.FALLBACK)
+}
+
+/** Last decision made for the details ambient background, safe to copy out of Settings. */
+data class ArtworkDecision(
+    val bookmarkId: Long,
+    val setting: String,
+    val mode: DetailsBackgroundMode,
+    val imageAvailable: Boolean,
+    val imageFile: String?,
+    val source: ArtworkSource?,
+    val bucketCount: Int,
+    val accents: List<String>,
+    val anyBlackOrTransparent: Boolean,
+    val composed: Boolean,
+    val crossfadeChanged: Boolean,
+) {
+    val summary: String
+        get() = "mode=${mode.name} image=$imageAvailable buckets=$bucketCount accents=${accents.size}"
+}
+
+object ArtworkDiagnostics {
+    @Volatile
+    private var lastDecision: ArtworkDecision? = null
+
+    @Synchronized
+    fun record(decision: ArtworkDecision) {
+        lastDecision = decision
+    }
+
+    @Synchronized
+    fun last(): ArtworkDecision? = lastDecision
+
+    @Synchronized
+    fun update(transform: (ArtworkDecision) -> ArtworkDecision) {
+        lastDecision?.let { lastDecision = transform(it) }
+    }
+
+    @Synchronized
+    fun format(): String {
+        val d = lastDecision ?: return "Artwork background diagnostics: no details screen visited yet."
+        return buildString {
+            appendLine("Artwork background diagnostics (redacted)")
+            appendLine("bookmarkId=${d.bookmarkId}")
+            appendLine("setting=${d.setting} resolvedMode=${d.mode.name}")
+            appendLine("imageAvailable=${d.imageAvailable} file=${d.imageFile ?: "none"}")
+            appendLine("source=${d.source?.name ?: "none"} paletteBuckets=${d.bucketCount}")
+            appendLine("accents=${d.accents.joinToString(", ")}")
+            appendLine("anyBlackOrTransparent=${d.anyBlackOrTransparent} composed=${d.composed} crossfadeChanged=${d.crossfadeChanged}")
+            append("layers: blur=$ARTWORK_IMAGE_ALPHA bloomPrimary=$BLOOM_ALPHA_PRIMARY ")
+            append("bloomSecondary=$BLOOM_ALPHA_SECONDARY scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA")
+        }
+    }
 }
 
 private val ambientCache = LinkedHashMap<String, ArtworkAmbient>()
@@ -192,67 +312,133 @@ private fun cachedAmbient(cacheKey: String, loader: () -> ArtworkAmbient?): Artw
     return loaded
 }
 
-private fun decodeScaled(path: String, maxDimension: Int): Bitmap? {
+private fun decodeScaled(path: String, maxDimension: Int, label: String): Bitmap? {
+    val name = File(path).name
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(path, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+        logArtwork(
+            "Bitmap decode FAIL label=$label file=$name reason=noBounds out=${bounds.outWidth}x${bounds.outHeight}",
+            LogLevel.WARN,
+        )
+        artworkIssue("decode", "$label reason=noBounds file=$name")
+        return null
+    }
     var sample = 1
     while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxDimension * 2) sample *= 2
     val decoded = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply {
         inSampleSize = sample
         inPreferredConfig = Bitmap.Config.ARGB_8888
-    }) ?: return null
+    })
+    if (decoded == null) {
+        logArtwork("Bitmap decode FAIL label=$label file=$name reason=fullDecodeNull sample=$sample", LogLevel.WARN)
+        artworkIssue("decode", "$label reason=fullDecodeNull file=$name")
+        return null
+    }
     val scale = min(1f, maxDimension.toFloat() / maxOf(decoded.width, decoded.height))
-    if (scale >= 1f) return decoded
-    val width = max(1, (decoded.width * scale).toInt())
-    val height = max(1, (decoded.height * scale).toInt())
-    return Bitmap.createScaledBitmap(decoded, width, height, true)
+    val result = if (scale >= 1f) {
+        decoded
+    } else {
+        val width = max(1, (decoded.width * scale).toInt())
+        val height = max(1, (decoded.height * scale).toInt())
+        Bitmap.createScaledBitmap(decoded, width, height, true)
+    }
+    logArtwork(
+        "Bitmap decode OK label=$label file=$name src=${decoded.width}x${decoded.height} sample=$sample out=${result.width}x${result.height}",
+    )
+    return result
 }
 
 private fun loadAmbient(path: String, key: String): ArtworkAmbient? {
-    val small = decodeScaled(path, 64) ?: return null
+    val small = decodeScaled(path, 64, "palette") ?: return null
     val pixels = IntArray(small.width * small.height)
     small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
     val palette = extractArtworkPalette(pixels)
-    val soft = decodeScaled(path, 112) ?: small
-    return ArtworkAmbient(key, soft.asImageBitmap(), palette)
+    val soft = decodeScaled(path, 112, "bloom") ?: small
+    val blackOrTransparent = palette.colors.any { isEffectivelyBlackOrTransparent(it) }
+    logArtwork(
+        "Palette source=IMAGE buckets=${palette.bucketCount} pixels=${pixels.size} " +
+            "accents=${palette.colors.joinToString(",") { it.argbHex() }} blackOrTransparent=$blackOrTransparent",
+    )
+    if (palette.bucketCount == 0 || palette.colors.isEmpty() || blackOrTransparent) {
+        artworkIssue("palette", "buckets=${palette.bucketCount} blackOrTransparent=$blackOrTransparent file=${File(path).name}")
+    }
+    return ArtworkAmbient(key, soft.asImageBitmap(), palette, ArtworkSource.IMAGE)
 }
 
-/** Downsamples once off the main thread and caches the result per bookmark. */
+/** Downsamples once off the main thread and always yields a usable (image or fallback) ambient. */
 @Composable
-fun rememberArtworkAmbient(imagePath: String?, key: Any?): ArtworkAmbient? {
-    var ambient by remember(key, imagePath) { mutableStateOf<ArtworkAmbient?>(null) }
-    LaunchedEffect(key, imagePath) {
+fun rememberArtworkAmbient(
+    imagePath: String?,
+    key: Any?,
+    platform: String = "",
+    site: String = "",
+): ArtworkAmbient {
+    var ambient by remember(key, imagePath, platform, site) {
+        mutableStateOf<ArtworkAmbient?>(fallbackAmbient(key, platform, site))
+    }
+    LaunchedEffect(key, imagePath, platform, site) {
         val path = imagePath
-        val loaded = if (path == null) null else withContext(Dispatchers.IO) {
-            val cacheKey = "$key|$path"
-            cachedAmbient(cacheKey) { loadAmbient(path, cacheKey) }
-        }
-        ambient = loaded
+        val fromImage = if (path != null) {
+            withContext(Dispatchers.IO) {
+                val cacheKey = "$key|$path"
+                cachedAmbient(cacheKey) { loadAmbient(path, cacheKey) }
+            }
+        } else null
+        val result = fromImage ?: fallbackAmbient(key, platform, site)
+        ambient = result
+        val name = path?.let { File(it).name } ?: "none"
+        logArtwork(
+            "Ambient resolved id=$key file=$name pathPresent=${path != null} " +
+                "fileExists=${path?.let { File(it).isFile } ?: false} source=${result.source.name} " +
+                "buckets=${result.palette.bucketCount} accents=${result.palette.colors.joinToString(",") { it.argbHex() }}",
+        )
         DiagnosticsLog.log(
             LogLevel.INFO,
             "Details/ambient",
-            "bookmark=$key image=${path?.let { File(it).name } ?: "none"} loaded=${loaded != null}",
+            "bookmark=$key image=$name source=${result.source.name} loaded=${fromImage != null}",
         )
     }
-    return ambient
+    return ambient ?: fallbackAmbient(key, platform, site)
 }
 
 /**
- * Artwork-derived ambient presentation: base colour, genuinely blurred full-bleed artwork,
- * radial blooms from the extracted palette at clearly visible alpha, and readability scrims
- * limited to the top and bottom so the sharp artwork and the blooms stay prominent.
+ * Artwork-derived ambient presentation: base colour, blurred full-bleed artwork (or a guaranteed
+ * non-flat generated gradient), radial blooms from the extracted palette at clearly visible alpha,
+ * and readability scrims limited to the top and bottom.
  */
 @Composable
-fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modifier, seed: Long = ambient.key.hashCode().toLong()) {
+fun ArtworkAmbientBackground(
+    ambient: ArtworkAmbient,
+    modifier: Modifier = Modifier,
+    seed: Long = ambient.key.hashCode().toLong(),
+) {
     val palette = ambient.palette
+    val layers = "blur=$ARTWORK_IMAGE_ALPHA bloomPrimary=$BLOOM_ALPHA_PRIMARY " +
+        "bloomSecondary=$BLOOM_ALPHA_SECONDARY scrimTop=$SCRIM_TOP_ALPHA scrimBottom=$SCRIM_BOTTOM_ALPHA"
+    DisposableEffect(ambient.key, ambient.source) {
+        logArtwork("Compose ENTER key=${ambient.key} source=${ambient.source.name} $layers")
+        ArtworkDiagnostics.update { it.copy(composed = true) }
+        onDispose {
+            logArtwork("Compose DISPOSE key=${ambient.key} source=${ambient.source.name}")
+            ArtworkDiagnostics.update { it.copy(composed = false) }
+        }
+    }
     Box(modifier.fillMaxSize().background(palette.base)) {
-        Image(
-            bitmap = ambient.blurred,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize().blur(24.dp).alpha(0.88f),
-            contentScale = ContentScale.Crop,
-        )
+        if (ambient.blurred != null) {
+            Image(
+                bitmap = ambient.blurred,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().blur(24.dp).alpha(ARTWORK_IMAGE_ALPHA),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.linearGradient(palette.colors.map { it.copy(alpha = ARTWORK_IMAGE_ALPHA) } + palette.base),
+                ),
+            )
+        }
         Box(
             Modifier.fillMaxSize().drawBehind {
                 val w = size.width
@@ -282,10 +468,10 @@ fun ArtworkAmbientBackground(ambient: ArtworkAmbient, modifier: Modifier = Modif
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = 0.34f),
+                    0f to Color.Black.copy(alpha = SCRIM_TOP_ALPHA),
                     0.20f to Color.Transparent,
                     0.62f to Color.Transparent,
-                    1f to Color.Black.copy(alpha = 0.62f),
+                    1f to Color.Black.copy(alpha = SCRIM_BOTTOM_ALPHA),
                 ),
             ),
         )

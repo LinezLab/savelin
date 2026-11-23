@@ -2,6 +2,7 @@ package com.pinfold.app.ui.details
 
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,7 +60,17 @@ class ArtworkPaletteTest {
         assertEquals(DetailsBackgroundMode.GENERATED, resolveDetailsBackgroundMode("GENERATED", true))
         assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("THEME", true))
         assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("SOLID", true))
-        assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode("ARTWORK", false))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("ARTWORK", false))
+    }
+
+    @Test
+    fun artworkModeNeverDegradesToThemeWithoutAnImage() {
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("ARTWORK", false))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(null, false))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode("PICTURE", false))
+        assertEquals(DetailsBackgroundMode.ARTWORK, resolveDetailsBackgroundMode(" artwork ", false))
+        assertEquals(DetailsBackgroundMode.GENERATED, resolveDetailsBackgroundMode("generated", false))
+        assertEquals(DetailsBackgroundMode.THEME, resolveDetailsBackgroundMode(" solid ", false))
     }
 
     @Test
@@ -77,5 +88,43 @@ class ArtworkPaletteTest {
         assertTrue(palette.colors.size >= 3)
         assertTrue(palette.colors.any { maxOf(it.red, it.green, it.blue) >= 0.2f })
         assertTrue(maxOf(palette.base.red, palette.base.green, palette.base.blue) > 0f)
+        assertTrue(palette.colors.none { isEffectivelyBlackOrTransparent(it) })
+    }
+
+    @Test
+    fun transparentAndNeutralPixelsNeverYieldBlackOrTransparentAccents() {
+        val pixels = IntArray(200) { 0x00000000 } + solid(0xFF0F0F12.toInt(), 200)
+        val palette = extractArtworkPalette(pixels)
+        assertTrue(palette.colors.isNotEmpty())
+        assertTrue(palette.colors.none { isEffectivelyBlackOrTransparent(it) })
+    }
+
+    @Test
+    fun fallbackPaletteIsDeterministicVisibleAndDifferentPerBookmark() {
+        val first = fallbackPalette("YouTube", "youtube", 11L)
+        val same = fallbackPalette("YouTube", "youtube", 11L)
+        val other = fallbackPalette("GitHub", "github", 12L)
+        assertEquals(first.colors, same.colors)
+        assertEquals(first.base, same.base)
+        assertNotEquals(first.dominant, other.dominant)
+        assertEquals(4, first.colors.size)
+        assertEquals(0, first.bucketCount)
+        assertTrue(first.colors.none { isEffectivelyBlackOrTransparent(it) })
+        assertTrue(maxOf(first.base.red, first.base.green, first.base.blue) > 0f)
+        assertTrue(first.colors.distinct().size >= 3)
+    }
+
+    @Test
+    fun fallbackAmbientHasNoBitmapAndIsNonFlat() {
+        val ambient = fallbackAmbient(42L, "Reddit", "reddit")
+        assertEquals(null, ambient.blurred)
+        assertEquals(ArtworkSource.FALLBACK, ambient.source)
+        assertEquals(4, ambient.palette.colors.size)
+        assertTrue(ambient.palette.colors.distinct().size > 1)
+    }
+
+    @Test
+    fun argbHexIsEightDigits() {
+        assertEquals("#FFD97123", Color(0xD9, 0x71, 0x23).argbHex())
     }
 }

@@ -57,7 +57,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,7 +69,6 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
-import com.pinfold.app.diagnostics.LogLevel
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
@@ -105,16 +103,51 @@ fun DetailsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val bookmark = item.bookmark
-    val imagePath = bookmark.imagePath?.takeIf { File(it).exists() }
+    val rawImagePath = bookmark.imagePath
+    val imagePath = rawImagePath?.takeIf { File(it).exists() }
     val mode = resolveDetailsBackgroundMode(settings.backgroundDetails, imagePath != null)
-    LaunchedEffect(bookmark.id, mode, imagePath) {
-        DiagnosticsLog.log(
-            LogLevel.INFO,
-            "Details/background",
-            "bookmark=" + bookmark.id + " mode=" + mode.name + " image=" + (imagePath?.let { File(it).name } ?: "none"),
+    val ambient = rememberArtworkAmbient(imagePath, bookmark.id, bookmark.platform, bookmark.siteName)
+
+    LaunchedEffect(bookmark.id, settings.backgroundDetails, mode) {
+        logArtwork("Details entered id=${bookmark.id} setting=${settings.backgroundDetails} resolvedMode=${mode.name}")
+    }
+    LaunchedEffect(bookmark.id, rawImagePath) {
+        logArtwork(
+            "Image check id=${bookmark.id} pathPresent=${rawImagePath != null} " +
+                "exists=${imagePath != null} file=${rawImagePath?.let { File(it).name } ?: "none"}",
         )
     }
-    val ambient = rememberArtworkAmbient(imagePath, bookmark.id)
+    val lastCrossfadeId = remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(bookmark.id) {
+        val previous = lastCrossfadeId.value
+        val changed = previous != null && previous != bookmark.id
+        logArtwork("Crossfade target id=${bookmark.id} previous=$previous changed=$changed")
+        ArtworkDiagnostics.update { it.copy(crossfadeChanged = changed) }
+        lastCrossfadeId.value = bookmark.id
+    }
+    LaunchedEffect(bookmark.id, mode, imagePath, ambient) {
+        val palette = ambient.palette
+        val accents = palette.colors.map { it.argbHex() }
+        val decision = ArtworkDecision(
+            bookmarkId = bookmark.id,
+            setting = settings.backgroundDetails,
+            mode = mode,
+            imageAvailable = imagePath != null,
+            imageFile = imagePath?.let { File(it).name },
+            source = ambient.source,
+            bucketCount = palette.bucketCount,
+            accents = accents,
+            anyBlackOrTransparent = palette.colors.any { isEffectivelyBlackOrTransparent(it) },
+            composed = mode == DetailsBackgroundMode.ARTWORK,
+            crossfadeChanged = false,
+        )
+        ArtworkDiagnostics.record(decision)
+        logArtwork(
+            "Decision id=${bookmark.id} mode=${mode.name} image=${imagePath != null} " +
+                "source=${ambient.source.name} buckets=${palette.bucketCount} " +
+                "accents=${accents.joinToString(",")} blackOrTransparent=${decision.anyBlackOrTransparent}",
+        )
+    }
     if (mode == DetailsBackgroundMode.ARTWORK) {
         CompositionLocalProvider(LocalClearColors provides DarkClear) {
             DetailsContent(item, viewModel, onBack, modifier, imagePath, ambient, mode)
@@ -132,7 +165,7 @@ private fun DetailsContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     imagePath: String?,
-    ambient: ArtworkAmbient?,
+    ambient: ArtworkAmbient,
     mode: DetailsBackgroundMode,
 ) {
     val context = LocalContext.current
@@ -189,7 +222,7 @@ private fun DetailsContent(
             animationSpec = if (settings.reduceMotion) snap() else tween(360),
             label = "detailsBackground",
         ) { id ->
-            DetailsBackground(id, mode, imagePath, ambient, settings, colors)
+            DetailsBackground(id, mode, ambient, settings, colors)
         }
 
         Column(
@@ -496,28 +529,12 @@ private fun DetailsContent(
 private fun DetailsBackground(
     bookmarkId: Long,
     mode: DetailsBackgroundMode,
-    imagePath: String?,
-    ambient: ArtworkAmbient?,
+    ambient: ArtworkAmbient,
     settings: com.pinfold.app.data.settings.AppSettings,
     colors: com.pinfold.app.ui.glass.theme.ClearColors,
 ) {
     when (mode) {
-        DetailsBackgroundMode.ARTWORK -> {
-            when {
-                ambient != null -> ArtworkAmbientBackground(ambient, seed = bookmarkId)
-                imagePath != null -> {
-                    val context = LocalContext.current
-                    Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))
-                    AsyncImage(
-                        model = ImageRequest.Builder(context).data(File(imagePath)).build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().alpha(0.6f),
-                    )
-                }
-                else -> Box(Modifier.fillMaxSize().background(DarkClear.wall.last()))
-            }
-        }
+        DetailsBackgroundMode.ARTWORK -> ArtworkAmbientBackground(ambient, seed = bookmarkId)
         DetailsBackgroundMode.GENERATED -> GeneratedBackground(
             Modifier.fillMaxSize(), loopMs = settings.backgroundLoopSeconds * 1000,
             animate = settings.backgroundAnimate,

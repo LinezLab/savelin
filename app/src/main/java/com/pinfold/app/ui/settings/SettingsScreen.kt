@@ -21,6 +21,7 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.copyDiagnosticsText
+import com.pinfold.app.ui.details.ArtworkDiagnostics
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
@@ -161,6 +162,24 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
                     context.copyDiagnosticsText(DiagnosticsLog.format())
                     toast = "Diagnostics copied (redacted)"
+                }
+                SettingsRow(
+                    AppIcons.Appearance,
+                    Candy.Grape,
+                    "Artwork background diagnostics",
+                    ArtworkDiagnostics.last()?.summary ?: "No details screen visited yet",
+                ) {
+                    context.copyDiagnosticsText(ArtworkDiagnostics.format())
+                    toast = "Artwork diagnostics copied (redacted)"
+                }
+                SettingsRow(
+                    AppIcons.NetworkLog,
+                    Candy.Sky,
+                    "Copy artwork diagnostics",
+                    "Last ambient decision + layer alphas",
+                ) {
+                    context.copyDiagnosticsText(ArtworkDiagnostics.format())
+                    toast = "Artwork diagnostics copied (redacted)"
                 }
                 SettingsRow(AppIcons.NetworkLog, Candy.Mint, "Copy full diagnostics", "Last crash report + events + issues") {
                     context.copyDiagnosticsText(CrashReporter.fullDiagnostics(context))
