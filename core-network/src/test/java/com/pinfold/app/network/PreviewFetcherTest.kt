@@ -23,6 +23,7 @@ class PreviewFetcherTest {
     }
 
     private val primary = Preview(
+        url = "https://example.com/article",
         title = "Primary title",
         description = "Primary description",
         imageUrls = listOf("https://cdn.example.com/primary.jpg"),

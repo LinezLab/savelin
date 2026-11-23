@@ -1,5 +1,6 @@
 package com.pinfold.app.network.resolvers
 
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,7 +60,7 @@ class ShelfStyleResolverTest {
     }
 
     @Test
-    fun triesWhatsAppThenDesktopChromeAndStopsAtFirstUsableResult() {
+    fun triesWhatsAppThenDesktopChromeAndStopsAtFirstUsableResult() = runBlocking {
         val agents = mutableListOf<String>()
         val fetcher = ShelfDocumentFetcher { url, agent ->
             agents += agent
@@ -77,7 +78,7 @@ class ShelfStyleResolverTest {
     }
 
     @Test
-    fun stopsAfterFirstAgentWhenItProducesMetadata() {
+    fun stopsAfterFirstAgentWhenItProducesMetadata() = runBlocking {
         var calls = 0
         val fetcher = ShelfDocumentFetcher { url, _ ->
             calls++
@@ -89,7 +90,7 @@ class ShelfStyleResolverTest {
     }
 
     @Test
-    fun reportsFailureReasonWithoutUrl() {
+    fun reportsFailureReasonWithoutUrl() = runBlocking {
         val outcomes = mutableListOf<String>()
         val fetcher = ShelfDocumentFetcher { _, _ -> ShelfFetchOutcome.Failure("not-html") }
         val preview = ShelfStyleResolver(fetcher, onAttempt = { outcomes += it })
