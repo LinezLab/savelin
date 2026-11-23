@@ -74,6 +74,77 @@ object Blurhash {
         return out.toString()
     }
 
+    /**
+     * Fallback for cards saved before a tiny blurred preview existed: decode the stored blurhash into
+     * a small bitmap. The caller applies the same crop and tint it would apply to a preview file.
+     */
+    fun decode(hash: String, width: Int, height: Int, punch: Float = 1f): Bitmap? {
+        if (hash.length < 6) return null
+        val sizeFlag = decode83(hash.substring(0, 1))
+        val countX = sizeFlag % 9 + 1
+        val countY = sizeFlag / 9 + 1
+        if (countX < 1 || countY < 1 || hash.length != 4 + 2 * countX * countY) return null
+        if (width < 1 || height < 1) return null
+        val dc = decode83(hash.substring(1, 5))
+        val dcR = srgbToLinear(((dc shr 16) and 0xFF) / 255f)
+        val dcG = srgbToLinear(((dc shr 8) and 0xFF) / 255f)
+        val dcB = srgbToLinear((dc and 0xFF) / 255f)
+
+        var maximum = 0f
+        for (i in 5 until hash.length step 2) maximum = max(maximum, decode83(hash.substring(i, i + 2)) / 9f)
+        val quantMax = if (maximum > 0f) maximum * punch else 1f
+
+        val factors = Array(countY) { Array(countX) { FloatArray(3) } }
+        var index = 5
+        for (y in 0 until countY) {
+            for (x in 0 until countX) {
+                if (x == 0 && y == 0) continue
+                if (index + 6 > hash.length) return null
+                factors[y][x][0] = decodeAc(decode83(hash.substring(index, index + 2)), quantMax)
+                factors[y][x][1] = decodeAc(decode83(hash.substring(index + 2, index + 4)), quantMax)
+                factors[y][x][2] = decodeAc(decode83(hash.substring(index + 4, index + 6)), quantMax)
+                index += 6
+            }
+        }
+
+        val pixels = IntArray(width * height)
+        for (j in 0 until height) {
+            for (i in 0 until width) {
+                var r = dcR
+                var g = dcG
+                var b = dcB
+                for (y in 0 until countY) {
+                    for (x in 0 until countX) {
+                        if (x == 0 && y == 0) continue
+                        val basis = (cos(Math.PI * x * i / width) * cos(Math.PI * y * j / height)).toFloat()
+                        r += basis * factors[y][x][0]
+                        g += basis * factors[y][x][1]
+                        b += basis * factors[y][x][2]
+                    }
+                }
+                pixels[j * width + i] = Color.rgb(
+                    (linearToSrgb(r) * 255f).toInt().coerceIn(0, 255),
+                    (linearToSrgb(g) * 255f).toInt().coerceIn(0, 255),
+                    (linearToSrgb(b) * 255f).toInt().coerceIn(0, 255),
+                )
+            }
+        }
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+        return bitmap
+    }
+
+    private fun decode83(value: String): Int {
+        var result = 0
+        for (c in value) result = result * 83 + BASE83.indexOf(c).let { if (it < 0) 0 else it }
+        return result
+    }
+
+    private fun decodeAc(value: Int, maximum: Float): Float {
+        val q = value / 9f
+        return sign(q) * q * q * maximum
+    }
+
     private fun encodeAc(value: Float, maximum: Float): Int {
         val quant = max(0f, min(18f, floor(sign(value) * sqrt(kotlin.math.abs(value) / maximum) * 9f + 0.5f)))
         return quant.roundToInt().coerceIn(0, 18)

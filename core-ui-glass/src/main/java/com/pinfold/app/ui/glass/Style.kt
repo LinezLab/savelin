@@ -153,10 +153,12 @@ object GlassSettings {
         if (wallpaper == Wallpaper.Custom) loadCustom(context)
         if (wallpaper == Wallpaper.Custom && customWallpaper == null) wallpaper = Wallpaper.Aurora
         MotionSettings.load(context)
+        ComponentGlass.load(context)
     }
 
     fun update(context: Context, s: GlassStyle) {
         style = s
+        ComponentGlass.invalidate()
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putFloat("blur", s.blur)
             .putFloat("refractionHeight", s.refractionHeight)
@@ -172,6 +174,7 @@ object GlassSettings {
 
     fun updateHaptics(context: Context, on: Boolean) {
         haptics = on
+        ComponentGlass.invalidate()
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("haptics", on).apply()
     }
 }

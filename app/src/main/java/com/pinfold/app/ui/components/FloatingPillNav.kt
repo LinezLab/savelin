@@ -1,7 +1,13 @@
 package com.pinfold.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,8 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,20 +27,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule
-import com.pinfold.app.ui.glass.GlassCircle
-import com.pinfold.app.ui.glass.SpringMotion
+import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.SpringMotion
+import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.clear
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
- * The dock: the Search button morphs into the search field on the active Motion spring — width, shape
- * and a content crossfade all share one value, and closing reverses the very same animation.
+ * The dock: one glass container. Search, Plus and every glyph inside are bare icons; their pressed
+ * and selected state is a shared neutral bubble drawn inside the container, never a second glass
+ * surface. The Settings circle is a separate floating object with its own single container.
  */
 @Composable
 fun FloatingPillNav(
@@ -62,7 +77,7 @@ fun FloatingPillNav(
             Modifier.align(Alignment.BottomStart).alpha(pillAlpha)
                 .width(lerp(124.dp, maxWidth, morph))
                 .height(60.dp)
-                .then(SavelinGlass.modifier(shape))
+                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, shape))
                 .clip(shape)
                 .padding(6.dp),
             contentAlignment = Alignment.Center,
@@ -75,8 +90,7 @@ fun FloatingPillNav(
                             val a = (1f - morph).coerceIn(0f, 1f)
                             alpha = a
                             val s = 0.92f + 0.08f * a
-                            scaleX = s
-                            scaleY = s
+                            scaleX = s; scaleY = s
                         }.clickable(inactive, null) {},
                         onSearchToggle, onAdd, onAddLong, colors.onGlass,
                     )
@@ -85,17 +99,13 @@ fun FloatingPillNav(
                             val a = morph.coerceIn(0f, 1f)
                             alpha = a
                             val s = 0.96f + 0.04f * a
-                            scaleX = s
-                            scaleY = s
+                            scaleX = s; scaleY = s
                         },
                         query, onQueryChange, onSearchToggle, true, colors.onGlass, colors.onGlassSoft,
                     )
                 } else {
                     SearchFieldRow(
-                        Modifier.fillMaxSize().graphicsLayer {
-                            val a = morph.coerceIn(0f, 1f)
-                            alpha = a
-                        }.clickable(inactive, null) {},
+                        Modifier.fillMaxSize().graphicsLayer { alpha = morph.coerceIn(0f, 1f) }.clickable(inactive, null) {},
                         query, onQueryChange, onSearchToggle, false, colors.onGlass, colors.onGlassSoft,
                     )
                     ButtonsRow(
@@ -103,18 +113,20 @@ fun FloatingPillNav(
                             val a = (1f - morph).coerceIn(0f, 1f)
                             alpha = a
                             val s = 0.92f + 0.08f * a
-                            scaleX = s
-                            scaleY = s
+                            scaleX = s; scaleY = s
                         },
                         onSearchToggle, onAdd, onAddLong, colors.onGlass,
                     )
                 }
             }
         }
-        Box(Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp).then(SavelinGlass.modifier(Capsule)).clip(Capsule)) {
-            GlassCircle(onClick = onSettings, onLongClick = onSettingsLong, size = 60.dp, label = "Settings", ink = colors.onGlass) {
-                AppIcons.Icon(AppIcons.Settings, "Settings", tint = colors.onGlass)
-            }
+        Box(
+            Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp)
+                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                .clip(Capsule),
+            contentAlignment = Alignment.Center,
+        ) {
+            NavGlyph(AppIcons.Settings, "Settings", onSettings, onSettingsLong, colors.onGlass, 60.dp)
         }
     }
 }
@@ -129,14 +141,10 @@ private fun ButtonsRow(
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(56.dp)) {
-            GlassCircle(onClick = onSearchToggle, onLongClick = onSearchToggle, size = 48.dp, label = "Search", ink = ink) {
-                AppIcons.Icon(AppIcons.Search, "Search", tint = ink)
-            }
+            NavGlyph(AppIcons.Search, "Search", onSearchToggle, onSearchToggle, ink, 48.dp)
         }
         Box(Modifier.size(56.dp)) {
-            GlassCircle(onClick = onAdd, onLongClick = onAddLong, size = 48.dp, label = "Add link", ink = ink) {
-                AppIcons.Icon(AppIcons.Add, "Add link", tint = ink)
-            }
+            NavGlyph(AppIcons.Add, "Add link", onAdd, onAddLong, ink, 48.dp)
         }
     }
 }
@@ -166,12 +174,48 @@ private fun SearchFieldRow(
             modifier = Modifier.weight(1f),
         )
         if (enabled && query.isNotEmpty()) {
-            GlassCircle(onClick = { onQueryChange("") }, onLongClick = { onQueryChange("") }, size = 38.dp, label = "Clear search", ink = inkSoft) {
-                AppIcons.Icon(AppIcons.Close, "Clear search", tint = inkSoft, size = 16.dp)
+            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp)
+        }
+        NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp)
+    }
+}
+
+/** A bare glyph inside a container: its press state is a shared neutral bubble drawn in-place. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NavGlyph(
+    icon: Int,
+    label: String,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
+    ink: Color,
+    size: androidx.compose.ui.unit.Dp = 48.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 22.dp,
+) {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val haptics = LocalHapticFeedback.current
+    Box(
+        Modifier.size(size)
+            .drawBehind {
+                if (pressed) {
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = if (clear.dark) 0.14f else 0.26f),
+                        cornerRadius = CornerRadius(size.minDimension / 2),
+                    )
+                }
             }
-        }
-        GlassCircle(onClick = { if (enabled) onSearchToggle() }, onLongClick = { if (enabled) onSearchToggle() }, size = 46.dp, label = "Close search", ink = ink) {
-            AppIcons.Icon(AppIcons.Close, "Close search", tint = ink)
-        }
+            .graphicsLayer { val s = if (pressed) 0.9f else 1f; scaleX = s; scaleY = s }
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                role = Role.Button,
+                onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextInsertion); onClick() },
+                onLongClick = onLongClick?.let { l -> { haptics.performHapticFeedback(HapticFeedbackType.LongPress); l() } },
+            )
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        AppIcons.Icon(icon, null, tint = ink, size = iconSize)
     }
 }

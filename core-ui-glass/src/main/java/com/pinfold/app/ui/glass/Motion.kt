@@ -145,6 +145,7 @@ object MotionSettings {
 
     fun update(context: Context, s: MotionStyle) {
         style = s
+        ComponentGlass.invalidate()
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putFloat("motion_bounce", s.bounce)
             .putFloat("motion_speed", s.speed)

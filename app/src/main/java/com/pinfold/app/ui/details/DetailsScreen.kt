@@ -8,6 +8,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -67,10 +69,15 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
+import com.pinfold.app.ui.components.rememberPhotoInk
+import com.pinfold.app.ui.components.rememberPhotoPreview
 import com.pinfold.app.ui.background.GeneratedBackground
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassChip
+import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.GlassCircle
+import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.photoThrough
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
@@ -105,6 +112,8 @@ fun DetailsScreen(
     var notes by remember(bookmark.id) { mutableStateOf(bookmark.notes) }
     var reminderText by remember(bookmark.id) { mutableStateOf("") }
     val imagePath = bookmark.imagePath?.takeIf { File(it).exists() }
+    val heroPreview = rememberPhotoPreview(imagePath, bookmark.blurhash)
+    val heroInk = rememberPhotoInk(heroPreview) ?: ink
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) viewModel.attachImage(bookmark, uri)
     }
@@ -183,27 +192,55 @@ fun DetailsScreen(
                     } else {
                         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(colors.wall)))
                     }
-                    Box(Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
-                        GlassCircle(
-                            onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                            onLongClick = { cameraMenu = true },
-                            size = 44.dp,
-                            label = "Image options",
-                            ink = ink,
-                        ) { AppIcons.Icon(AppIcons.Camera, "Image options", tint = ink) }
-                        if (cameraMenu) {
-                            com.pinfold.app.ui.components.GlassMenuOverlay(
-                                items = listOf(
-                                    GlassMenuItem(AppIcons.Refetch, "Refetch image", onClick = { viewModel.refetch(bookmark) }),
-                                    GlassMenuItem(AppIcons.CustomImage, "Choose picture", onClick = {
-                                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                    }),
-                                ) + if (bookmark.customImage) listOf(
-                                    GlassMenuItem(AppIcons.NoPreview, "Remove custom image", onClick = { viewModel.removeImage(bookmark) }),
-                                ) else emptyList(),
-                                onDismiss = { cameraMenu = false },
-                            )
+                    Row(
+                        Modifier.align(Alignment.TopStart).padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        LightGlassChip(
+                            label = bookmark.siteName.ifBlank { bookmark.platform.ifBlank { "Web" } },
+                            shape = RoundedRectangle(10.dp),
+                            photo = heroPreview,
+                            photoInk = heroInk,
+                        )
+                        if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
+                            LightGlassChip(
+                                shape = CircleShape,
+                                photo = heroPreview,
+                                photoInk = heroInk,
+                                contentDescription = "Play video",
+                            ) {
+                                AppIcons.Icon(AppIcons.Open, "Play video", tint = heroInk, size = 14.dp)
+                            }
                         }
+                    }
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).padding(12.dp).size(44.dp)
+                            .then(
+                                if (heroPreview != null) Modifier.photoThrough(heroPreview, CircleShape, clear.dark)
+                                else SavelinGlass.modifierFor(GlassComponent.CARDS, CircleShape)
+                            )
+                            .border(1.dp, clear.rim.copy(alpha = 0.7f), CircleShape)
+                            .pressable(
+                                onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                                onLongClick = { cameraMenu = true },
+                                pressedScale = 0.86f,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AppIcons.Icon(AppIcons.Camera, "Image options", tint = heroInk)
+                    }
+                    if (cameraMenu) {
+                        com.pinfold.app.ui.components.GlassMenuOverlay(
+                            items = listOf(
+                                GlassMenuItem(AppIcons.Refetch, "Refetch image", onClick = { viewModel.refetch(bookmark) }),
+                                GlassMenuItem(AppIcons.CustomImage, "Choose picture", onClick = {
+                                    pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                }),
+                            ) + if (bookmark.customImage) listOf(
+                                GlassMenuItem(AppIcons.NoPreview, "Remove custom image", onClick = { viewModel.removeImage(bookmark) }),
+                            ) else emptyList(),
+                            onDismiss = { cameraMenu = false },
+                        )
                     }
                 }
             }

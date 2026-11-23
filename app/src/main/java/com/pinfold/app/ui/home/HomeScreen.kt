@@ -48,6 +48,10 @@ import coil3.request.ImageRequest
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.GlassMenuItem
+import com.pinfold.app.ui.components.GlassMenuOverlay
+import com.pinfold.app.ui.components.rememberPhotoInk
+import com.pinfold.app.ui.components.rememberPhotoPreview
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
@@ -71,8 +75,6 @@ fun HomeScreen(
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
-    val importantFilter by viewModel.importantFilter.collectAsState()
-    val reminderFilter by viewModel.reminderFilter.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val gridState = viewModel.gridState
@@ -158,54 +160,29 @@ fun HomeScreen(
                 )
             }
         }
+    }
         quickMenu?.let { chosen ->
-            SavelinGlassDialog(
-                onDismiss = { quickMenu = null },
+            GlassMenuOverlay(
                 title = chosen.bookmark.displayTitle.ifBlank { chosen.bookmark.title },
-                dismiss = "Close",
-            ) {
-                listOf("Open", "Details", "Important", "Reminder", "Share", "Delete").forEach { action ->
-                    Text(
-                        action,
-                        color = com.pinfold.app.ui.glass.theme.clear.ink,
-                        modifier = Modifier.fillMaxWidth()
-                            .pressable(onClick = {
-                                when (action) {
-                                    "Open" -> context.startActivity(
-                                        android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)),
-                                    )
-                                    "Details" -> onOpen(chosen)
-                                    "Important" -> viewModel.toggleImportant(chosen.bookmark)
-                                    "Reminder" -> viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L)
-                                    "Share" -> {
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
-                                        }
-                                        context.startActivity(android.content.Intent.createChooser(intent, "Share"))
-                                    }
-                                    "Delete" -> viewModel.delete(chosen.bookmark)
-                                }
-                                quickMenu = null
-                            })
-                            .padding(vertical = 10.dp),
-                    )
-                }
-            }
+                onDismiss = { quickMenu = null },
+                items = listOf(
+                    GlassMenuItem(AppIcons.Open, "Open", onClick = {
+                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)))
+                    }),
+                    GlassMenuItem(AppIcons.Card, "Details", onClick = { onOpen(chosen) }),
+                    GlassMenuItem(AppIcons.Important, "Important", onClick = { viewModel.toggleImportant(chosen.bookmark) }),
+                    GlassMenuItem(AppIcons.Reminder, "Reminder", onClick = { viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L) }),
+                    GlassMenuItem(AppIcons.Share, "Share", onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, "Share"))
+                    }),
+                    GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = { viewModel.delete(chosen.bookmark) }),
+                ),
+            )
         }
-
-    }
-    if (!searchActive) {
-        Row(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 78.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            FilterChip(AppIcons.Search, "Search", searchActive) { DiagnosticsLog.uiAction("Home", "Search"); viewModel.setSearchActive(true) }
-            FilterChip(AppIcons.Important, "Important", importantFilter) { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() }
-            FilterChip(AppIcons.Reminder, "Due", reminderFilter) { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() }
-        }
-    }
 }
 }
 
@@ -226,6 +203,8 @@ private fun BookmarkCard(
     LaunchedEffect(Unit) { appear.animateTo(1f, SpringMotion.listFade()) }
     val bookmark = item.bookmark
     val model = imageModel()
+    val preview = rememberPhotoPreview(bookmark.imagePath, bookmark.blurhash)
+    val photoInk = rememberPhotoInk(preview)
     val ratio = when {
         bookmark.imageWidth > 0 && bookmark.imageHeight > 0 -> {
             val raw = bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()
@@ -261,22 +240,49 @@ private fun BookmarkCard(
             Row(
                 Modifier.fillMaxWidth().padding(6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                val sourceName = bookmark.siteName.ifBlank { bookmark.platform.ifBlank { "Web" } }
                 LightGlassChip(
-                    label = bookmark.platform.ifBlank { "Web" },
+                    label = sourceName,
                     shape = RoundedCornerShape(10.dp),
+                    photo = preview,
+                    photoInk = photoInk,
+                    icon = {
+                        Box(
+                            Modifier.size(14.dp).clip(CircleShape)
+                                .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                sourceName.take(1).uppercase(),
+                                color = photoInk ?: clear.ink,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    },
                 )
-                if (bookmark.isImportant || hasReminder) {
-                    LightGlassChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        contentDescription = "Bookmark status",
-                    ) {
-                        if (bookmark.isImportant) com.pinfold.app.ui.components.AppIcons.Icon(
-                            com.pinfold.app.ui.components.AppIcons.Important, "Important", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
-                        )
-                        if (hasReminder) com.pinfold.app.ui.components.AppIcons.Icon(
-                            com.pinfold.app.ui.components.AppIcons.Reminder, "Reminder", tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 14.dp,
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
+                        LightGlassChip(
+                            shape = CircleShape,
+                            photo = preview,
+                            photoInk = photoInk,
+                            contentDescription = "Play video",
+                        ) {
+                            AppIcons.Icon(AppIcons.Open, "Play video", tint = photoInk ?: clear.ink, size = 14.dp)
+                        }
+                    }
+                    if (bookmark.isImportant || hasReminder) {
+                        LightGlassChip(
+                            shape = CircleShape,
+                            photo = preview,
+                            photoInk = photoInk,
+                            contentDescription = "Bookmark status",
+                        ) {
+                            if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = photoInk ?: clear.ink, size = 14.dp)
+                            if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = photoInk ?: clear.ink, size = 14.dp)
+                        }
                     }
                 }
             }
@@ -335,23 +341,5 @@ private fun FallbackTile(platform: String, title: String) {
             )
             Text("No preview. Add image", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelSmall)
         }
-    }
-}
-
-@Composable
-private fun FilterChip(icon: Int, label: String, selected: Boolean, onClick: () -> Unit) {
-    GlassChip(
-        onClick = onClick,
-        height = 46.dp,
-        contentPadding = PaddingValues(horizontal = 14.dp),
-        label = label,
-        ink = clear.onGlass,
-        modifier = Modifier.border(
-            if (selected) 2.dp else 1.dp,
-            if (selected) Candy.Sky else clear.rim,
-            CircleShape,
-        ),
-    ) {
-        AppIcons.Icon(icon, label, tint = if (selected) Candy.Sky else clear.onGlass, size = 20.dp)
     }
 }

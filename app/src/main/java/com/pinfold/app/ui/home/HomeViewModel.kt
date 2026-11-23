@@ -51,6 +51,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val importantOnly = MutableStateFlow(false)
     private val reminderOnly = MutableStateFlow(false)
 
+    init {
+        viewModelScope.launch {
+            val saved = settingsRepository.settings.first()
+            importantOnly.value = saved.rememberFilters && saved.importantFilter
+            reminderOnly.value = saved.rememberFilters && saved.reminderFilter
+        }
+    }
+
     val searchActive: StateFlow<Boolean> = searchActiveState.asStateFlow()
     val navVisible: StateFlow<Boolean> = navVisibleState.asStateFlow()
     val importantFilter: StateFlow<Boolean> = importantOnly.asStateFlow()
@@ -160,10 +168,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleImportantFilter() {
         importantOnly.value = !importantOnly.value
+        viewModelScope.launch { settingsRepository.set("importantFilter", importantOnly.value) }
     }
 
     fun toggleReminderFilter() {
         reminderOnly.value = !reminderOnly.value
+        viewModelScope.launch { settingsRepository.set("reminderFilter", reminderOnly.value) }
     }
 
     fun selectTab(value: HomeTab) {
@@ -247,6 +257,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val store = ImageStore(context, HttpClientFactory.create())
         val file = java.io.File(store.pathFor(item.id))
         file.outputStream().use { it.write(bytes) }
+        store.createBlurPreview(item.id, file)
         val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
         android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
         db.bookmarkDao().updateImage(

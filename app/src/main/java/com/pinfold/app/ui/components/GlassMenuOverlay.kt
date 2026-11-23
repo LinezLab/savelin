@@ -1,6 +1,11 @@
 package com.pinfold.app.ui.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,22 +13,34 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.floatingLayer
+import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.GlassOverlay
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
-import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.revealRow
 import com.pinfold.app.ui.glass.rememberMenuRow
 import com.pinfold.app.ui.glass.rememberSpringAppear
@@ -33,19 +50,25 @@ import com.pinfold.app.ui.glass.theme.clear
 data class GlassMenuItem(val icon: Int, val label: String, val onClick: () -> Unit, val destructive: Boolean = false)
 
 /**
- * An in-screen menu in the global glass vocabulary: it grows out of its trigger on the active Motion
- * spring, its rows arrive one after another, and it folds back into the trigger when dismissed —
- * including a tap-away or Back. Every part is a draw-time layer, never a layout change.
+ * A menu in the same glass vocabulary as a button: one live-glass container in the overlay host, a
+ * small title header and rows that are themselves buttons with a shared press bubble. No Close button
+ * and no opaque panel; a tap outside, Back or a row all dismiss it.
  */
 @Composable
-fun GlassMenuOverlay(items: List<GlassMenuItem>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val ink = clear.onGlass
+fun GlassMenuOverlay(
+    items: List<GlassMenuItem>,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+) {
+    val ink = SavelinGlass.ink
     GlassOverlay(animatesOut = true) {
+        BackHandler(onBack = onDismiss)
         val appear = rememberSpringAppear()
         Box(modifier.fillMaxSize().zIndex(30f)) {
             Box(Modifier.fillMaxSize().clickable(onClick = onDismiss))
             Column(
-                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp).fillMaxWidth(0.7f)
+                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp).fillMaxWidth(0.78f)
                     .floatingLayer {
                         val p = appear.value.coerceIn(0f, 1f)
                         val s = 0.6f + 0.4f * p
@@ -54,28 +77,62 @@ fun GlassMenuOverlay(items: List<GlassMenuItem>, onDismiss: () -> Unit, modifier
                         alpha = p
                         transformOrigin = TransformOrigin(1f, 1f)
                     }
-                    .then(SavelinGlass.popupModifier(RoundedRectangle(18.dp)))
-                    .padding(8.dp),
+                    .then(SavelinGlass.modifierFor(GlassComponent.POPUPS, RoundedRectangle(24.dp)))
+                    .padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                if (title != null) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ink.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
                 items.forEachIndexed { i, entry ->
-                    val row = rememberMenuRow(i)
-                    val tint = if (entry.destructive) Candy.Tomato else ink
-                    Row(
-                        Modifier.fillMaxWidth().revealRow(row).height(48.dp)
-                            .pressable(onClick = {
-                                entry.onClick()
-                                onDismiss()
-                            })
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppIcons.Icon(entry.icon, null, tint = tint, size = 20.dp)
-                        Spacer(Modifier.size(12.dp))
-                        Text(entry.label, color = tint)
-                    }
+                    MenuRow(entry, ink, i, onDismiss)
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MenuRow(entry: GlassMenuItem, ink: Color, index: Int, onDismiss: () -> Unit) {
+    val row = rememberMenuRow(index)
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val haptics = LocalHapticFeedback.current
+    val tint = if (entry.destructive) Candy.Tomato else ink
+    Row(
+        Modifier.fillMaxWidth().revealRow(row).heightIn(min = 48.dp)
+            .drawBehind {
+                if (pressed) {
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = if (clear.dark) 0.12f else 0.24f),
+                        cornerRadius = CornerRadius(18.dp.toPx()),
+                    )
+                }
+            }
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                role = Role.Button,
+                onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextInsertion)
+                    entry.onClick()
+                    onDismiss()
+                },
+            )
+            .semantics { contentDescription = entry.label }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcons.Icon(entry.icon, null, tint = tint, size = 20.dp)
+        Spacer(Modifier.size(12.dp))
+        Text(entry.label, color = tint, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

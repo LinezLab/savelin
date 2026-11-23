@@ -61,6 +61,11 @@ data class AppSettings(
     val privateVault: Boolean = false,
     val blockScreenshots: Boolean = false,
     val iconLabels: String = "ICONS_ONLY",
+    val rememberFilters: Boolean = false,
+    val importantFilter: Boolean = false,
+    val reminderFilter: Boolean = false,
+    val chipEffect: String = "LIGHT",
+    val componentGlass: String = "",
     val performanceMode: String = "AUTO",
     val immersiveMode: Boolean = false,
     val adaptiveLuminance: Boolean = false,
@@ -145,6 +150,11 @@ class SettingsRepository(private val context: Context) {
             privateVault = p[Keys.privateVault] ?: false,
             blockScreenshots = p[Keys.blockScreenshots] ?: false,
             iconLabels = p[Keys.iconLabels] ?: "ICONS_ONLY",
+            rememberFilters = p[Keys.rememberFilters] ?: false,
+            importantFilter = p[Keys.importantFilter] ?: false,
+            reminderFilter = p[Keys.reminderFilter] ?: false,
+            chipEffect = p[Keys.chipEffect] ?: "LIGHT",
+            componentGlass = p[Keys.componentGlass] ?: "",
             performanceMode = p[Keys.performanceMode] ?: "AUTO",
             immersiveMode = p[Keys.immersiveMode] ?: false,
             adaptiveLuminance = p[Keys.adaptiveLuminance] ?: false,
@@ -283,6 +293,11 @@ class SettingsRepository(private val context: Context) {
         val privateVault = booleanPreferencesKey("privateVault")
         val blockScreenshots = booleanPreferencesKey("blockScreenshots")
         val iconLabels = stringPreferencesKey("iconLabels")
+        val rememberFilters = booleanPreferencesKey("rememberFilters")
+        val importantFilter = booleanPreferencesKey("importantFilter")
+        val reminderFilter = booleanPreferencesKey("reminderFilter")
+        val chipEffect = stringPreferencesKey("chipEffect")
+        val componentGlass = stringPreferencesKey("componentGlass")
         val performanceMode = stringPreferencesKey("performanceMode")
         val immersiveMode = booleanPreferencesKey("immersiveMode")
         val adaptiveLuminance = booleanPreferencesKey("adaptiveLuminance")

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import com.pinfold.app.ui.glass.ComponentGlass
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +44,7 @@ import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.GlassStage
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.components.CrashReportNotice
+import com.pinfold.app.ui.components.FilterRail
 import com.pinfold.app.ui.components.FloatingPillNav
 import com.pinfold.app.ui.background.effectiveBackgroundFps
 import com.pinfold.app.ui.background.rememberAppInForeground
@@ -66,6 +69,7 @@ fun App(sharedText: String? = null) {
     val navVisible by viewModel.navVisible.collectAsState()
     val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
+    val context = LocalContext.current
     val foreground = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
     val backgroundCovered = tab == HomeTab.SETTINGS || detail != null || showAdd
@@ -81,6 +85,9 @@ fun App(sharedText: String? = null) {
     // every spring, pop-up and press in the app swaps to its short fade in the same frame.
     LaunchedEffect(appearance.reduceMotion) {
         MotionSettings.updateReduceMotion(appearance.reduceMotion)
+    }
+    LaunchedEffect(appearance.chipEffect) {
+        ComponentGlass.setChipEffect(context, appearance.chipEffect)
     }
     LaunchedEffect(tab, settingsPage, detail?.bookmark?.id) {
         DiagnosticsLog.uiAction("Nav", "screen=" + when {
@@ -199,6 +206,15 @@ fun App(sharedText: String? = null) {
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
+            val dueCount = viewModel.reminderIds.collectAsState().value.size
+            FilterRail(
+                important = viewModel.importantFilter.collectAsState().value,
+                due = viewModel.reminderFilter.collectAsState().value,
+                dueCount = dueCount,
+                visible = navVisible && detail == null && !showAdd && tab != HomeTab.SETTINGS && !searchActive,
+                onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
+                onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
+            )
         }
     )
 }

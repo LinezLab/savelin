@@ -34,6 +34,7 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassDropdown
 import com.pinfold.app.ui.components.copyDiagnosticsText
+import com.pinfold.app.ui.settings.ComponentsSection
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
@@ -62,6 +63,14 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     val motionOptions = MotionStyle.Presets.map { it.label }.let { if (it.contains(motionName)) it else it + motionName }
 
     SettingsScaffold("Liquid glass & motion", onBack = viewModel::closeSettingsPage) {
+        ComponentsSection(viewModel)
+        SettingsSection("FILTERS") {
+            SettingsCard {
+                SettingsRow(AppIcons.Filter, Candy.Mint, "Remember filters", "Keep Important and Due on restart", trailing = {
+                    GlassSwitch(settings.rememberFilters) { viewModel.setSetting("rememberFilters", it) }
+                })
+            }
+        }
         SettingsCard {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassChip(onClick = {}, height = 40.dp) { Text("Press me", color = clear.onGlass) }

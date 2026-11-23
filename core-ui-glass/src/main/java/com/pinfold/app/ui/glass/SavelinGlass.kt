@@ -2,6 +2,7 @@ package com.pinfold.app.ui.glass
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -111,6 +114,31 @@ object SavelinGlass {
             scaleByStyle = false,
         )
     }
+
+    /** The canonical container modifier for a style group: every value comes from the resolver. */
+    
+    @Composable
+    fun modifierFor(
+        component: GlassComponent,
+        shape: Shape = Capsule,
+        wash: Color? = null,
+    ): Modifier {
+        val s = ComponentGlass.resolve(component)
+        val base = wash ?: SavelinGlass.wash
+        val neutral = when (s.tint) {
+            TintChoice.WHITE -> Color.White
+            TintChoice.BLACK -> Color.Black
+            TintChoice.AUTOMATIC -> base
+        }
+        return Modifier.glass(
+            shape = shape,
+            wash = neutral.copy(alpha = (base.alpha * s.tintOpacity * s.opacity).coerceIn(0f, 1f)),
+            blur = 8.dp * s.blur,
+            lensHeight = 16.dp * s.refractionHeight,
+            lensAmount = 24.dp * s.refractionAmount,
+            scaleByStyle = false,
+        )
+    }
 }
 
 /** The nav pill's glass geometry, in dp, read from the active preset. */
@@ -136,22 +164,35 @@ fun LightGlassChip(
     label: String? = null,
     contentDescription: String? = null,
     icon: (@Composable () -> Unit)? = null,
+    photo: ImageBitmap? = null,
+    photoInk: Color? = null,
     content: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val desc = contentDescription
+    val style = ComponentGlass.resolve(GlassComponent.CHIPS)
+    val resolvedInk = photoInk ?: SavelinGlass.ink
+    val surface = if (photo != null && style.photoThrough) {
+        val photoSurface = Modifier.photoThrough(photo, shape, clear.dark)
+        if (style.chipEffect == "FULL") photoSurface.then(SavelinGlass.modifierFor(GlassComponent.CHIPS, shape)) else photoSurface
+    } else {
+        SavelinGlass.modifierFor(GlassComponent.CHIPS, shape)
+    }
     Row(
         modifier
-            .then(SavelinGlass.modifier(shape))
+            .then(surface)
+            .border(1.dp, clear.rim.copy(alpha = 0.7f), shape)
             .padding(horizontal = 8.dp, vertical = 3.dp)
             .then(if (desc != null) Modifier.semantics { this.contentDescription = desc } else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        icon?.invoke()
-        if (label != null) {
-            Text(label, color = SavelinGlass.ink, style = ClearType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        CompositionLocalProvider(LocalGlassInk provides resolvedInk) {
+            icon?.invoke()
+            if (label != null) {
+                Text(label, color = resolvedInk, style = ClearType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            content?.invoke(this)
         }
-        content?.invoke(this)
     }
 }
 
