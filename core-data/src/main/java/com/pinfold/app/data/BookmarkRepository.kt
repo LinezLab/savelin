@@ -13,6 +13,7 @@ class BookmarkRepository(
     private val tags: TagDao,
 ) {
     fun observeAll(): Flow<List<BookmarkWithTags>> = bookmarks.observeAll()
+    fun observePrivate(): Flow<List<BookmarkWithTags>> = bookmarks.observePrivate()
     fun observeImportant(): Flow<List<BookmarkWithTags>> = bookmarks.observeImportant()
     fun observeArchived(): Flow<List<BookmarkWithTags>> = bookmarks.observeArchived()
     fun search(query: String): Flow<List<BookmarkWithTags>> = bookmarks.search(sanitizeFts(query))
@@ -41,6 +42,8 @@ class BookmarkRepository(
     }
 
     suspend fun delete(id: Long) = bookmarks.delete(id)
+
+    suspend fun setPrivate(id: Long, value: Boolean) = bookmarks.setPrivate(id, value)
 
     private fun sanitizeFts(query: String): String {
         val words = query.trim().lowercase().split(Regex("\\s+"))

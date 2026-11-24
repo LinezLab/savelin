@@ -17,7 +17,11 @@ interface BookmarkDao {
     fun observeAll(): Flow<List<BookmarkWithTags>>
 
     @Transaction
-    @Query("SELECT * FROM bookmarks WHERE isImportant = 1 AND isArchived = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM bookmarks WHERE isPrivate = 1 AND isArchived = 0 ORDER BY createdAt DESC")
+    fun observePrivate(): Flow<List<BookmarkWithTags>>
+
+    @Transaction
+    @Query("SELECT * FROM bookmarks WHERE isImportant = 1 AND isArchived = 0 AND isPrivate = 0 ORDER BY createdAt DESC")
     fun observeImportant(): Flow<List<BookmarkWithTags>>
 
     @Transaction
@@ -28,7 +32,7 @@ interface BookmarkDao {
     @Query("""
         SELECT b.* FROM bookmarks_fts
         JOIN bookmarks b ON b.rowid = bookmarks_fts.rowid
-        WHERE bookmarks_fts MATCH :query AND b.isArchived = 0
+        WHERE bookmarks_fts MATCH :query AND b.isArchived = 0 AND b.isPrivate = 0
         ORDER BY b.createdAt DESC
     """)
     fun search(query: String): Flow<List<BookmarkWithTags>>
@@ -71,4 +75,7 @@ interface BookmarkDao {
 
     @Query("UPDATE bookmarks SET isArchived = :value, updatedAt = :now WHERE id = :id")
     suspend fun setArchived(id: Long, value: Boolean, now: Long = System.currentTimeMillis())
+
+    @Query("UPDATE bookmarks SET isPrivate = :value, updatedAt = :now WHERE id = :id")
+    suspend fun setPrivate(id: Long, value: Boolean, now: Long = System.currentTimeMillis())
 }

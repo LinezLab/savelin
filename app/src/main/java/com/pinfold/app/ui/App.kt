@@ -84,6 +84,9 @@ fun App(sharedText: String? = null, clipboardShare: Pair<String, Long>? = null) 
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
     }
+    LaunchedEffect(appearance.privateVault) {
+        if (appearance.privateVault) locked = true
+    }
     LaunchedEffect(Unit) {
         splashItem = viewModel.randomWithImage()
     }

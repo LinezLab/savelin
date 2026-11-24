@@ -23,6 +23,7 @@ import com.pinfold.app.work.LinkFetchWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -68,9 +69,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .combine(importantOnly) { reminders, _ -> reminders.map { it.bookmarkId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    private val baseItems = query.debounce(150)
-        .flatMapLatest { text ->
-            if (text.isBlank()) repository.observeAll() else repository.search(text)
+    private val baseItems = combine(query.debounce(150), settings) { text, config -> text to config.privateVault }
+        .flatMapLatest { (text, vaultOnly) ->
+            when {
+                text.isNotBlank() -> repository.search(text)
+                vaultOnly -> repository.observePrivate()
+                else -> repository.observeAll()
+            }
         }
 
     val items: StateFlow<List<BookmarkWithTags>> = combine(
@@ -169,6 +174,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleImportant(item: Bookmark) = viewModelScope.launch {
         db.bookmarkDao().setImportant(item.id, !item.isImportant)
     }
+
+    fun togglePrivate(item: Bookmark) = viewModelScope.launch {
+        repository.setPrivate(item.id, !item.isPrivate)
+    }
+
+    fun observePrivate(): Flow<List<BookmarkWithTags>> = repository.observePrivate()
 
     fun delete(item: Bookmark) = viewModelScope.launch {
         ImageStore(getApplication(), HttpClientFactory.create()).remove(item.id)

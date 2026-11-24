@@ -426,6 +426,10 @@ fun DetailScreen(
                             else viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
                         },
                     ),
+                    GlassMenuItem(AppIcons.Hide, if (bookmark.isPrivate) "Unmark private" else "Mark private", onClick = {
+                        viewModel.togglePrivate(bookmark)
+                        menuOpen = false
+                    }),
                     GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = {
                         viewModel.delete(bookmark)
                         onBack()
