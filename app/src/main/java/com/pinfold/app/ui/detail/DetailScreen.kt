@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +66,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -97,11 +101,17 @@ internal const val SWIPE_HEIGHT_FRACTION = 0.15f
 internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
 internal const val METADATA_BOTTOM_FRACTION = 0.35f
+internal const val DESCRIPTION_STARTS_EXPANDED = true
+internal const val DESCRIPTION_DISSOLVE_EDGE_FRACTION = 0.1f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
-internal val METADATA_SECTION_GAP: Dp = 0.dp
+internal val METADATA_SECTION_GAP: Dp = 3.dp
 internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
+internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
+internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Overlay
+internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
+internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -157,6 +167,13 @@ internal fun collapsedMaxLines(expanded: Boolean): Int = descriptionMaxLines(exp
 
 internal fun descriptionOnly(bookmark: Bookmark): String = bookmark.description.trim()
 
+internal fun descriptionDissolveStops(): Array<Pair<Float, Color>> = arrayOf(
+    0f to Color.Transparent,
+    DESCRIPTION_DISSOLVE_EDGE_FRACTION to Color.Black,
+    1f - DESCRIPTION_DISSOLVE_EDGE_FRACTION to Color.Black,
+    1f to Color.Transparent,
+)
+
 internal fun formattedCreatedAt(epochMillis: Long): String = runCatching {
     val pattern = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
     LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault()).format(pattern)
@@ -207,7 +224,7 @@ fun DetailScreen(
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
     var titleExpanded by remember { mutableStateOf(false) }
-    var descriptionExpanded by remember { mutableStateOf(false) }
+    var descriptionExpanded by remember { mutableStateOf(DESCRIPTION_STARTS_EXPANDED) }
     var editTitle by remember { mutableStateOf("") }
     var editDescription by remember { mutableStateOf("") }
     var editNotes by remember { mutableStateOf("") }
@@ -320,11 +337,11 @@ fun DetailScreen(
             }
         }
 
-        val ink = clear.onGlass
         Row(
             Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp)
+                .padding(vertical = BOTTOM_BUTTON_VERTICAL_MARGIN)
                 .fillMaxWidth()
                 .padding(horizontal = METADATA_PANEL_SIDE_MARGIN),
             verticalAlignment = Alignment.CenterVertically,
@@ -335,25 +352,16 @@ fun DetailScreen(
                 label = "Back",
                 onClick = onBack,
             )
-            Text(
-                text = "Open",
-                color = ink,
-                style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                modifier = Modifier.combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    role = Role.Button,
-                    onClick = {
-                        DiagnosticsLog.uiAction("Detail", "Open link")
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
-                    },
-                    onLongClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
-                        copyToast = true
-                    },
-                ).semantics { contentDescription = "Open link, long press to copy" },
+            OverlayOpenText(
+                onClick = {
+                    DiagnosticsLog.uiAction("Detail", "Open link")
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
+                },
+                onLongClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
+                    copyToast = true
+                },
             )
             BareGlyph(
                 icon = AppIcons.More,
@@ -444,9 +452,38 @@ private fun DetailTitleRow(
             icon = AppIcons.Share,
             label = "Share",
             onClick = onShare,
-            size = 32.dp,
-            iconSize = 17.dp,
         )
+    }
+}
+
+@Composable
+private fun OverlayOpenText(
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val measurer = rememberTextMeasurer()
+    val style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold, color = Color.White)
+    val textLayout = remember(measurer, style) { measurer.measure("Open", style = style, maxLines = 1) }
+    val density = LocalDensity.current
+    val textWidth = with(density) { textLayout.size.width.toDp() }
+    val textHeight = with(density) { textLayout.size.height.toDp() }
+    Box(
+        Modifier
+            .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .semantics { contentDescription = "Open link, long press to copy" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(textWidth, textHeight)) {
+            drawText(textLayout, color = Color.White, blendMode = OPEN_TEXT_BLEND_MODE)
+        }
     }
 }
 
@@ -507,6 +544,18 @@ private fun ColumnScope.DetailMetadataBody(
                 .padding(top = METADATA_SECTION_GAP)
                 .weight(1f, fill = false)
                 .then(scrollModifier)
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colorStops = descriptionDissolveStops(),
+                            startY = 0f,
+                            endY = size.height,
+                        ),
+                        blendMode = BlendMode.DstIn,
+                    )
+                }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -539,8 +588,8 @@ private fun BareGlyph(
     label: String,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
-    size: Dp = 44.dp,
-    iconSize: Dp = 20.dp,
+    size: Dp = DETAIL_GLYPH_BUTTON_SIZE,
+    iconSize: Dp = DETAIL_GLYPH_ICON_SIZE,
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()

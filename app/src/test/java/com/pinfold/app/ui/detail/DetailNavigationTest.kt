@@ -1,5 +1,7 @@
 package com.pinfold.app.ui.detail
 
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.data.model.Bookmark
 import org.junit.Assert.assertEquals
@@ -110,7 +112,7 @@ class DetailNavigationTest {
     @Test
     fun metadataBodyFitsBetweenTitleAnchorAndBottomActions() {
         assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
-        assertEquals(0.dp, METADATA_SECTION_GAP)
+        assertEquals(3.dp, METADATA_SECTION_GAP)
         val bottomOffset = metadataBottomOffset(800.dp)
         val bodyMaxHeight = maxOf(0.dp, bottomOffset - DETAIL_ACTIONS_RESERVED_HEIGHT)
         assertEquals(212.dp, bodyMaxHeight)
@@ -118,9 +120,48 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun metadataSectionGapIsZeroForContiguousFlow() {
-        assertEquals(0f, metadataSectionGap(), 0f)
-        assertEquals(0.dp, METADATA_SECTION_GAP)
+    fun metadataSectionGapIsThreeDpBetweenSections() {
+        assertEquals(3f, metadataSectionGap(), 0f)
+        assertEquals(3.dp, METADATA_SECTION_GAP)
+    }
+
+    @Test
+    fun descriptionStartsExpandedOnEnteringDetail() {
+        assertTrue(DESCRIPTION_STARTS_EXPANDED)
+        assertEquals(Int.MAX_VALUE, descriptionMaxLines(DESCRIPTION_STARTS_EXPANDED))
+        assertEquals(3, descriptionMaxLines(!DESCRIPTION_STARTS_EXPANDED))
+    }
+
+    @Test
+    fun bottomButtonRowAddsFourDpVerticalMargin() {
+        assertEquals(4.dp, BOTTOM_BUTTON_VERTICAL_MARGIN)
+        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+    }
+
+    @Test
+    fun openLabelUsesOverlayBlendAgainstBackdrop() {
+        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+    }
+
+    @Test
+    fun descriptionDissolveFadesOnlyInsideTopAndBottomEdges() {
+        assertEquals(0.1f, DESCRIPTION_DISSOLVE_EDGE_FRACTION, 0f)
+        val stops = descriptionDissolveStops()
+        assertEquals(4, stops.size)
+        assertEquals(0f, stops[0].first, 0f)
+        assertEquals(Color.Transparent, stops[0].second)
+        assertEquals(0.1f, stops[1].first, 0f)
+        assertEquals(Color.Black, stops[1].second)
+        assertEquals(0.9f, stops[2].first, 0f)
+        assertEquals(Color.Black, stops[2].second)
+        assertEquals(1f, stops[3].first, 0f)
+        assertEquals(Color.Transparent, stops[3].second)
+    }
+
+    @Test
+    fun shareGlyphMatchesBackAndMoreGlyphSizes() {
+        assertEquals(44.dp, DETAIL_GLYPH_BUTTON_SIZE)
+        assertEquals(20.dp, DETAIL_GLYPH_ICON_SIZE)
     }
 
     @Test
