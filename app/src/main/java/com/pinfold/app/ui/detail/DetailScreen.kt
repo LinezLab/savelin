@@ -7,31 +7,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,25 +19,48 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -68,22 +68,36 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.data.model.Tag
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
-import com.pinfold.app.ui.glass.GlassCircle
+import com.pinfold.app.ui.glass.Capsule
+import com.pinfold.app.ui.glass.Feel
+import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LightGlassChip
+import com.pinfold.app.ui.glass.LocalHaptics
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
 import java.io.File
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 internal const val HERO_BOTTOM_DISSOLVE_FRACTION = 0.42f
 internal const val SWIPE_MIN_THRESHOLD_PX = 96f
 internal const val SWIPE_HEIGHT_FRACTION = 0.15f
+internal const val HASHTAG_LIMIT = 12
+internal const val COLLAPSED_TITLE_LINES = 2
+internal const val COLLAPSED_DESCRIPTION_LINES = 3
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -116,6 +130,43 @@ internal fun fallbackMetadataLines(bookmark: Bookmark): List<String> {
     return lines
 }
 
+internal fun metadataTopOffset(heroHeight: Dp, gap: Dp): Dp = heroHeight + gap
+
+internal fun collapsedMaxLines(expanded: Boolean): Int =
+    if (expanded) Int.MAX_VALUE else COLLAPSED_DESCRIPTION_LINES
+
+internal fun hashtagPills(bookmark: Bookmark, tags: List<Tag>): List<String> {
+    val unique = LinkedHashMap<String, String>()
+    fun add(raw: String) {
+        val bare = raw.trim().trimStart('#').trim()
+        if (bare.isEmpty()) return
+        val label = "#$bare"
+        unique.putIfAbsent(label.lowercase(Locale.getDefault()), label)
+    }
+    bookmark.hashtags.split(',').forEach(::add)
+    tags.forEach { add(it.name) }
+    return unique.values.take(HASHTAG_LIMIT)
+}
+
+internal fun formattedCreatedAt(epochMillis: Long): String = runCatching {
+    val pattern = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault()).format(pattern)
+}.getOrDefault("")
+
+internal data class DetailStat(val icon: Int, val value: String)
+
+internal fun detailStats(bookmark: Bookmark): List<DetailStat> {
+    val stats = mutableListOf<DetailStat>()
+    val posted = bookmark.postedAt.trim().ifBlank { formattedCreatedAt(bookmark.createdAt) }
+    if (posted.isNotBlank()) stats.add(DetailStat(AppIcons.DateTime, posted))
+    val likes = bookmark.likesText.trim()
+    if (likes.isNotBlank()) stats.add(DetailStat(AppIcons.Likes, likes))
+    val comments = bookmark.commentsText.trim()
+    if (comments.isNotBlank()) stats.add(DetailStat(AppIcons.Comments, comments))
+    return stats
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DetailScreen(
     item: BookmarkWithTags,
@@ -146,6 +197,8 @@ fun DetailScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
+    var titleExpanded by remember { mutableStateOf(false) }
+    var descriptionExpanded by remember { mutableStateOf(false) }
     var editTitle by remember { mutableStateOf("") }
     var editDescription by remember { mutableStateOf("") }
     var editNotes by remember { mutableStateOf("") }
@@ -193,6 +246,9 @@ fun DetailScreen(
                         }
                     }
                 }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { viewModel.toggleImportant(bookmark) })
             },
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -211,88 +267,75 @@ fun DetailScreen(
                 }
             }
             SharpHero(path, themeFloor, heroHeight, heroScale, context)
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = metadataTopOffset(heroHeight, 12.dp))
+                    .padding(bottom = 96.dp),
+            ) {
+                DetailMetadata(
+                    item = item,
+                    titleExpanded = titleExpanded,
+                    onToggleTitle = { titleExpanded = !titleExpanded },
+                    descriptionExpanded = descriptionExpanded,
+                    onToggleDescription = { descriptionExpanded = !descriptionExpanded },
+                    onShare = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, bookmark.url)
+                        }
+                        context.startActivity(Intent.createChooser(send, "Share"))
+                    },
+                )
+            }
         }
 
+        val ink = clear.onGlass
         Box(
-            Modifier.align(Alignment.TopStart)
-                .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-                .padding(16.dp)
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.24f))
-                .clickable(onClick = onBack, onClickLabel = "Back"),
+            Modifier.align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
+                .widthIn(min = 280.dp)
+                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                .clip(Capsule),
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(Modifier.size(22.dp)) { drawBackChevron() }
-        }
-
-        DetailMetadata(
-            item = item,
-            modifier = Modifier.align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 20.dp, end = 84.dp, bottom = 88.dp),
-        )
-
-        Row(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                DetailCircle(onClick = onBack, label = "Back", icon = AppIcons.Back)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                BareGlyph(
+                    icon = AppIcons.Back,
+                    label = "Back",
+                    onClick = onBack,
+                )
+                Text(
+                    text = "Open",
+                    color = ink,
+                    style = ClearType.Title.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    modifier = Modifier.combinedClickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        role = Role.Button,
+                        onClick = {
+                            DiagnosticsLog.uiAction("Detail", "Open link")
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
+                        },
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
+                            copyToast = true
+                        },
+                    ).semantics { contentDescription = "Open link, long press to copy" },
+                )
+                BareGlyph(
+                    icon = AppIcons.More,
+                    label = "More options",
+                    onClick = { menuOpen = true },
+                )
             }
-            DetailCircle(
-                onClick = {
-                    DiagnosticsLog.uiAction("Detail", "Open link")
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
-                },
-                onLongClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                    clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
-                    copyToast = true
-                },
-                label = "Open link, long press to copy",
-                icon = AppIcons.Open,
-                size = 54.dp,
-            )
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                DetailCircle(onClick = { menuOpen = true }, label = "More options", icon = AppIcons.More)
-            }
-        }
-
-        Column(
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding()
-                .padding(end = 20.dp)
-                .padding(bottom = 86.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            DetailCircle(
-                onClick = {
-                    val send = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, bookmark.url)
-                    }
-                    context.startActivity(Intent.createChooser(send, "Share"))
-                },
-                label = "Share",
-                icon = AppIcons.Share,
-            )
-            DetailCircle(
-                onClick = { viewModel.toggleImportant(bookmark) },
-                label = if (bookmark.isImportant) "Remove important" else "Mark important",
-                icon = if (bookmark.isImportant) AppIcons.ReminderSet else AppIcons.Important,
-            )
-            DetailCircle(
-                onClick = {
-                    if (hasReminder) viewModel.clearReminder(bookmark)
-                    else viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
-                },
-                label = if (hasReminder) "Clear reminder" else "Set reminder",
-                icon = if (hasReminder) AppIcons.ReminderMuted else AppIcons.Reminder,
-            )
         }
 
         if (menuOpen) {
@@ -309,6 +352,14 @@ fun DetailScreen(
                     }),
                     GlassMenuItem(AppIcons.Refetch, "Refresh", onClick = { viewModel.refetch(bookmark) }),
                     GlassMenuItem(AppIcons.CustomImage, "Add custom image", onClick = { imagePicker.launch("image/*") }),
+                    GlassMenuItem(
+                        if (hasReminder) AppIcons.ReminderMuted else AppIcons.Reminder,
+                        if (hasReminder) "Clear reminder" else "Set reminder",
+                        onClick = {
+                            if (hasReminder) viewModel.clearReminder(bookmark)
+                            else viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
+                        },
+                    ),
                     GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = {
                         viewModel.delete(bookmark)
                         onBack()
@@ -346,56 +397,103 @@ fun DetailScreen(
 }
 
 @Composable
-private fun DetailMetadata(item: BookmarkWithTags, modifier: Modifier = Modifier) {
+private fun DetailMetadata(
+    item: BookmarkWithTags,
+    titleExpanded: Boolean,
+    onToggleTitle: () -> Unit,
+    descriptionExpanded: Boolean,
+    onToggleDescription: () -> Unit,
+    onShare: () -> Unit,
+) {
     val bookmark = item.bookmark
     val title = titleFor(bookmark)
     val description = bookmark.description.trim()
-    val tags = item.tags
-    val hasPrimary = title.isNotBlank() || description.isNotBlank() || tags.isNotEmpty()
+    val pills = hashtagPills(bookmark, item.tags)
+    val stats = detailStats(bookmark)
+    val hasPrimary = title.isNotBlank() || description.isNotBlank() || pills.isNotEmpty()
     val fallback = if (hasPrimary) emptyList() else fallbackMetadataLines(bookmark)
     if (!hasPrimary && fallback.isEmpty()) return
 
-    val ink = clear
-    val wash = ink.glass.copy(alpha = if (ink.dark) 0.42f else 0.72f)
-    Column(
-        modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(Brush.verticalGradient(listOf(wash, Color.Transparent)))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (title.isNotBlank()) {
+    val ink = clear.onGlass
+    val soft = clear.onGlassSoft
+    if (title.isNotBlank()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BareGlyph(
+                icon = AppIcons.Share,
+                label = "Share",
+                onClick = onShare,
+                size = 32.dp,
+                iconSize = 17.dp,
+            )
+            Spacer(Modifier.width(6.dp))
             Text(
-                title,
-                color = ink.onGlass,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
+                text = title,
+                color = ink,
+                style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggleTitle,
+                ),
             )
         }
-        if (description.isNotBlank()) {
-            Text(
-                description,
-                color = ink.onGlassSoft,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (tags.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                tags.forEach { tag -> LightGlassChip(label = tag.name) }
+    }
+    if (stats.isNotEmpty()) {
+        Row(
+            Modifier.padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            stats.forEach { stat ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stat.value,
+                        color = soft,
+                        style = ClearType.Caption,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
-        if (!hasPrimary) {
+    }
+    if (description.isNotBlank()) {
+        Text(
+            text = description,
+            color = soft,
+            style = ClearType.Body,
+            maxLines = collapsedMaxLines(descriptionExpanded),
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 10.dp).clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onToggleDescription,
+            ),
+        )
+    }
+    if (pills.isNotEmpty()) {
+        FlowRow(
+            Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            pills.forEach { pill -> LightGlassChip(label = pill) }
+        }
+    }
+    if (!hasPrimary) {
+        Column(
+            Modifier.padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             fallback.forEach { line ->
                 Text(
                     line,
-                    color = ink.onGlassSoft,
-                    style = MaterialTheme.typography.labelMedium,
+                    color = soft,
+                    style = ClearType.Caption,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -404,25 +502,42 @@ private fun DetailMetadata(item: BookmarkWithTags, modifier: Modifier = Modifier
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DetailCircle(
-    onClick: () -> Unit,
-    label: String,
+private fun BareGlyph(
     icon: Int,
-    modifier: Modifier = Modifier,
-    size: Dp = 46.dp,
+    label: String,
+    onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    size: Dp = 44.dp,
+    iconSize: Dp = 20.dp,
 ) {
-    val ink = clear.onGlass
-    GlassCircle(
-        onClick = onClick,
-        modifier = modifier,
-        size = size,
-        label = label,
-        onLongClick = onLongClick,
-        ink = ink,
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val haptics = LocalHaptics.current
+    val dark = clear.dark
+    Box(
+        Modifier.size(size)
+            .drawBehind {
+                drawRoundRect(
+                    color = Color.White.copy(alpha = if (pressed) {
+                        if (dark) 0.20f else 0.34f
+                    } else if (dark) 0.08f else 0.14f),
+                    cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
+                )
+            }
+            .graphicsLayer { val s = if (pressed) 0.9f else 1f; scaleX = s; scaleY = s }
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                role = Role.Button,
+                onClick = { haptics?.play(Feel.Tap); onClick() },
+                onLongClick = onLongClick?.let { l -> { haptics?.play(Feel.Bloom); l() } },
+            )
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
     ) {
-        AppIcons.Icon(icon, label, tint = ink, size = 20.dp)
+        AppIcons.Icon(icon, null, tint = clear.onGlass, size = iconSize)
     }
 }
 
@@ -465,17 +580,4 @@ private fun BoxScope.SharpHero(
             Box(Modifier.fillMaxSize().background(floorColor))
         }
     }
-}
-
-private fun DrawScope.drawBackChevron() {
-    val chevron = Path().apply {
-        moveTo(size.width * 0.18f, size.height * 0.36f)
-        lineTo(size.width * 0.5f, size.height * 0.66f)
-        lineTo(size.width * 0.82f, size.height * 0.36f)
-    }
-    drawPath(
-        path = chevron,
-        color = Color.White,
-        style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-    )
 }

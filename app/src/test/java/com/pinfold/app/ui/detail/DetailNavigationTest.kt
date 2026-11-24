@@ -1,6 +1,8 @@
 package com.pinfold.app.ui.detail
 
+import androidx.compose.ui.unit.dp
 import com.pinfold.app.data.model.Bookmark
+import com.pinfold.app.data.model.Tag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,5 +56,57 @@ class DetailNavigationTest {
         val lines = fallbackMetadataLines(bookmark)
         assertEquals(listOf("Example", "Ada", "@ada", "example.com"), lines)
         assertTrue(fallbackMetadataLines(bookmark.copy(url = "", siteName = "", author = "", authorHandle = "")).isEmpty())
+    }
+
+    @Test
+    fun hashtagsAreNormalisedDeduplicatedAndCapped() {
+        val bookmark = Bookmark(
+            url = "https://example.com",
+            originalUrl = "https://example.com",
+            normalizedUrl = "https://example.com",
+            hashtags = " News, #tech, tech , , ",
+        )
+        val tags = listOf(Tag(name = "Design"), Tag(name = "#design"), Tag(name = " news "))
+        assertEquals(listOf("#News", "#tech", "#Design"), hashtagPills(bookmark, tags))
+        val many = Bookmark(
+            url = "https://example.com",
+            originalUrl = "https://example.com",
+            normalizedUrl = "https://example.com",
+            hashtags = (1..20).joinToString(",") { "tag$it" },
+        )
+        assertEquals(HASHTAG_LIMIT, hashtagPills(many, emptyList()).size)
+        assertTrue(hashtagPills(Bookmark(url = "", originalUrl = "", normalizedUrl = ""), emptyList()).isEmpty())
+    }
+
+    @Test
+    fun collapsedLineCountsAreThreeAndUnlimited() {
+        assertEquals(3, collapsedMaxLines(false))
+        assertEquals(Int.MAX_VALUE, collapsedMaxLines(true))
+        assertEquals(3, COLLAPSED_DESCRIPTION_LINES)
+        assertEquals(2, COLLAPSED_TITLE_LINES)
+    }
+
+    @Test
+    fun metadataTopOffsetAddsGapToHeroHeight() {
+        assertEquals(100.dp, metadataTopOffset(88.dp, 12.dp))
+        assertEquals(12.dp, metadataTopOffset(0.dp, 12.dp))
+        assertEquals(0.dp, metadataTopOffset(0.dp, 0.dp))
+    }
+
+    @Test
+    fun detailStatsSkipsBlankFieldsAndFallsBackToCreatedAt() {
+        val bookmark = Bookmark(
+            url = "https://example.com",
+            originalUrl = "https://example.com",
+            normalizedUrl = "https://example.com",
+            postedAt = "19 Nov 2026",
+            likesText = "283K",
+            commentsText = "  ",
+        )
+        assertEquals(listOf("19 Nov 2026", "283K"), detailStats(bookmark).map { it.value })
+        val fallback = bookmark.copy(postedAt = "", likesText = "", commentsText = "", createdAt = 0L)
+        val stats = detailStats(fallback)
+        assertEquals(1, stats.size)
+        assertTrue(stats[0].value.isNotBlank())
     }
 }
