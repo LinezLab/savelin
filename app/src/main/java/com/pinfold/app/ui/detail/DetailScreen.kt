@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -91,7 +92,6 @@ import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.glass.Feel
-import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
@@ -125,8 +125,6 @@ internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
 internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Overlay
 internal val OPEN_TEXT_COLOR: Color = Color.White
-internal val OPEN_TEXT_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
-internal val OPEN_TEXT_LUMINANCE_ALPHA: Float = 0.5f
 internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
 internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
 internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
@@ -139,8 +137,6 @@ internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 24.dp
 internal val DETAIL_METADATA_INK: Color = Color.White
 internal val DETAIL_LOGO_BLEND_MODE: BlendMode = BlendMode.Overlay
-internal val DETAIL_LOGO_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
-internal val DETAIL_LOGO_LUMINANCE_ALPHA: Float = 0.5f
 internal val DETAIL_LOGO_FONT_SIZE: TextUnit = 22.sp
 
 internal fun smootherStep(t: Float): Float {
@@ -390,7 +386,7 @@ fun DetailScreen(
                 label = "Back",
                 onClick = onBack,
             )
-            GlassPill(
+            OverlayOpenText(
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
@@ -400,12 +396,7 @@ fun DetailScreen(
                     clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
                     copyToast = true
                 },
-                label = "Open link, long press to copy",
-                height = 38.dp,
-                horizontalPadding = 14.dp,
-            ) {
-                OverlayOpenText()
-            }
+            )
             BareGlyph(
                 icon = AppIcons.More,
                 label = "More options",
@@ -514,28 +505,22 @@ private fun StickySonilLogo() {
     val density = LocalDensity.current
     val width = with(density) { textLayout.size.width.toDp() }
     val height = with(density) { textLayout.size.height.toDp() }
-    Box(Modifier.size(width, height), contentAlignment = Alignment.Center) {
-        Canvas(
-            Modifier.size(width, height).graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                blendMode = DETAIL_LOGO_BLEND_MODE
-            },
-        ) {
-            drawText(textLayout, color = ink)
-        }
-        Canvas(
-            Modifier.size(width, height).graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                blendMode = DETAIL_LOGO_LUMINANCE_BLEND_MODE
-            },
-        ) {
-            drawText(textLayout, color = Color.White.copy(alpha = DETAIL_LOGO_LUMINANCE_ALPHA))
-        }
+    Canvas(
+        Modifier.size(width, height).graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+            blendMode = DETAIL_LOGO_BLEND_MODE
+        },
+    ) {
+        drawText(textLayout, color = ink)
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun OverlayOpenText() {
+private fun OverlayOpenText(
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val measurer = rememberTextMeasurer()
     val style = ClearType.Headline.copy(
         fontWeight = OPEN_TEXT_FONT_WEIGHT,
@@ -548,7 +533,21 @@ private fun OverlayOpenText() {
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
     val textHeight = with(density) { textLayout.size.height.toDp() }
-    Box(Modifier.size(textWidth, textHeight), contentAlignment = Alignment.Center) {
+    val haptics = LocalHaptics.current
+    Box(
+        Modifier
+            .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Button,
+                onClick = { haptics?.play(Feel.Tap); onClick() },
+                onLongClick = { haptics?.play(Feel.Bloom); onLongClick() },
+            )
+            .semantics { contentDescription = "Open link, long press to copy" },
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(
             Modifier.size(textWidth, textHeight).graphicsLayer {
                 compositingStrategy = CompositingStrategy.Offscreen
@@ -556,14 +555,6 @@ private fun OverlayOpenText() {
             },
         ) {
             drawText(textLayout, color = OPEN_TEXT_COLOR)
-        }
-        Canvas(
-            Modifier.size(textWidth, textHeight).graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                blendMode = OPEN_TEXT_LUMINANCE_BLEND_MODE
-            },
-        ) {
-            drawText(textLayout, color = Color.White.copy(alpha = OPEN_TEXT_LUMINANCE_ALPHA))
         }
     }
 }

@@ -162,10 +162,10 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openTextLuminancePassAddsLowAlphaWhiteWithScreenBlend() {
-        assertEquals(0.5f, OPEN_TEXT_LUMINANCE_ALPHA, 0.0001f)
-        assertTrue(OPEN_TEXT_LUMINANCE_ALPHA in 0f..1f)
-        assertEquals(BlendMode.Screen, OPEN_TEXT_LUMINANCE_BLEND_MODE)
+    fun openTextDrawsOnceWithOverlayBlendAndWhiteInk() {
+        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+        assertEquals(Color.White, OPEN_TEXT_COLOR)
+        assertTrue(OPEN_TEXT_BLEND_MODE != BlendMode.Screen)
     }
 
     @Test
@@ -188,11 +188,9 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun stickyDetailLogoUsesOverlayBlendAndLowAlphaLuminance() {
+    fun stickyDetailLogoDrawsOnceWithOverlayBlend() {
         assertEquals(BlendMode.Overlay, DETAIL_LOGO_BLEND_MODE)
-        assertEquals(BlendMode.Screen, DETAIL_LOGO_LUMINANCE_BLEND_MODE)
-        assertEquals(0.5f, DETAIL_LOGO_LUMINANCE_ALPHA, 0.0001f)
-        assertTrue(DETAIL_LOGO_LUMINANCE_ALPHA in 0f..1f)
+        assertTrue(DETAIL_LOGO_BLEND_MODE != BlendMode.Screen)
         assertEquals(22.sp, DETAIL_LOGO_FONT_SIZE)
         assertTrue(DETAIL_LOGO_FONT_SIZE.value < 64f)
     }
