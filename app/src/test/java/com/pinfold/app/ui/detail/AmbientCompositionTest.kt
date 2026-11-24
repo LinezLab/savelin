@@ -56,4 +56,16 @@ class AmbientCompositionTest {
     fun accentHexIsEightDigits() {
         assertEquals("#FFD97123", Color(0xD9, 0x71, 0x23).hex())
     }
+
+    @Test
+    fun heroBottomDissolveRampIsClampedAndComplementary() {
+        assertTrue(HERO_BOTTOM_DISSOLVE_FRACTION in 0f..1f)
+        val start = heroDissolveStart(HERO_BOTTOM_DISSOLVE_FRACTION)
+        assertEquals(1f - HERO_BOTTOM_DISSOLVE_FRACTION, start, 0.0001f)
+        assertEquals(1f, start + HERO_BOTTOM_DISSOLVE_FRACTION, 0.0001f)
+        assertEquals(1f, heroDissolveStart(-0.5f), 0.0001f)
+        assertEquals(0f, heroDissolveStart(1.5f), 0.0001f)
+        assertEquals(1f, heroDissolveStart(0f), 0.0001f)
+        assertEquals(0f, heroDissolveStart(1f), 0.0001f)
+    }
 }

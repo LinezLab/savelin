@@ -12,6 +12,8 @@ internal const val BLOOM_COUNT = 5
 internal const val BLOOM_ALPHA = 0.40f
 internal const val GRAIN_ALPHA = 0.035f
 
+internal const val HERO_BOTTOM_DISSOLVE_FRACTION = 0.24f
+
 internal const val AMBIENT_SCALE = 1.5f
 internal const val AMBIENT_BLUR_DP = 90f
 internal const val AMBIENT_ALPHA = 1.0f
@@ -218,3 +220,6 @@ internal fun bottomFade(progress: Float): Float {
     val x = progress.coerceIn(0f, 1f)
     return x * x * (3f - 2f * x)
 }
+
+/** First vertical position of the sharp hero's bottom dissolve; the fraction is clamped to 0..1. */
+internal fun heroDissolveStart(fraction: Float): Float = 1f - fraction.coerceIn(0f, 1f)
