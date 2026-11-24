@@ -425,7 +425,7 @@ fun DetailScreen(
                     GlassMenuItem(AppIcons.Refetch, "Refresh", onClick = {
                         viewModel.refreshNow(bookmark) { ok ->
                             if (ok) {
-                                ArtworkMesh.invalidateMesh(bookmark.id)
+                                invalidateMesh(bookmark.id)
                                 refreshTick++
                             } else {
                                 viewModel.refetch(bookmark)

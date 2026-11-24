@@ -316,7 +316,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }.getOrDefault(false)
         }
         withContext(Dispatchers.Main) {
-            if (attached) com.pinfold.app.ui.detail.ArtworkMesh.invalidateMesh(item.id)
+            if (attached) com.pinfold.app.ui.detail.invalidateMesh(item.id)
             onResult(attached)
         }
     }
