@@ -20,13 +20,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -99,6 +103,8 @@ internal const val COLLAPSED_DESCRIPTION_LINES = 3
 internal const val METADATA_BOTTOM_FRACTION = 0.20f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
+internal val METADATA_SECTION_GAP: Dp = 12.dp
+internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 
 internal fun smootherStep(t: Float): Float {
@@ -136,6 +142,9 @@ internal fun metadataTopOffset(heroHeight: Dp, gap: Dp): Dp = heroHeight + gap
 
 internal fun metadataBottomOffset(maxHeight: Dp): Dp =
     maxHeight * METADATA_BOTTOM_FRACTION
+
+internal fun titleBottomOffsetPx(maxHeightPx: Float, fraction: Float): Float =
+    maxHeightPx * fraction.coerceIn(0f, 1f)
 
 internal fun metadataPanelMaxHeight(maxHeight: Dp, bottomOffset: Dp): Dp =
     maxOf(0.dp, maxHeight - bottomOffset - METADATA_PANEL_TOP_GAP)
@@ -282,27 +291,46 @@ fun DetailScreen(
                 }
             }
             SharpHero(path, themeFloor, heroHeight, heroScale, context)
-            val bottomOffset = metadataBottomOffset(maxHeight)
-            Box(
+            val density = LocalDensity.current
+            val bottomOffset = with(density) {
+                titleBottomOffsetPx(screenHeightPx, METADATA_BOTTOM_FRACTION).toDp()
+            }
+            val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val actionsClearance = DETAIL_ACTIONS_RESERVED_HEIGHT + navInset
+            val belowTitleHeight = maxOf(0.dp, bottomOffset - actionsClearance)
+            val title = titleFor(bookmark)
+            if (title.isNotBlank()) {
+                Box(
+                    Modifier.align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(horizontal = METADATA_PANEL_SIDE_MARGIN)
+                        .padding(bottom = bottomOffset),
+                ) {
+                    DetailTitleRow(
+                        title = title,
+                        titleExpanded = titleExpanded,
+                        onToggleTitle = { titleExpanded = !titleExpanded },
+                        onShare = {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, bookmark.url)
+                            }
+                            context.startActivity(Intent.createChooser(send, "Share"))
+                        },
+                    )
+                }
+            }
+            Column(
                 Modifier.align(Alignment.BottomStart)
                     .fillMaxWidth()
                     .padding(horizontal = METADATA_PANEL_SIDE_MARGIN)
-                    .padding(bottom = bottomOffset)
-                    .heightIn(max = metadataPanelMaxHeight(maxHeight, bottomOffset)),
+                    .padding(bottom = actionsClearance)
+                    .heightIn(max = belowTitleHeight),
             ) {
-                DetailMetadata(
+                DetailMetadataBody(
                     item = item,
-                    titleExpanded = titleExpanded,
-                    onToggleTitle = { titleExpanded = !titleExpanded },
                     descriptionExpanded = descriptionExpanded,
                     onToggleDescription = { descriptionExpanded = !descriptionExpanded },
-                    onShare = {
-                        val send = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, bookmark.url)
-                        }
-                        context.startActivity(Intent.createChooser(send, "Share"))
-                    },
                 )
             }
         }
@@ -408,130 +436,124 @@ fun DetailScreen(
 }
 
 @Composable
-private fun DetailMetadata(
-    item: BookmarkWithTags,
+private fun DetailTitleRow(
+    title: String,
     titleExpanded: Boolean,
     onToggleTitle: () -> Unit,
-    descriptionExpanded: Boolean,
-    onToggleDescription: () -> Unit,
     onShare: () -> Unit,
 ) {
+    val ink = clear.onGlass
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = title,
+            color = ink,
+            style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onToggleTitle,
+            ),
+        )
+        Spacer(Modifier.width(12.dp))
+        BareGlyph(
+            icon = AppIcons.Share,
+            label = "Share",
+            onClick = onShare,
+            size = 32.dp,
+            iconSize = 17.dp,
+        )
+    }
+}
+
+@Composable
+private fun ColumnScope.DetailMetadataBody(
+    item: BookmarkWithTags,
+    descriptionExpanded: Boolean,
+    onToggleDescription: () -> Unit,
+) {
     val bookmark = item.bookmark
-    val title = titleFor(bookmark)
     val description = descriptionOnly(bookmark)
     val pills = hashtagPills(bookmark, item.tags)
     val stats = detailStats(bookmark)
     val descriptionScrollState = rememberScrollState()
-    val hasPrimary = title.isNotBlank() || description.isNotBlank() || pills.isNotEmpty()
+    val hasPrimary = description.isNotBlank() || pills.isNotEmpty()
     val fallback = if (hasPrimary) emptyList() else fallbackMetadataLines(bookmark)
     if (!hasPrimary && fallback.isEmpty()) return
 
-    val ink = clear.onGlass
     val soft = clear.onGlassSoft
-    Column(Modifier.fillMaxWidth()) {
-        if (title.isNotBlank()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    color = ink,
-                    style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onToggleTitle,
-                    ),
-                )
-                Spacer(Modifier.width(12.dp))
-                BareGlyph(
-                    icon = AppIcons.Share,
-                    label = "Share",
-                    onClick = onShare,
-                    size = 32.dp,
-                    iconSize = 17.dp,
-                )
-            }
-        }
-        if (stats.isNotEmpty()) {
-            Row(
-                Modifier.padding(top = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                stats.forEach { stat ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stat.value,
-                            color = soft,
-                            style = ClearType.Caption,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-        if (description.isNotBlank()) {
-            val scrollModifier = if (descriptionExpanded) {
-                Modifier
-                    .heightIn(max = DESCRIPTION_SCROLL_MAX_HEIGHT)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures { change, _ -> change.consume() }
-                    }
-                    .verticalScroll(descriptionScrollState)
-            } else {
-                Modifier
-            }
-            Text(
-                text = description,
-                color = soft,
-                style = ClearType.Body,
-                maxLines = descriptionMaxLines(descriptionExpanded),
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(top = 20.dp)
-                    .then(scrollModifier)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onToggleDescription,
-                    ),
-            )
-            if (pills.isNotEmpty()) {
-                FlowRow(
-                    Modifier.padding(top = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    pills.forEach { pill -> LightGlassChip(label = pill) }
-                }
-            }
-        } else if (pills.isNotEmpty()) {
-            FlowRow(
-                Modifier.padding(top = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                pills.forEach { pill -> LightGlassChip(label = pill) }
-            }
-        }
-        if (!hasPrimary) {
-            Column(
-                Modifier.padding(top = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                fallback.forEach { line ->
+    if (stats.isNotEmpty()) {
+        Row(
+            Modifier.padding(top = METADATA_SECTION_GAP),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            stats.forEach { stat ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        line,
+                        stat.value,
                         color = soft,
                         style = ClearType.Caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+        }
+    }
+    if (description.isNotBlank()) {
+        val scrollModifier = if (descriptionExpanded) {
+            Modifier
+                .heightIn(max = DESCRIPTION_SCROLL_MAX_HEIGHT)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures { change, _ -> change.consume() }
+                }
+                .verticalScroll(descriptionScrollState)
+        } else {
+            Modifier
+        }
+        Text(
+            text = description,
+            color = soft,
+            style = ClearType.Body,
+            maxLines = descriptionMaxLines(descriptionExpanded),
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(top = METADATA_SECTION_GAP)
+                .weight(1f, fill = false)
+                .then(scrollModifier)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggleDescription,
+                ),
+        )
+    }
+    if (pills.isNotEmpty()) {
+        FlowRow(
+            Modifier.padding(top = METADATA_SECTION_GAP),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            pills.forEach { pill -> LightGlassChip(label = pill) }
+        }
+    }
+    if (!hasPrimary) {
+        Column(
+            Modifier.padding(top = METADATA_SECTION_GAP),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            fallback.forEach { line ->
+                Text(
+                    line,
+                    color = soft,
+                    style = ClearType.Caption,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

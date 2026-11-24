@@ -118,6 +118,27 @@ class DetailNavigationTest {
     }
 
     @Test
+    fun titleAnchorIsTwentyPercentOfScreenHeight() {
+        assertEquals(0.20f, METADATA_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(160f, titleBottomOffsetPx(800f, METADATA_BOTTOM_FRACTION), 0.0001f)
+        assertEquals(0f, titleBottomOffsetPx(0f, METADATA_BOTTOM_FRACTION), 0.0001f)
+        assertEquals(240f, titleBottomOffsetPx(1200f, METADATA_BOTTOM_FRACTION), 0.0001f)
+        assertEquals(0f, titleBottomOffsetPx(800f, -0.5f), 0.0001f)
+        assertEquals(800f, titleBottomOffsetPx(800f, 1.5f), 0.0001f)
+        assertEquals(160.dp, metadataBottomOffset(800.dp))
+    }
+
+    @Test
+    fun metadataBodyFitsBetweenTitleAnchorAndBottomActions() {
+        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(12.dp, METADATA_SECTION_GAP)
+        val bottomOffset = metadataBottomOffset(800.dp)
+        val bodyMaxHeight = maxOf(0.dp, bottomOffset - DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(92.dp, bodyMaxHeight)
+        assertTrue(bottomOffset > DETAIL_ACTIONS_RESERVED_HEIGHT)
+    }
+
+    @Test
     fun metadataPanelHeightLeavesRoomAboveAndTitleTracksFixedOffset() {
         assertEquals(616.dp, metadataPanelMaxHeight(800.dp, 160.dp))
         assertEquals(0.dp, metadataPanelMaxHeight(800.dp, 800.dp))
