@@ -158,7 +158,7 @@ fun SavelinTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () 
     androidx.compose.runtime.CompositionLocalProvider(LocalClearColors provides colors) {
         MaterialTheme(
             colorScheme = scheme,
-            typography = Typography(defaultFontFamily = Outfit),
+            typography = Typography(fontFamily = Outfit),
             content = content,
         )
     }
