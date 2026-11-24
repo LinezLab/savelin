@@ -169,6 +169,14 @@ class DetailNavigationTest {
     }
 
     @Test
+    fun detailGlyphsAddLowAlphaWhiteScreenLuminanceLayer() {
+        assertEquals(BlendMode.Screen, DETAIL_GLYPH_LUMINANCE_BLEND_MODE)
+        assertEquals(0.5f, DETAIL_GLYPH_LUMINANCE_ALPHA, 0.0001f)
+        assertTrue(DETAIL_GLYPH_LUMINANCE_ALPHA in 0f..1f)
+        assertTrue(DETAIL_GLYPH_LUMINANCE_BLEND_MODE != DETAIL_GLYPH_BLEND_MODE)
+    }
+
+    @Test
     fun detailMetadataInkIsWhiteInBothThemes() {
         assertEquals(Color.White, DETAIL_METADATA_INK)
     }
@@ -245,7 +253,7 @@ class DetailNavigationTest {
     @Test
     fun shareGlyphMatchesBackAndMoreGlyphSizes() {
         assertEquals(44.dp, DETAIL_GLYPH_BUTTON_SIZE)
-        assertEquals(20.dp, DETAIL_GLYPH_ICON_SIZE)
+        assertEquals(24.dp, DETAIL_GLYPH_ICON_SIZE)
     }
 
     @Test

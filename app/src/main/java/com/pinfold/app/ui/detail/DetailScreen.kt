@@ -38,7 +38,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -92,6 +91,7 @@ import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.glass.Feel
+import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
@@ -132,9 +132,11 @@ internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
 internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
 internal val OPEN_TEXT_LETTER_SPACING: TextUnit = 2.sp
 internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Exclusion
+internal val DETAIL_GLYPH_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val DETAIL_GLYPH_LUMINANCE_ALPHA: Float = 0.5f
 internal val DETAIL_GLYPH_COLOR: Color = Candy.Mint
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
-internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
+internal val DETAIL_GLYPH_ICON_SIZE: Dp = 24.dp
 internal val DETAIL_METADATA_INK: Color = Color.White
 internal val DETAIL_LOGO_BLEND_MODE: BlendMode = BlendMode.Overlay
 internal val DETAIL_LOGO_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
@@ -388,7 +390,7 @@ fun DetailScreen(
                 label = "Back",
                 onClick = onBack,
             )
-            OverlayOpenText(
+            GlassPill(
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
@@ -398,7 +400,12 @@ fun DetailScreen(
                     clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
                     copyToast = true
                 },
-            )
+                label = "Open link, long press to copy",
+                height = 48.dp,
+                horizontalPadding = 18.dp,
+            ) {
+                OverlayOpenText()
+            }
             BareGlyph(
                 icon = AppIcons.More,
                 label = "More options",
@@ -507,26 +514,28 @@ private fun StickySonilLogo() {
     val density = LocalDensity.current
     val width = with(density) { textLayout.size.width.toDp() }
     val height = with(density) { textLayout.size.height.toDp() }
-    Canvas(
-        Modifier.size(width, height).graphicsLayer {
-            compositingStrategy = CompositingStrategy.Offscreen
-            blendMode = DETAIL_LOGO_BLEND_MODE
-        },
-    ) {
-        drawText(textLayout, color = ink)
-        drawText(
-            textLayout,
-            color = Color.White.copy(alpha = DETAIL_LOGO_LUMINANCE_ALPHA),
-            blendMode = DETAIL_LOGO_LUMINANCE_BLEND_MODE,
-        )
+    Box(Modifier.size(width, height), contentAlignment = Alignment.Center) {
+        Canvas(
+            Modifier.size(width, height).graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = DETAIL_LOGO_BLEND_MODE
+            },
+        ) {
+            drawText(textLayout, color = ink)
+        }
+        Canvas(
+            Modifier.size(width, height).graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = DETAIL_LOGO_LUMINANCE_BLEND_MODE
+            },
+        ) {
+            drawText(textLayout, color = Color.White.copy(alpha = DETAIL_LOGO_LUMINANCE_ALPHA))
+        }
     }
 }
 
 @Composable
-private fun OverlayOpenText(
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-) {
+private fun OverlayOpenText() {
     val measurer = rememberTextMeasurer()
     val style = ClearType.Headline.copy(
         fontWeight = OPEN_TEXT_FONT_WEIGHT,
@@ -539,20 +548,7 @@ private fun OverlayOpenText(
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
     val textHeight = with(density) { textLayout.size.height.toDp() }
-    Box(
-        Modifier
-            .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
-            .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
-            .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .semantics { contentDescription = "Open link, long press to copy" },
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(Modifier.size(textWidth, textHeight), contentAlignment = Alignment.Center) {
         Canvas(
             Modifier.size(textWidth, textHeight).graphicsLayer {
                 compositingStrategy = CompositingStrategy.Offscreen
@@ -560,11 +556,14 @@ private fun OverlayOpenText(
             },
         ) {
             drawText(textLayout, color = OPEN_TEXT_COLOR)
-            drawText(
-                textLayout,
-                color = Color.White.copy(alpha = OPEN_TEXT_LUMINANCE_ALPHA),
-                blendMode = OPEN_TEXT_LUMINANCE_BLEND_MODE,
-            )
+        }
+        Canvas(
+            Modifier.size(textWidth, textHeight).graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = OPEN_TEXT_LUMINANCE_BLEND_MODE
+            },
+        ) {
+            drawText(textLayout, color = Color.White.copy(alpha = OPEN_TEXT_LUMINANCE_ALPHA))
         }
     }
 }
@@ -707,6 +706,20 @@ private fun BareGlyph(
             contentAlignment = Alignment.Center,
         ) {
             AppIcons.Icon(icon, null, tint = DETAIL_GLYPH_COLOR, size = iconSize)
+        }
+        Box(
+            Modifier.graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = DETAIL_GLYPH_LUMINANCE_BLEND_MODE
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            AppIcons.Icon(
+                icon,
+                null,
+                tint = Color.White.copy(alpha = DETAIL_GLYPH_LUMINANCE_ALPHA),
+                size = iconSize,
+            )
         }
     }
 }
