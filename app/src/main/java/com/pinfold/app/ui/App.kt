@@ -48,6 +48,7 @@ import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
 import com.pinfold.app.ui.home.HomeScreen
 import com.pinfold.app.ui.detail.DetailScreen
+import com.pinfold.app.ui.splash.SplashScreen
 import com.pinfold.app.ui.settings.SettingsScreen
 import com.pinfold.app.data.model.BookmarkWithTags
 
@@ -61,6 +62,8 @@ fun App(sharedText: String? = null) {
     var draft by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     var locked by remember { mutableStateOf(false) }
+    var showSplash by remember { mutableStateOf(true) }
+    var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
@@ -80,6 +83,9 @@ fun App(sharedText: String? = null) {
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
     }
+    LaunchedEffect(Unit) {
+        splashItem = viewModel.randomWithImage()
+    }
     // The Reduce motion switch lives in the data layer; mirror it into the glass motion engine so
     // every spring, pop-up and press in the app swaps to its short fade in the same frame.
     LaunchedEffect(appearance.reduceMotion) {
@@ -97,6 +103,10 @@ fun App(sharedText: String? = null) {
             tab == HomeTab.SETTINGS -> settingsPage.ifBlank { "Settings" }
             else -> "Home"
         })
+    }
+    if (showSplash) {
+        SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, onDone = { showSplash = false })
+        return
     }
     if (locked) {
         BiometricGate(onUnlock = { locked = false })

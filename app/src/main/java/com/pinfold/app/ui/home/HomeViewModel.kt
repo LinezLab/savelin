@@ -212,6 +212,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         WorkManager.getInstance(getApplication<Application>()).enqueue(request)
     }
 
+    suspend fun randomWithImage(): BookmarkWithTags? = withContext(Dispatchers.IO) {
+        repository.observeAll().first()
+            .mapNotNull { item ->
+                val path = item.bookmark.imagePath
+                if (path.isNullOrBlank()) null else item.takeIf { java.io.File(path).isFile }
+            }
+            .randomOrNull()
+    }
+
     fun attachImage(item: Bookmark, uri: Uri) = viewModelScope.launch {
         val context = getApplication<Application>()
         val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@launch

@@ -30,6 +30,7 @@ internal fun AmbientBackdrop(
     reduceMotion: Boolean,
     floor: Color,
     modifier: Modifier = Modifier,
+    drawScrim: Boolean = true,
 ) {
     var incoming by remember { mutableStateOf(ambience) }
     var outgoing by remember { mutableStateOf<ArtworkAmbience?>(null) }
@@ -100,7 +101,7 @@ internal fun AmbientBackdrop(
         val progress = fade.value.coerceIn(0f, 1f)
         drawMeshLayer(outgoing?.mesh, 1f - progress)
         drawMeshLayer(incoming.mesh, progress)
-        if (incoming.mesh != null || outgoing?.mesh != null) {
+        if (drawScrim && (incoming.mesh != null || outgoing?.mesh != null)) {
             drawRect(
                 brush = Brush.verticalGradient(
                     listOf(
