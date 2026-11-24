@@ -41,10 +41,14 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.pinfold.app.R
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
@@ -63,6 +67,10 @@ import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 import java.io.File
+
+internal const val SONIL_LOGO_FONT_RES_NAME = "nikea"
+internal const val SONIL_LOGO_TEXT = "Sonil"
+private val SonilLogoFont = FontFamily(Font(R.font.nikea))
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -88,6 +96,13 @@ fun HomeScreen(
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
+        Text(
+            text = SONIL_LOGO_TEXT,
+            fontFamily = SonilLogoFont,
+            fontSize = 48.sp,
+            color = clear.ink,
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
+        )
         if (searchActive && query.isNotBlank()) {
             Text(
                 "${distinctItems.size} result${if (distinctItems.size == 1) "" else "s"}",

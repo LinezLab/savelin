@@ -6,6 +6,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinfold.app.data.model.Bookmark
+import com.pinfold.app.ui.HOME_BACKGROUND_DARK
+import com.pinfold.app.ui.HOME_BACKGROUND_LIGHT
+import com.pinfold.app.ui.glass.theme.Candy
+import com.pinfold.app.ui.home.SONIL_LOGO_FONT_RES_NAME
+import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -141,16 +146,42 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openLabelUsesWhiteDifferenceLayerBlendAndWideLetterSpacing() {
-        assertEquals(BlendMode.Difference, OPEN_TEXT_BLEND_MODE)
-        assertEquals(Color.White, OPEN_TEXT_COLOR)
+    fun openLabelUsesExclusionLayerBlendAndVibrantLemonAccent() {
+        assertEquals(BlendMode.Exclusion, OPEN_TEXT_BLEND_MODE)
+        assertEquals(Candy.Lemon, OPEN_TEXT_COLOR)
+        assertEquals(Color(0xFFFFC21A), OPEN_TEXT_COLOR)
         assertEquals(2.sp, OPEN_TEXT_LETTER_SPACING)
     }
 
     @Test
-    fun detailGlyphsUseTheSameDifferenceLayerBlendAsOpen() {
+    fun detailGlyphsUseTheSameExclusionLayerBlendAsOpenWithMintAccent() {
         assertEquals(OPEN_TEXT_BLEND_MODE, DETAIL_GLYPH_BLEND_MODE)
-        assertEquals(BlendMode.Difference, DETAIL_GLYPH_BLEND_MODE)
+        assertEquals(BlendMode.Exclusion, DETAIL_GLYPH_BLEND_MODE)
+        assertEquals(Candy.Mint, DETAIL_GLYPH_COLOR)
+        assertEquals(Color(0xFF00BFB3), DETAIL_GLYPH_COLOR)
+    }
+
+    @Test
+    fun openTextDrawsVividAccentUnderReadableWhiteCore() {
+        assertEquals(0.85f, OPEN_TEXT_CORE_ALPHA, 0.0001f)
+        assertTrue(OPEN_TEXT_CORE_ALPHA in 0f..1f)
+    }
+
+    @Test
+    fun detailMetadataInkIsWhiteInBothThemes() {
+        assertEquals(Color.White, DETAIL_METADATA_INK)
+    }
+
+    @Test
+    fun sonilLogoUsesNikeaFontResource() {
+        assertEquals("nikea", SONIL_LOGO_FONT_RES_NAME)
+        assertEquals("Sonil", SONIL_LOGO_TEXT)
+    }
+
+    @Test
+    fun homeBackgroundTokensArePureBlackAndWhite() {
+        assertEquals(Color.Black, HOME_BACKGROUND_DARK)
+        assertEquals(Color.White, HOME_BACKGROUND_LIGHT)
     }
 
     @Test

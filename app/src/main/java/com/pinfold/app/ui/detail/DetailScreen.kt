@@ -87,6 +87,7 @@ import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
@@ -113,15 +114,18 @@ internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
 internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
-internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Difference
-internal val OPEN_TEXT_COLOR: Color = Color.White
+internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Exclusion
+internal val OPEN_TEXT_COLOR: Color = Candy.Lemon
+internal val OPEN_TEXT_CORE_ALPHA: Float = 0.85f
 internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
 internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
 internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
 internal val OPEN_TEXT_LETTER_SPACING: TextUnit = 2.sp
-internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Difference
+internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Exclusion
+internal val DETAIL_GLYPH_COLOR: Color = Candy.Mint
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
+internal val DETAIL_METADATA_INK: Color = Color.White
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -443,7 +447,7 @@ private fun DetailTitleRow(
     onToggleTitle: () -> Unit,
     onShare: () -> Unit,
 ) {
-    val ink = clear.onGlass
+    val ink = DETAIL_METADATA_INK
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
@@ -503,7 +507,8 @@ private fun OverlayOpenText(
                 blendMode = OPEN_TEXT_BLEND_MODE
             },
         ) {
-            drawText(textLayout, color = Color.White)
+            drawText(textLayout, color = OPEN_TEXT_COLOR)
+            drawText(textLayout, color = Color.White.copy(alpha = OPEN_TEXT_CORE_ALPHA))
         }
     }
 }
@@ -522,7 +527,7 @@ private fun ColumnScope.DetailMetadataBody(
     val fallback = if (hasPrimary) emptyList() else fallbackMetadataLines(bookmark)
     if (!hasPrimary && fallback.isEmpty()) return
 
-    val soft = clear.onGlassSoft
+    val soft = DETAIL_METADATA_INK
     Column(Modifier.padding(vertical = METADATA_BODY_VERTICAL_GAP)) {
         if (stats.isNotEmpty()) {
             Row(
@@ -651,7 +656,7 @@ private fun BareGlyph(
             },
             contentAlignment = Alignment.Center,
         ) {
-            AppIcons.Icon(icon, null, tint = clear.hero, size = iconSize)
+            AppIcons.Icon(icon, null, tint = DETAIL_GLYPH_COLOR, size = iconSize)
         }
     }
 }

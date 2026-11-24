@@ -53,3 +53,7 @@ Outfit (https://github.com/Outfitio/Outfit-Fonts)
 Copyright the Outfit contributors. Licensed under the SIL Open Font License 1.1.
 Outfit TTFs are bundled under core-ui-glass/src/main/res/font and are the app-wide font family.
 See third_party/OFL-Outfit.txt.
+
+NIKEA (Limitype) is a commercial display font provided by the user. The single OTF is
+bundled at app/src/main/res/font/nikea.otf solely for the "Sonil" logo; all rights remain
+with Limitype and its licence holder. No redistribution rights are claimed or implied.
