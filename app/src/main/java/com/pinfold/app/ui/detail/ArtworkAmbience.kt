@@ -1,7 +1,5 @@
 package com.pinfold.app.ui.detail
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,16 +8,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.diagnostics.LogLevel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlin.math.max
-import kotlin.math.min
 
 internal const val ARTWORK_LOG_TAG = "SavelinArtwork"
-internal const val CROSSFADE_MS = 520
 
 enum class DetailArtworkMode { ARTWORK }
 enum class ArtworkSource { IMAGE, FALLBACK }
@@ -42,31 +35,24 @@ internal fun artworkIssue(what: String, why: String) {
 
 data class ArtworkAmbience(
     val id: Long,
-    val image: ImageBitmap?,
-    val palette: ArtworkPalette,
+    val mesh: ImageBitmap?,
     val source: ArtworkSource,
 )
-
-internal fun paletteHexes(palette: ArtworkPalette): List<String> = palette.accents.map { it.hex() }
 
 internal fun crossfadeChanged(previousId: Long?, currentId: Long): Boolean =
     previousId != null && previousId != currentId
 
-internal fun crossfadeDurationMs(reduceMotion: Boolean): Int = if (reduceMotion) 0 else CROSSFADE_MS
+internal fun crossfadeDurationMs(reduceMotion: Boolean): Int = if (reduceMotion) 0 else MESH_FADE_MS
 
 data class ArtworkSnapshot(
-    val source: ArtworkSource,
-    val buckets: Int,
-    val accents: List<String>,
-    val blooms: Int = BLOOM_COUNT,
-    val fadeMs: Int = CROSSFADE_MS,
+    val source: ArtworkSource = ArtworkSource.FALLBACK,
+    val seamPx: Int = 0,
+    val fadeMs: Int = MESH_FADE_MS,
 ) {
     val summary: String
-        get() = "source=${source.name} palette=$buckets accents=${accents.size} " +
-            "blooms=$blooms fade=${fadeMs}ms"
+        get() = "source=${source.name} mesh=${meshDescriptor()} seam=${seamPx}px fade=${fadeMs}ms"
 }
 
-/** Redacted shape/amount information only — never an id, path, title or URL. */
 object ArtworkDiagnostics {
     @Volatile
     private var lastSnapshot: ArtworkSnapshot? = null
@@ -85,102 +71,37 @@ object ArtworkDiagnostics {
             ?: return "Artwork background diagnostics: no detail screen visited yet."
         return buildString {
             appendLine("Artwork background diagnostics (redacted)")
-            appendLine("source=${snapshot.source.name} paletteBuckets=${snapshot.buckets}")
-            appendLine("accents=${snapshot.accents.joinToString(", ")}")
-            appendLine("layers: image=$AMBIENT_ALPHA bloom=$BLOOM_ALPHA " +
-                "bottomFade=$BOTTOM_FADE_ALPHA scrim=$SCRIM_TOP_ALPHA")
-            append("crossfade=${snapshot.fadeMs}ms blooms=${snapshot.blooms}")
+            appendLine("source=${snapshot.source.name} mesh=${meshDescriptor()} seam=${snapshot.seamPx}px")
+            append("fade=${snapshot.fadeMs}ms")
         }
     }
 }
 
-private val ambienceCache = LinkedHashMap<Long, ArtworkAmbience>()
-
-@Synchronized
-private fun cachedAmbience(id: Long): ArtworkAmbience? = ambienceCache[id]
-
-@Synchronized
-private fun cacheAmbience(id: Long, value: ArtworkAmbience) {
-    ambienceCache[id] = value
-    while (ambienceCache.size > 16) ambienceCache.remove(ambienceCache.keys.first())
-}
-
-private fun decodeScaled(path: String, maxDimension: Int): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(path, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-        artworkIssue("decode", "reason=noBounds")
-        return null
-    }
-    var sample = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxDimension * 2) sample *= 2
-    val decoded = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply {
-        inSampleSize = sample
-        inPreferredConfig = Bitmap.Config.ARGB_8888
-    }) ?: run {
-        artworkIssue("decode", "reason=fullDecodeNull")
-        return null
-    }
-    val scale = min(1f, maxDimension.toFloat() / maxOf(decoded.width, decoded.height))
-    val result = if (scale >= 1f) {
-        decoded
-    } else {
-        Bitmap.createScaledBitmap(
-            decoded,
-            max(1, (decoded.width * scale).toInt()),
-            max(1, (decoded.height * scale).toInt()),
-            true,
-        )
-    }
-    logArtwork("Decode ok sample=$sample out=${result.width}x${result.height}")
-    return result
-}
-
 internal fun fallbackAmbience(id: Long): ArtworkAmbience =
-    ArtworkAmbience(id, null, fallbackPalette(id), ArtworkSource.FALLBACK)
-
-internal fun loadAmbience(id: Long, path: String): ArtworkAmbience {
-    cachedAmbience(id)?.let { return it }
-    val small = decodeScaled(path, PALETTE_SAMPLE_LIMIT)
-        ?: return fallbackAmbience(id)
-    val soft = decodeScaled(path, 256)
-        ?: return fallbackAmbience(id)
-    val pixels = IntArray(small.width * small.height)
-    small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
-    val palette = extractPalette(pixels)
-    if (palette.buckets == 0 || palette.accents.isEmpty() || palette.accents.any(::isDim)) {
-        artworkIssue("palette", "reason=emptyOrDim buckets=${palette.buckets}")
-        return fallbackAmbience(id)
-    }
-    val result = ArtworkAmbience(id, soft.asImageBitmap(), palette, ArtworkSource.IMAGE)
-    cacheAmbience(id, result)
-    logArtwork("Ambient loaded source=IMAGE buckets=${palette.buckets} accents=${paletteHexes(palette).size}")
-    return result
-}
+    ArtworkAmbience(id, null, ArtworkSource.FALLBACK)
 
 @Composable
 internal fun rememberAmbience(id: Long, path: String?): ArtworkAmbience {
+    val context = LocalContext.current
     val fallback = remember(id) { fallbackAmbience(id) }
     var ambience by remember(id, path) {
-        mutableStateOf(if (path != null) cachedAmbience(id) ?: fallback else fallback)
+        mutableStateOf(
+            if (path != null) {
+                cachedMesh(id)?.let { ArtworkAmbience(id, it, ArtworkSource.IMAGE) } ?: fallback
+            } else fallback,
+        )
     }
     LaunchedEffect(id, path) {
         val resolved = if (path != null) {
-            withContext(Dispatchers.IO) { loadAmbience(id, path) }
+            val mesh = loadMesh(context, id, path)
+            if (mesh != null) ArtworkAmbience(id, mesh, ArtworkSource.IMAGE) else fallbackAmbience(id)
         } else fallback
         ambience = resolved
-        logArtwork("Ambient resolved source=${resolved.source.name} buckets=${resolved.palette.buckets}")
-        ArtworkDiagnostics.record(
-            ArtworkSnapshot(
-                source = resolved.source,
-                buckets = resolved.palette.buckets,
-                accents = paletteHexes(resolved.palette),
-            ),
-        )
+        logArtwork("Ambient resolved source=${resolved.source.name} hasMesh=${resolved.mesh != null}")
         DiagnosticsLog.log(
             LogLevel.INFO,
             "UI/Detail",
-            "ambient source=${resolved.source.name} buckets=${resolved.palette.buckets}",
+            "ambient source=${resolved.source.name} hasMesh=${resolved.mesh != null}",
         )
     }
     return ambience
@@ -188,7 +109,6 @@ internal fun rememberAmbience(id: Long, path: String?): ArtworkAmbience {
 
 data class AmbienceSelection(val current: ArtworkAmbience, val settled: ArtworkAmbience?)
 
-/** Keeps the outgoing artwork alive until the next bookmark has been sampled. */
 @Composable
 internal fun rememberAmbienceSelection(id: Long, path: String?): AmbienceSelection {
     val current = rememberAmbience(id, path)
@@ -199,8 +119,9 @@ internal fun rememberAmbienceSelection(id: Long, path: String?): AmbienceSelecti
         if (crossfadeChanged(lastId, id)) logArtwork("Ambient crossfade requested")
         lastId = id
     }
-    LaunchedEffect(current.id, current.source, path) {
-        if (current.id == id) settled = current
+    LaunchedEffect(current.id, current.mesh, path) {
+        if (current.id != id) return@LaunchedEffect
+        if (path == null || current.mesh != null) settled = current
     }
     return AmbienceSelection(current, settled)
 }

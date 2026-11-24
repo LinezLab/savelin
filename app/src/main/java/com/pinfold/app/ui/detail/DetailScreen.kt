@@ -1,9 +1,5 @@
 package com.pinfold.app.ui.detail
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -42,6 +37,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -50,7 +46,13 @@ import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import java.io.File
 
-/** Background-first detail screen: artwork and its ambience can be switched off together. */
+internal const val HERO_BOTTOM_DISSOLVE_FRACTION = 0.42f
+
+internal fun smootherStep(t: Float): Float {
+    val x = t.coerceIn(0f, 1f)
+    return x * x * x * (x * (x * 6f - 15f) + 10f)
+}
+
 @Composable
 fun DetailScreen(
     item: BookmarkWithTags,
@@ -66,7 +68,7 @@ fun DetailScreen(
     }
     val selection = rememberAmbienceSelection(bookmark.id, path)
     val ambience = selection.settled ?: selection.current
-    val palette = ambience.palette
+    val heroFallback = remember(bookmark.id) { fallbackHeroColor(bookmark.id) }
     val aspect = remember(bookmark.imageWidth, bookmark.imageHeight) {
         if (bookmark.imageWidth > 0 && bookmark.imageHeight > 0) {
             (bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()).coerceIn(0.42f, 2.6f)
@@ -79,22 +81,8 @@ fun DetailScreen(
 
     Box(
         modifier.fillMaxSize()
-            .background(if (detailAmbientBackground) palette.base else plainBackground),
+            .background(if (detailAmbientBackground) MeshFloorColor else plainBackground),
     ) {
-        if (detailAmbientBackground) {
-            Crossfade(
-                targetState = ambience,
-                animationSpec = if (reduceMotion) {
-                    snap()
-                } else {
-                    tween(durationMillis = crossfadeDurationMs(reduceMotion), easing = FastOutSlowInEasing)
-                },
-                label = "detailAmbience",
-            ) { target ->
-                AmbientBackdrop(target)
-            }
-        }
-
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val naturalHeight = maxWidth / aspect
             val heroHeight = minOf(naturalHeight, maxHeight * 0.72f)
@@ -103,7 +91,18 @@ fun DetailScreen(
             } else {
                 ContentScale.Crop
             }
-            SharpHero(path, palette, heroHeight, heroScale, context)
+            val seamPx = if (detailAmbientBackground && path != null) {
+                with(LocalDensity.current) { heroHeight.toPx() }
+            } else 0f
+            if (detailAmbientBackground) {
+                AmbientBackdrop(ambience, seamPx, reduceMotion)
+                LaunchedEffect(ambience.source, seamPx) {
+                    ArtworkDiagnostics.record(
+                        ArtworkSnapshot(source = ambience.source, seamPx = seamPx.toInt()),
+                    )
+                }
+            }
+            SharpHero(path, heroFallback, heroHeight, heroScale, context)
         }
 
         Box(
@@ -121,11 +120,10 @@ fun DetailScreen(
     }
 }
 
-/** Plain sharp artwork hero, with a palette field when no image path is available. */
 @Composable
 private fun BoxScope.SharpHero(
     path: String?,
-    palette: ArtworkPalette,
+    fallbackColor: Color,
     heroHeight: Dp,
     heroScale: ContentScale,
     context: android.content.Context,
@@ -147,10 +145,11 @@ private fun BoxScope.SharpHero(
                         drawContent()
                         drawRect(
                             brush = Brush.verticalGradient(
-                                0f to Color.Black,
-                                heroDissolveStart(HERO_BOTTOM_DISSOLVE_FRACTION) to Color.Black,
-                                1f to Color.Transparent,
-                                startY = 0f,
+                                colorStops = Array(17) { i ->
+                                    val t = i / 16f
+                                    t to Color.Black.copy(alpha = 1f - smootherStep(t))
+                                },
+                                startY = size.height * (1f - HERO_BOTTOM_DISSOLVE_FRACTION),
                                 endY = size.height,
                             ),
                             blendMode = BlendMode.DstIn,
@@ -158,9 +157,7 @@ private fun BoxScope.SharpHero(
                     },
             )
         } else {
-            Box(Modifier.fillMaxSize().drawBehind {
-                drawPaletteField(palette, paletteBlooms(palette), 1.3f)
-            })
+            Box(Modifier.fillMaxSize().background(fallbackColor))
         }
     }
 }
