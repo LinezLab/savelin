@@ -141,6 +141,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setSetting(name: String, value: Any) = viewModelScope.launch { settingsRepository.set(name, value) }
     fun setFrameOverlay(value: Boolean) = viewModelScope.launch { settingsRepository.setFrameOverlay(value) }
     fun setBiometricLock(value: Boolean) = viewModelScope.launch { settingsRepository.setBiometricLock(value) }
+    fun setHideDetailsOnLockScreen(value: Boolean) = viewModelScope.launch { settingsRepository.setHideDetailsOnLockScreen(value) }
+    fun setEnableClipboardChip(value: Boolean) = viewModelScope.launch { settingsRepository.setEnableClipboardChip(value) }
 
     fun exportBackup(target: Uri) = viewModelScope.launch(Dispatchers.IO) {
         val context = getApplication<Application>()

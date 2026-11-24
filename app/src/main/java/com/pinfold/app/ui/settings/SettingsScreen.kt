@@ -70,7 +70,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
             SettingsCard {
                 SettingsChoiceRow(AppIcons.Biometric, Candy.Grape, "Preview identity", settings.previewIdentity, listOf("MOBILE", "CRAWLER")) { viewModel.setSetting("previewIdentity", it) }
                 SettingsRow(AppIcons.Warning, Candy.Tangerine, "Third-party preview helpers", trailing = {
-                    GlassSwitch(settings.previewHelpers) { viewModel.setProxies(it) }
+                    GlassSwitch(settings.proxiesEnabled) { viewModel.setProxies(it) }
                 })
                 SettingsRow(AppIcons.Refetch, Candy.Mint, "Refetch missing previews", trailing = {
                     GlassSwitch(settings.refetchMissing) { viewModel.setSetting("refetchMissing", it) }
@@ -85,7 +85,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 })
                 SettingsChoiceRow(AppIcons.Snooze, Candy.Lime, "Default snooze (min)", settings.defaultSnoozeMinutes.toString(), listOf("5", "15", "30", "60", "120")) { viewModel.setSetting("defaultSnoozeMinutes", it.toInt()) }
                 SettingsRow(AppIcons.Hide, Candy.Grape, "Hide details on lock screen", trailing = {
-                    GlassSwitch(settings.hideDetailsOnLockScreen) { viewModel.setSetting("hideDetailsOnLockScreen", it) }
+                    GlassSwitch(settings.hideDetailsOnLockScreen) { viewModel.setHideDetailsOnLockScreen(it) }
                 })
             }
         }
@@ -102,7 +102,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                     GlassSwitch(settings.blockScreenshots) { viewModel.setSetting("blockScreenshots", it) }
                 })
                 SettingsRow(AppIcons.Paste, Candy.Mint, "Clipboard link suggestion", trailing = {
-                    GlassSwitch(settings.enableClipboardChip) { viewModel.setSetting("enableClipboardChip", it) }
+                    GlassSwitch(settings.enableClipboardChip) { viewModel.setEnableClipboardChip(it) }
                 })
                 SettingsRow(AppIcons.Offline, Candy.Tangerine, "Offline mode", trailing = {
                     GlassSwitch(settings.offlineMode) { viewModel.setOffline(it) }
