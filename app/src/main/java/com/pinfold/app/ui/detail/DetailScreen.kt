@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -56,6 +57,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -63,6 +65,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +74,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.Bookmark
@@ -102,14 +107,22 @@ internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
 internal const val METADATA_BOTTOM_FRACTION = 0.35f
 internal const val DESCRIPTION_STARTS_EXPANDED = true
-internal const val DESCRIPTION_DISSOLVE_EDGE_FRACTION = 0.1f
+internal const val DESCRIPTION_DISSOLVE_EDGE_FRACTION = 0.06f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
 internal val METADATA_SECTION_GAP: Dp = 3.dp
+internal val METADATA_BODY_VERTICAL_GAP: Dp = METADATA_SECTION_GAP
 internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
+internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
-internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Overlay
+internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val OPEN_TEXT_COLOR: Color = Color.White
+internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
+internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
+internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
+internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val DETAIL_GLYPH_TINT_COLOR: Color = Color.White
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
 
@@ -462,7 +475,12 @@ private fun OverlayOpenText(
     onLongClick: () -> Unit,
 ) {
     val measurer = rememberTextMeasurer()
-    val style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold, color = Color.White)
+    val style = ClearType.Headline.copy(
+        fontWeight = OPEN_TEXT_FONT_WEIGHT,
+        color = OPEN_TEXT_COLOR,
+        fontSize = OPEN_TEXT_FONT_SIZE,
+        lineHeight = OPEN_TEXT_LINE_HEIGHT,
+    )
     val textLayout = remember(measurer, style) { measurer.measure("Open", style = style, maxLines = 1) }
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
@@ -482,7 +500,7 @@ private fun OverlayOpenText(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(textWidth, textHeight)) {
-            drawText(textLayout, color = Color.White, blendMode = OPEN_TEXT_BLEND_MODE)
+            drawText(textLayout, color = OPEN_TEXT_COLOR, blendMode = OPEN_TEXT_BLEND_MODE)
         }
     }
 }
@@ -502,80 +520,86 @@ private fun ColumnScope.DetailMetadataBody(
     if (!hasPrimary && fallback.isEmpty()) return
 
     val soft = clear.onGlassSoft
-    if (stats.isNotEmpty()) {
-        Row(
-            Modifier.padding(top = METADATA_SECTION_GAP),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            stats.forEach { stat ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
-                    Spacer(Modifier.width(6.dp))
+    Column(Modifier.padding(vertical = METADATA_BODY_VERTICAL_GAP)) {
+        if (stats.isNotEmpty()) {
+            Row(
+                Modifier.padding(top = METADATA_SECTION_GAP),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                stats.forEach { stat ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            stat.value,
+                            color = soft,
+                            style = ClearType.Caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+        if (description.isNotBlank()) {
+            val scrollModifier = if (descriptionExpanded) {
+                Modifier
+                    .heightIn(max = DESCRIPTION_SCROLL_MAX_HEIGHT)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { change, _ -> change.consume() }
+                    }
+                    .verticalScroll(descriptionScrollState)
+            } else {
+                Modifier
+            }
+            Box(
+                Modifier
+                    .padding(top = METADATA_SECTION_GAP)
+                    .weight(1f, fill = false)
+                    .then(scrollModifier)
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colorStops = descriptionDissolveStops(),
+                                startY = 0f,
+                                endY = size.height,
+                            ),
+                            blendMode = BlendMode.DstIn,
+                        )
+                    }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onToggleDescription,
+                    ),
+            ) {
+                Text(
+                    text = description,
+                    color = soft,
+                    style = ClearType.Body,
+                    maxLines = descriptionMaxLines(descriptionExpanded),
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(vertical = DESCRIPTION_INNER_PADDING),
+                )
+            }
+        }
+        if (!hasPrimary) {
+            Column(
+                Modifier.padding(top = METADATA_SECTION_GAP),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                fallback.forEach { line ->
                     Text(
-                        stat.value,
+                        line,
                         color = soft,
                         style = ClearType.Caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-        }
-    }
-    if (description.isNotBlank()) {
-        val scrollModifier = if (descriptionExpanded) {
-            Modifier
-                .heightIn(max = DESCRIPTION_SCROLL_MAX_HEIGHT)
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures { change, _ -> change.consume() }
-                }
-                .verticalScroll(descriptionScrollState)
-        } else {
-            Modifier
-        }
-        Text(
-            text = description,
-            color = soft,
-            style = ClearType.Body,
-            maxLines = descriptionMaxLines(descriptionExpanded),
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .padding(top = METADATA_SECTION_GAP)
-                .weight(1f, fill = false)
-                .then(scrollModifier)
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colorStops = descriptionDissolveStops(),
-                            startY = 0f,
-                            endY = size.height,
-                        ),
-                        blendMode = BlendMode.DstIn,
-                    )
-                }
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onToggleDescription,
-                ),
-        )
-    }
-    if (!hasPrimary) {
-        Column(
-            Modifier.padding(top = METADATA_SECTION_GAP),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            fallback.forEach { line ->
-                Text(
-                    line,
-                    color = soft,
-                    style = ClearType.Caption,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
@@ -616,7 +640,12 @@ private fun BareGlyph(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        AppIcons.Icon(icon, null, tint = clear.onGlass, size = iconSize)
+        Image(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(iconSize),
+            colorFilter = ColorFilter.tint(DETAIL_GLYPH_TINT_COLOR, blendMode = DETAIL_GLYPH_BLEND_MODE),
+        )
     }
 }
 

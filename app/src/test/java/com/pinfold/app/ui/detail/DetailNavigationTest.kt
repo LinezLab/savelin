@@ -2,7 +2,9 @@ package com.pinfold.app.ui.detail
 
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pinfold.app.data.model.Bookmark
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -139,23 +141,52 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openLabelUsesOverlayBlendAgainstBackdrop() {
-        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+    fun openLabelUsesWhiteScreenBlendToStayVisibleOnDark() {
+        assertEquals(BlendMode.Screen, OPEN_TEXT_BLEND_MODE)
+        assertEquals(Color.White, OPEN_TEXT_COLOR)
+    }
+
+    @Test
+    fun detailGlyphsUseTheSameWhiteScreenBlendAsOpen() {
+        assertEquals(OPEN_TEXT_BLEND_MODE, DETAIL_GLYPH_BLEND_MODE)
+        assertEquals(BlendMode.Screen, DETAIL_GLYPH_BLEND_MODE)
+        assertEquals(Color.White, DETAIL_GLYPH_TINT_COLOR)
+    }
+
+    @Test
+    fun openLabelFontIsLargerThanHeadlineAndKeepsOutfitSemiBold() {
+        assertEquals(30.sp, OPEN_TEXT_FONT_SIZE)
+        assertEquals(34.sp, OPEN_TEXT_LINE_HEIGHT)
+        assertEquals(FontWeight.SemiBold, OPEN_TEXT_FONT_WEIGHT)
+        assertTrue(OPEN_TEXT_FONT_SIZE.value > 26f)
     }
 
     @Test
     fun descriptionDissolveFadesOnlyInsideTopAndBottomEdges() {
-        assertEquals(0.1f, DESCRIPTION_DISSOLVE_EDGE_FRACTION, 0f)
+        assertEquals(0.06f, DESCRIPTION_DISSOLVE_EDGE_FRACTION, 0f)
         val stops = descriptionDissolveStops()
         assertEquals(4, stops.size)
         assertEquals(0f, stops[0].first, 0f)
         assertEquals(Color.Transparent, stops[0].second)
-        assertEquals(0.1f, stops[1].first, 0f)
+        assertEquals(0.06f, stops[1].first, 0f)
         assertEquals(Color.Black, stops[1].second)
-        assertEquals(0.9f, stops[2].first, 0f)
+        assertEquals(0.94f, stops[2].first, 0f)
         assertEquals(Color.Black, stops[2].second)
         assertEquals(1f, stops[3].first, 0f)
         assertEquals(Color.Transparent, stops[3].second)
+    }
+
+    @Test
+    fun descriptionInnerPaddingKeepsFirstAndLastLinesOutsideDissolveBand() {
+        assertEquals(16.dp, DESCRIPTION_INNER_PADDING)
+        val fadeBandDp = DESCRIPTION_DISSOLVE_EDGE_FRACTION * DESCRIPTION_SCROLL_MAX_HEIGHT.value
+        assertTrue(DESCRIPTION_INNER_PADDING.value > fadeBandDp)
+    }
+
+    @Test
+    fun metadataBodyHasVerticalGapAboveAndBelowInAdditionToSectionGap() {
+        assertEquals(3.dp, METADATA_BODY_VERTICAL_GAP)
+        assertEquals(METADATA_SECTION_GAP, METADATA_BODY_VERTICAL_GAP)
     }
 
     @Test
