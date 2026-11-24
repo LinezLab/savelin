@@ -16,9 +16,9 @@ A local-only Android app: share a link from any app and it appears as a Pinteres
 
 ## Privacy guarantees
 
-1. No account is required. An optional Google sign-in exists only for Drive sync (off by default).
+1. No account is required. There is no sign-in and no cloud sync.
 2. No analytics, crash reporters, ads, or third-party SDKs that phone home.
-3. All data is stored on-device; only if you turn on Drive sync is an end-to-end encrypted copy stored in your own Google Drive. There is no developer-run server.
+3. All data is stored on-device. There is no developer-run server and no cloud copy.
 4. The only network traffic is fetching pages you save (and optionally an image from that page). Every host is logged in **Settings → Network transparency**; **Offline mode** disables fetches entirely.
 5. Tracking parameters (`utm_*`, `fbclid`, `igsh`, …) are stripped from saved URLs.
 6. Android cloud auto-backup is disabled (`allowBackup=false`), cleartext traffic is denied, no cookies are stored, and redirects are capped.
@@ -62,18 +62,9 @@ Release builds are signed in CI with a keystore supplied through repository secr
 
 The keystore itself lives in the untracked `secrets/` directory and is **never committed**. Without these secrets the release build fails, unless an unsigned test build is explicitly requested with `workflow_dispatch` and `allow_unsigned`; such a build is not suitable for distribution.
 
-### Google Drive sign-in (OAuth)
+### Google Drive sync (removed)
 
-Google Drive sync is optional and off by default. Its sign-in uses the Google Identity Services AuthorizationClient with an **Android** OAuth client for package `com.pinfold.app`. There is no client ID or secret in this repository: Google authorises the app by its application ID and the SHA-1 fingerprint of the certificate that signed the APK, so **every signing certificate must be registered separately**.
-
-1. In Google Cloud Console, go to **APIs & Services → Credentials** and create or edit an **OAuth client ID** of type **Android** with package name `com.pinfold.app`. Add the SHA-1 fingerprint of each certificate used to sign Savelin (CI release keystore, local debug keystore, any other distribution keystore) and save.
-2. Enable the **Google Drive API** for the same project.
-3. Configure the **OAuth consent screen** (user type and app details) and publish it, or keep it in testing while developing.
-4. While the consent screen is in testing, add every sign-in account as a **Test user**; otherwise sign-in is refused.
-
-Common failures: **code 10 / invalid OAuth client** means the running APK's signing SHA-1 is not registered for `com.pinfold.app` in the Cloud Console; **403 access_denied** usually means the account is missing from the consent screen's test users or the Drive API is not enabled/verified; **12501** means the sign-in flow was cancelled or did not complete.
-
-To find the exact SHA-1 of the APK you are running, open **Settings → Google Drive sync → Sign-in checker** in the app: it shows the application ID and the signing SHA-1 of that build. The CI release fingerprint is printed by the **Print signing fingerprint** step of the release workflow run (log downloads require an authenticated GitHub account; the public API only shows the step name); otherwise extract it from the release keystore with `keytool -list -v -keystore <keystore>`, or read it from the Play Console's signing certificate for a Play-signed build.
+Google Drive sign-in and sync have been removed in this version. Local ZIP backup, export and import remain available in Settings.
 
 ## Install
 

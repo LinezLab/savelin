@@ -131,8 +131,6 @@ fun App(sharedText: String? = null) {
                     if (tab == HomeTab.SETTINGS) {
                         if (settingsPage == "GLASS_MOTION") {
                             com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
-                        } else if (settingsPage == "DRIVE_SYNC") {
-                            com.pinfold.app.ui.settings.DriveSyncScreen(viewModel)
                         } else {
                             SettingsScreen(viewModel)
                         }

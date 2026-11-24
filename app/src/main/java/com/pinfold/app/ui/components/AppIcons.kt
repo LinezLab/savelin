@@ -81,7 +81,6 @@ object AppIcons {
     @DrawableRes val Undo = R.drawable.ic_undo_2
     @DrawableRes val Warning = R.drawable.ic_triangle_alert
     @DrawableRes val Info = R.drawable.ic_info
-    @DrawableRes val Drive = R.drawable.ic_drive
     @DrawableRes val LogIn = R.drawable.ic_log_in
     @DrawableRes val KeyRound = R.drawable.ic_key_round
     @DrawableRes val LifeBuoy = R.drawable.ic_life_buoy

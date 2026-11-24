@@ -42,8 +42,6 @@ the biometric glyph, and ellipsis replaces the old more-horizontal.
 The full licence texts are in third_party/. The Android app also ships an
 Open source licences screen in Settings.
 
-Google Drive logo: a simple brand-style vector placeholder is bundled as app/src/main/res/drawable/ic_drive.xml. Replace it with the official unmodified asset from Google brand resources before release, and add the required attribution.
-
 BitChord (https://github.com/kushagrasinghx/BitChord)
 Copyright the BitChord contributors. Licensed under GPL-3.0.
 Detail artwork mesh background method studied from BitChord (GPL-3.0), kushagrasinghx/BitChord.

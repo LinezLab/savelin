@@ -16,8 +16,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.ui.App
-import com.pinfold.app.sync.DriveSignInHost
-import com.pinfold.app.sync.GoogleDriveSignIn
 import com.pinfold.app.ui.glass.ProvideGlassHaptics
 import com.pinfold.app.ui.glass.theme.SavelinTheme
 import kotlinx.coroutines.Dispatchers
@@ -28,8 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class MainActivity : FragmentActivity(), DriveSignInHost {
-    override val driveSignIn = GoogleDriveSignIn(this)
+class MainActivity : FragmentActivity() {
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private var activeTheme: String? = null
     private val incomingShare = MutableStateFlow<String?>(null)
@@ -87,13 +84,11 @@ class MainActivity : FragmentActivity(), DriveSignInHost {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        driveSignIn.onNewIntent(intent)
         if (intent.action == Intent.ACTION_SEND) incomingShare.value = sharedText(intent)
     }
 
     override fun onResume() {
         super.onResume()
-        driveSignIn.onResume(intent)
     }
 
     private fun sharedText(source: Intent?): String? = source?.takeIf { it.action == Intent.ACTION_SEND }?.let {

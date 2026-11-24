@@ -83,21 +83,6 @@ data class AppSettings(
     val backgroundShape: String = "SOFT",
     val backgroundSource: String = "PALETTE",
     val backgroundFps: Int = 0,
-    val driveSyncEnabled: Boolean = false,
-    val driveLastSuccessAt: Long = 0L,
-    val driveLastAttemptAt: Long = 0L,
-    val driveLastError: String = "",
-    val driveWifiOnly: Boolean = true,
-    val driveSyncImages: Boolean = true,
-    val driveSyncAppearance: Boolean = true,
-    val driveSyncPreferences: Boolean = true,
-    val driveSyncPrivate: Boolean = false,
-    val driveHideEmail: Boolean = false,
-    val drivePassphraseSet: Boolean = false,
-    val driveRecoverySaved: Boolean = false,
-    val driveLastSignInAt: Long = 0L,
-    val driveLastSignInMessage: String = "",
-    val driveLastSignInCode: Int = 0,
     val topShade: Boolean = true,
     val topShadeHeight: Int = 28,
     val topShadeStrength: Float = 0.35f,
@@ -178,24 +163,9 @@ class SettingsRepository(private val context: Context) {
             backgroundShape = p[Keys.backgroundShape] ?: "SOFT",
             backgroundSource = p[Keys.backgroundSource] ?: "PALETTE",
             backgroundFps = p[Keys.backgroundFps] ?: 0,
-            driveSyncEnabled = p[Keys.driveSyncEnabled] ?: false,
-            driveLastSuccessAt = p[Keys.driveLastSuccessAt] ?: 0L,
-            driveLastAttemptAt = p[Keys.driveLastAttemptAt] ?: 0L,
-            driveLastError = p[Keys.driveLastError] ?: "",
-            driveWifiOnly = p[Keys.driveWifiOnly] ?: true,
-            driveSyncImages = p[Keys.driveSyncImages] ?: true,
-            driveSyncAppearance = p[Keys.driveSyncAppearance] ?: true,
-            driveSyncPreferences = p[Keys.driveSyncPreferences] ?: true,
-            driveSyncPrivate = p[Keys.driveSyncPrivate] ?: false,
-            driveLastSignInAt = p[Keys.driveLastSignInAt] ?: 0L,
             topShade = p[Keys.topShade] ?: true,
             topShadeHeight = p[Keys.topShadeHeight] ?: 28,
             topShadeStrength = p[Keys.topShadeStrength] ?: 0.35f,
-            driveLastSignInMessage = p[Keys.driveLastSignInMessage] ?: "",
-            driveLastSignInCode = p[Keys.driveLastSignInCode] ?: 0,
-            driveHideEmail = p[Keys.driveHideEmail] ?: false,
-            drivePassphraseSet = p[Keys.drivePassphraseSet] ?: false,
-            driveRecoverySaved = p[Keys.driveRecoverySaved] ?: false,
         )
     }
 
@@ -322,23 +292,8 @@ class SettingsRepository(private val context: Context) {
         val backgroundShape = stringPreferencesKey("backgroundShape")
         val backgroundSource = stringPreferencesKey("backgroundSource")
         val backgroundFps = intPreferencesKey("backgroundFps")
-        val driveSyncEnabled = booleanPreferencesKey("driveSyncEnabled")
-        val driveLastSuccessAt = longPreferencesKey("driveLastSuccessAt")
-        val driveLastAttemptAt = longPreferencesKey("driveLastAttemptAt")
-        val driveLastError = stringPreferencesKey("driveLastError")
-        val driveWifiOnly = booleanPreferencesKey("driveWifiOnly")
         val topShade = booleanPreferencesKey("topShade")
         val topShadeHeight = intPreferencesKey("topShadeHeight")
         val topShadeStrength = floatPreferencesKey("topShadeStrength")
-        val driveSyncImages = booleanPreferencesKey("driveSyncImages")
-        val driveLastSignInAt = longPreferencesKey("driveLastSignInAt")
-        val driveLastSignInMessage = stringPreferencesKey("driveLastSignInMessage")
-        val driveLastSignInCode = intPreferencesKey("driveLastSignInCode")
-        val driveSyncAppearance = booleanPreferencesKey("driveSyncAppearance")
-        val driveSyncPreferences = booleanPreferencesKey("driveSyncPreferences")
-        val driveSyncPrivate = booleanPreferencesKey("driveSyncPrivate")
-        val driveHideEmail = booleanPreferencesKey("driveHideEmail")
-        val drivePassphraseSet = booleanPreferencesKey("drivePassphraseSet")
-        val driveRecoverySaved = booleanPreferencesKey("driveRecoverySaved")
     }
 }
