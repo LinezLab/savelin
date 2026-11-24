@@ -2,7 +2,6 @@ package com.pinfold.app.ui.detail
 
 import android.content.Context
 import android.graphics.Bitmap
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import coil3.SingletonImageLoader
@@ -29,14 +28,6 @@ internal const val MESH_FADE_MS = 900
 internal const val MESH_CACHE_ENTRIES = 64
 internal const val MESH_DECODE_SIZE = 120
 
-internal val MeshFloorColor: Color = Color(0xFF, 0x12, 0x12)
-
-internal fun fallbackHeroColor(seed: Long): Color {
-    var hash = 17L
-    for (ch in "savelin-hero-$seed") hash = hash * 31L + ch.code
-    val hue = Math.floorMod(hash, 360L).toFloat()
-    return Color.hsv(hue, 0.12f, 0.16f)
-}
 
 internal fun meshDescriptor(): String = "${MESH_GRID}x${MESH_GRID}/$MESH_TEX"
 

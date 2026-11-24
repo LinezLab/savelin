@@ -70,6 +70,8 @@ fun App(sharedText: String? = null) {
     val query by viewModel.searchQuery.collectAsState()
     val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
+    val items by viewModel.items.collectAsState()
+    val ordered = remember(items) { items.distinctBy { it.bookmark.id } }
     val context = LocalContext.current
     val foreground = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
@@ -166,6 +168,18 @@ fun App(sharedText: String? = null) {
                         reduceMotion = appearance.reduceMotion,
                         detailAmbientBackground = appearance.detailAmbientBackground,
                         onBack = { detail = null },
+                        viewModel = viewModel,
+                        onNavigate = { delta ->
+                            val index = ordered.indexOfFirst { it.bookmark.id == item.bookmark.id }
+                            if (index >= 0) {
+                                val target = index + delta
+                                if (target in ordered.indices) {
+                                    val next = ordered[target]
+                                    detail = next
+                                    viewModel.recordOpen(next.bookmark)
+                                }
+                            }
+                        },
                     )
                 }
                 if (appearance.topShade) {

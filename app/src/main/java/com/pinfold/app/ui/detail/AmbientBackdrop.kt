@@ -14,11 +14,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 
 internal const val MESH_SEAM_ANIM_MS = 320
@@ -28,6 +28,7 @@ internal fun AmbientBackdrop(
     ambience: ArtworkAmbience,
     seamPx: Float,
     reduceMotion: Boolean,
+    floor: Color,
     modifier: Modifier = Modifier,
 ) {
     var incoming by remember { mutableStateOf(ambience) }
@@ -71,7 +72,7 @@ internal fun AmbientBackdrop(
         }
     }
 
-    Canvas(modifier.fillMaxSize().background(MeshFloorColor)) {
+    Canvas(modifier.fillMaxSize().background(floor)) {
         val split = seam.value.coerceIn(0f, size.height)
         fun drawMeshLayer(mesh: ImageBitmap?, alpha: Float) {
             if (mesh == null || alpha <= 0f) return
@@ -99,13 +100,15 @@ internal fun AmbientBackdrop(
         val progress = fade.value.coerceIn(0f, 1f)
         drawMeshLayer(outgoing?.mesh, 1f - progress)
         drawMeshLayer(incoming.mesh, progress)
-        drawRect(
-            brush = Brush.verticalGradient(
-                listOf(
-                    Color.Black.copy(alpha = 0.06f),
-                    Color.Black.copy(alpha = 0.30f),
+        if (incoming.mesh != null || outgoing?.mesh != null) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.06f),
+                        Color.Black.copy(alpha = 0.30f),
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 }

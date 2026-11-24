@@ -248,6 +248,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         db.bookmarkDao().update(db.bookmarkDao().findById(item.id)?.copy(notes = notes, updatedAt = System.currentTimeMillis()) ?: return@launch)
     }
 
+    fun editBookmark(
+        item: Bookmark,
+        title: String,
+        description: String,
+        notes: String,
+        tagNames: List<String>,
+    ) = viewModelScope.launch {
+        repository.save(
+            item.copy(
+                title = title,
+                description = description,
+                notes = notes,
+                updatedAt = System.currentTimeMillis(),
+            ),
+            tagNames,
+        )
+    }
+
     fun removeImage(item: Bookmark) = viewModelScope.launch {
         com.pinfold.app.network.image.ImageStore(getApplication(), HttpClientFactory.create()).remove(item.id)
         db.bookmarkDao().update(db.bookmarkDao().findById(item.id)?.copy(imagePath = null, blurhash = null) ?: return@launch)
