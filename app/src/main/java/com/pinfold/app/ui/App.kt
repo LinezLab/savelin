@@ -56,7 +56,7 @@ internal val HOME_BACKGROUND_LIGHT: Color = Color.White
 internal val HOME_BACKGROUND_DARK: Color = Color.Black
 
 @Composable
-fun App(sharedText: String? = null) {
+fun App(sharedText: String? = null, clipboardShare: Pair<String, Long>? = null) {
     val viewModel: HomeViewModel = viewModel()
     var showAdd by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
@@ -71,6 +71,7 @@ fun App(sharedText: String? = null) {
     val appearance by viewModel.settings.collectAsState()
     val items by viewModel.items.collectAsState()
     val ordered = remember(items) { items.distinctBy { it.bookmark.id } }
+    val liveDetail = detail?.let { snap -> items.firstOrNull { it.bookmark.id == snap.bookmark.id } ?: snap }
     val context = LocalContext.current
     val foreground = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
@@ -97,6 +98,9 @@ fun App(sharedText: String? = null) {
     LaunchedEffect(appearance.haptics) {
         GlassSettings.updateHaptics(context, appearance.haptics != "OFF")
     }
+    LaunchedEffect(appearance.adaptiveLuminance) {
+        GlassSettings.updateAdaptive(context, appearance.adaptiveLuminance)
+    }
     LaunchedEffect(tab, settingsPage, detail?.bookmark?.id) {
         DiagnosticsLog.uiAction("Nav", "screen=" + when {
             detail != null -> "Details"
@@ -111,6 +115,9 @@ fun App(sharedText: String? = null) {
     if (locked) {
         BiometricGate(onUnlock = { locked = false })
         return
+    }
+    LaunchedEffect(clipboardShare?.second) {
+        clipboardShare?.first?.let { draft = it; showAdd = true }
     }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
@@ -148,7 +155,7 @@ fun App(sharedText: String? = null) {
                         HomeScreen(viewModel, onOpen = { detail = it })
                     }
                 }
-                detail?.let { item ->
+                liveDetail?.let { item ->
                     DetailScreen(
                         item = item,
                         reduceMotion = appearance.reduceMotion,

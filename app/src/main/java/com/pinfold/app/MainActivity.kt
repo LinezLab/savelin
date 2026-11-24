@@ -1,17 +1,22 @@
 package com.pinfold.app
 
 import android.Manifest
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pinfold.app.data.settings.SettingsRepository
@@ -30,6 +35,10 @@ class MainActivity : FragmentActivity() {
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private var activeTheme: String? = null
     private val incomingShare = MutableStateFlow<String?>(null)
+    private val clipboardShare = MutableStateFlow<Pair<String, Long>?>(null)
+    private var lastClipUrl: String? = null
+    private var clipSequence = 0L
+    private lateinit var repository: SettingsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -47,7 +56,7 @@ class MainActivity : FragmentActivity() {
             requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        val repository = SettingsRepository(applicationContext)
+        repository = SettingsRepository(applicationContext)
         val initialTheme = runBlocking(Dispatchers.IO) {
             repository.settings.map { it.themeMode }.first()
         }
@@ -71,11 +80,38 @@ class MainActivity : FragmentActivity() {
                 }
         }
 
+        lifecycleScope.launch {
+            repository.settings
+                .map { it.blockScreenshots }
+                .distinctUntilChanged()
+                .collect { block ->
+                    if (block) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+        }
+        lifecycleScope.launch {
+            repository.settings
+                .map { it.immersiveMode }
+                .distinctUntilChanged()
+                .collect { immersive ->
+                    val controller = WindowInsetsControllerCompat(window, window.decorView)
+                    if (immersive) {
+                        controller.hide(WindowInsetsCompat.Type.systemBars())
+                        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    } else {
+                        controller.show(WindowInsetsCompat.Type.systemBars())
+                    }
+                }
+        }
+
         incomingShare.value = sharedText(intent)
         setContent {
             SavelinTheme(dark = dark) {
                 ProvideGlassHaptics {
-                    App(sharedText = incomingShare.collectAsState().value)
+                    App(
+                        sharedText = incomingShare.collectAsState().value,
+                        clipboardShare = clipboardShare.collectAsState().value,
+                    )
                 }
             }
         }
@@ -89,6 +125,17 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (!::repository.isInitialized) return
+        lifecycleScope.launch {
+            if (!repository.settings.first().enableClipboardChip) return@launch
+            val clip = (getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.primaryClip
+                ?.takeIf { it.itemCount > 0 }
+            val text = clip?.getItemAt(0)?.coerceToText(this@MainActivity)?.toString()?.trim()
+            val url = text?.let { Regex("https?://\\S+").find(it)?.value } ?: return@launch
+            if (url == lastClipUrl) return@launch
+            lastClipUrl = url
+            clipboardShare.value = url to ++clipSequence
+        }
     }
 
     private fun sharedText(source: Intent?): String? = source?.takeIf { it.action == Intent.ACTION_SEND }?.let {
