@@ -73,7 +73,7 @@ Google Drive sync is optional and off by default. Its sign-in uses the Google Id
 
 Common failures: **code 10 / invalid OAuth client** means the running APK's signing SHA-1 is not registered for `com.pinfold.app` in the Cloud Console; **403 access_denied** usually means the account is missing from the consent screen's test users or the Drive API is not enabled/verified; **12501** means the sign-in flow was cancelled or did not complete.
 
-To find the exact SHA-1 of the APK you are running, open **Settings → Google Drive sync → Sign-in checker** in the app: it shows the application ID and the signing SHA-1 of that build. The CI release fingerprint is printed by the **Print signing fingerprint** step of the release workflow run (if you have access to its logs); otherwise extract it from the release keystore with `keytool -list -v -keystore <keystore>`, or read it from the Play Console's signing certificate for a Play-signed build.
+To find the exact SHA-1 of the APK you are running, open **Settings → Google Drive sync → Sign-in checker** in the app: it shows the application ID and the signing SHA-1 of that build. The CI release fingerprint is printed by the **Print signing fingerprint** step of the release workflow run (log downloads require an authenticated GitHub account; the public API only shows the step name); otherwise extract it from the release keystore with `keytool -list -v -keystore <keystore>`, or read it from the Play Console's signing certificate for a Play-signed build.
 
 ## Install
 
