@@ -307,7 +307,7 @@ internal suspend fun loadMesh(context: Context, id: Long, path: String): ImageBi
         val width = source.width
         val height = source.height
         val pixels = IntArray(width * height)
-        bitmap.readPixels(pixels, 0, width, 0, 0, width, height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
         val baked = buildMeshPixels(pixels, width, height, id.hashCode())
         val mesh = Bitmap.createBitmap(baked, MESH_TEX, MESH_TEX, Bitmap.Config.ARGB_8888).asImageBitmap()
         cacheMesh(id, mesh)

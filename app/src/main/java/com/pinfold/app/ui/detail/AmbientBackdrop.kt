@@ -14,8 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -68,7 +67,7 @@ internal fun AmbientBackdrop(
         } else if (seam.value <= 0f || reduceMotion) {
             seam.snapTo(seamPx)
         } else {
-            seam.animateTo(seamPx, tween(MESH_SEAM_ANIM_MS, FastOutSlowInEasing))
+            seam.animateTo(seamPx, tween(durationMillis = MESH_SEAM_ANIM_MS, easing = FastOutSlowInEasing))
         }
     }
 
@@ -80,7 +79,7 @@ internal fun AmbientBackdrop(
                 drawImage(
                     image = mesh,
                     srcSize = IntSize(MESH_TEX, 1),
-                    dstSize = Size(size.width, split),
+                    dstSize = IntSize(size.width.toInt(), split.toInt()),
                     alpha = alpha,
                     filterQuality = FilterQuality.Low,
                 )
@@ -90,8 +89,8 @@ internal fun AmbientBackdrop(
                 drawImage(
                     image = mesh,
                     srcSize = IntSize(MESH_TEX, MESH_TEX),
-                    dstOffset = Offset(0f, split),
-                    dstSize = Size(size.width, belowHeight),
+                    dstOffset = IntOffset(0, split.toInt()),
+                    dstSize = IntSize(size.width.toInt(), belowHeight.toInt()),
                     alpha = alpha,
                     filterQuality = FilterQuality.Low,
                 )
