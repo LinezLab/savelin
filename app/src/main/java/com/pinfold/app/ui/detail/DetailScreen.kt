@@ -92,10 +92,14 @@ import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
+import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
+import com.pinfold.app.ui.glass.adaptiveInk
+import com.pinfold.app.ui.glass.glass
+import com.pinfold.app.ui.glass.rememberGlassLuminance
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
@@ -119,7 +123,7 @@ internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
 internal val METADATA_SECTION_GAP: Dp = 3.dp
 internal val METADATA_BODY_VERTICAL_GAP: Dp = METADATA_SECTION_GAP
-internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
+internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 120.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
 internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
@@ -344,13 +348,6 @@ fun DetailScreen(
                         title = title,
                         titleExpanded = titleExpanded,
                         onToggleTitle = { titleExpanded = !titleExpanded },
-                        onShare = {
-                            val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, bookmark.url)
-                            }
-                            context.startActivity(Intent.createChooser(send, "Share"))
-                        },
                     )
                 }
             }
@@ -377,21 +374,28 @@ fun DetailScreen(
             StickySonilLogo()
         }
 
-        Row(
-            Modifier.align(Alignment.BottomCenter)
+        DetailToastActionBar(
+            onBack = onBack,
+            onShare = {
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, bookmark.url)
+                }
+                context.startActivity(Intent.createChooser(send, "Share"))
+            },
+            onMore = { menuOpen = true },
+            modifier = Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp)
-                .padding(vertical = BOTTOM_BUTTON_VERTICAL_MARGIN)
-                .fillMaxWidth()
-                .padding(horizontal = METADATA_PANEL_SIDE_MARGIN),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(vertical = BOTTOM_BUTTON_VERTICAL_MARGIN),
+        )
+
+        Box(
+            Modifier.align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp + BOTTOM_BUTTON_VERTICAL_MARGIN + DETAIL_GLYPH_BUTTON_SIZE + 8.dp),
+            contentAlignment = Alignment.BottomCenter,
         ) {
-            BareGlyph(
-                icon = AppIcons.Back,
-                label = "Back",
-                onClick = onBack,
-            )
             OverlayOpenText(
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
@@ -402,11 +406,6 @@ fun DetailScreen(
                     clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
                     copyToast = true
                 },
-            )
-            BareGlyph(
-                icon = AppIcons.More,
-                label = "More options",
-                onClick = { menuOpen = true },
             )
         }
 
@@ -494,7 +493,6 @@ private fun DetailTitleRow(
     title: String,
     titleExpanded: Boolean,
     onToggleTitle: () -> Unit,
-    onShare: () -> Unit,
 ) {
     val ink = DETAIL_METADATA_INK
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -509,12 +507,6 @@ private fun DetailTitleRow(
                 indication = null,
                 onClick = onToggleTitle,
             ),
-        )
-        Spacer(Modifier.width(12.dp))
-        BareGlyph(
-            icon = AppIcons.Share,
-            label = "Share",
-            onClick = onShare,
         )
     }
 }
@@ -683,9 +675,10 @@ private fun ColumnScope.DetailMetadataBody(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun BareGlyph(
+private fun DetailBlendedGlyph(
     icon: Int,
     label: String,
+    ink: Color,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     size: Dp = DETAIL_GLYPH_BUTTON_SIZE,
@@ -735,10 +728,34 @@ private fun BareGlyph(
             AppIcons.Icon(
                 icon,
                 null,
-                tint = Color.White.copy(alpha = DETAIL_GLYPH_LUMINANCE_ALPHA),
+                tint = ink.copy(alpha = DETAIL_GLYPH_LUMINANCE_ALPHA),
                 size = iconSize,
             )
         }
+    }
+}
+
+@Composable
+private fun DetailToastActionBar(
+    onBack: () -> Unit,
+    onShare: () -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = clear
+    val luminance = rememberGlassLuminance(enabled = true)
+    val ink = adaptiveInk(luminance, c.ink)
+    Row(
+        modifier
+            .widthIn(max = 520.dp)
+            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance)
+            .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        DetailBlendedGlyph(AppIcons.Back, "Back", ink, onBack)
+        DetailBlendedGlyph(AppIcons.Share, "Share", ink, onShare)
+        DetailBlendedGlyph(AppIcons.More, "More options", ink, onMore)
     }
 }
 

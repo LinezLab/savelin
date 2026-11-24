@@ -118,11 +118,11 @@ class DetailNavigationTest {
 
     @Test
     fun metadataBodyFitsBetweenTitleAnchorAndBottomActions() {
-        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(120.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
         assertEquals(3.dp, METADATA_SECTION_GAP)
         val bottomOffset = metadataBottomOffset(800.dp)
         val bodyMaxHeight = maxOf(0.dp, bottomOffset - DETAIL_ACTIONS_RESERVED_HEIGHT)
-        assertEquals(212.dp, bodyMaxHeight)
+        assertEquals(160.dp, bodyMaxHeight)
         assertTrue(bottomOffset > DETAIL_ACTIONS_RESERVED_HEIGHT)
     }
 
@@ -142,7 +142,7 @@ class DetailNavigationTest {
     @Test
     fun bottomButtonRowAddsFourDpVerticalMargin() {
         assertEquals(4.dp, BOTTOM_BUTTON_VERTICAL_MARGIN)
-        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(120.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
     }
 
     @Test
@@ -249,7 +249,7 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun shareGlyphMatchesBackAndMoreGlyphSizes() {
+    fun actionBarGlyphsKeepNativeHitAndIconSizes() {
         assertEquals(44.dp, DETAIL_GLYPH_BUTTON_SIZE)
         assertEquals(24.dp, DETAIL_GLYPH_ICON_SIZE)
     }
