@@ -7,18 +7,12 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -36,14 +30,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -74,13 +79,10 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
-import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
-import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.LocalHaptics
-import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
@@ -98,6 +100,11 @@ internal const val SWIPE_HEIGHT_FRACTION = 0.15f
 internal const val HASHTAG_LIMIT = 12
 internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
+internal const val METADATA_BOTTOM_FRACTION_COLLAPSED = 0.20f
+internal const val METADATA_BOTTOM_FRACTION_EXPANDED = 0.48f
+internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
+internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
+internal const val DESCRIPTION_PANEL_TWEEN_MS = 300
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -132,8 +139,24 @@ internal fun fallbackMetadataLines(bookmark: Bookmark): List<String> {
 
 internal fun metadataTopOffset(heroHeight: Dp, gap: Dp): Dp = heroHeight + gap
 
-internal fun collapsedMaxLines(expanded: Boolean): Int =
+internal fun metadataBottomFraction(expanded: Boolean): Float =
+    if (expanded) METADATA_BOTTOM_FRACTION_EXPANDED else METADATA_BOTTOM_FRACTION_COLLAPSED
+
+internal fun metadataBottomOffset(maxHeight: Dp, expanded: Boolean): Dp =
+    maxHeight * metadataBottomFraction(expanded)
+
+internal fun metadataPanelMaxHeight(maxHeight: Dp, bottomOffset: Dp): Dp =
+    maxOf(0.dp, maxHeight - bottomOffset - METADATA_PANEL_TOP_GAP)
+
+internal fun titleTopOffset(maxHeight: Dp, bottomOffset: Dp, panelHeight: Dp): Dp =
+    maxOf(0.dp, maxHeight - bottomOffset - panelHeight)
+
+internal fun descriptionMaxLines(expanded: Boolean): Int =
     if (expanded) Int.MAX_VALUE else COLLAPSED_DESCRIPTION_LINES
+
+internal fun collapsedMaxLines(expanded: Boolean): Int = descriptionMaxLines(expanded)
+
+internal fun descriptionOnly(bookmark: Bookmark): String = bookmark.description.trim()
 
 internal fun hashtagPills(bookmark: Bookmark, tags: List<Tag>): List<String> {
     val unique = LinkedHashMap<String, String>()
@@ -213,8 +236,13 @@ fun DetailScreen(
     val dragAccumulated = remember { mutableStateOf(0f) }
     val dragConsumed = remember { mutableStateOf(false) }
     val navigate by rememberUpdatedState(onNavigate)
+    val descriptionExpandedNow by rememberUpdatedState(descriptionExpanded)
 
     LaunchedEffect(Unit) { DiagnosticsLog.uiAction("Detail", "Open") }
+    LaunchedEffect(descriptionExpanded) {
+        dragAccumulated.value = 0f
+        dragConsumed.value = false
+    }
 
     Box(
         modifier
@@ -237,6 +265,7 @@ fun DetailScreen(
                     },
                 ) { change, dragAmount ->
                     change.consume()
+                    if (descriptionExpandedNow) return@detectVerticalDragGestures
                     if (!dragConsumed.value) {
                         dragAccumulated.value += dragAmount
                         val delta = navigationDelta(dragAccumulated.value, swipeThreshold)
@@ -267,11 +296,25 @@ fun DetailScreen(
                 }
             }
             SharpHero(path, themeFloor, heroHeight, heroScale, context)
-            Column(
-                Modifier.fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = metadataTopOffset(heroHeight, 12.dp))
-                    .padding(bottom = 96.dp),
+            val bottomFraction by animateFloatAsState(
+                targetValue = metadataBottomFraction(descriptionExpanded),
+                animationSpec = if (reduceMotion) {
+                    snap<Float>()
+                } else {
+                    tween(
+                        durationMillis = DESCRIPTION_PANEL_TWEEN_MS,
+                        easing = FastOutSlowInEasing,
+                    )
+                },
+                label = "metadataBottomFraction",
+            )
+            val bottomOffset = maxHeight * bottomFraction
+            Box(
+                Modifier.align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(horizontal = METADATA_PANEL_SIDE_MARGIN)
+                    .padding(bottom = bottomOffset)
+                    .heightIn(max = metadataPanelMaxHeight(maxHeight, bottomOffset)),
             ) {
                 DetailMetadata(
                     item = item,
@@ -291,51 +334,45 @@ fun DetailScreen(
         }
 
         val ink = clear.onGlass
-        Box(
+        Row(
             Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp)
-                .widthIn(min = 280.dp)
-                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
-                .clip(Capsule),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .padding(horizontal = METADATA_PANEL_SIDE_MARGIN),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                BareGlyph(
-                    icon = AppIcons.Back,
-                    label = "Back",
-                    onClick = onBack,
-                )
-                Text(
-                    text = "Open",
-                    color = ink,
-                    style = ClearType.Title.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    modifier = Modifier.combinedClickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        role = Role.Button,
-                        onClick = {
-                            DiagnosticsLog.uiAction("Detail", "Open link")
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
-                        },
-                        onLongClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                            clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
-                            copyToast = true
-                        },
-                    ).semantics { contentDescription = "Open link, long press to copy" },
-                )
-                BareGlyph(
-                    icon = AppIcons.More,
-                    label = "More options",
-                    onClick = { menuOpen = true },
-                )
-            }
+            BareGlyph(
+                icon = AppIcons.Back,
+                label = "Back",
+                onClick = onBack,
+            )
+            Text(
+                text = "Open",
+                color = ink,
+                style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                modifier = Modifier.combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    role = Role.Button,
+                    onClick = {
+                        DiagnosticsLog.uiAction("Detail", "Open link")
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
+                    },
+                    onLongClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        clipboard?.setPrimaryClip(ClipData.newPlainText("Savelin link", bookmark.url))
+                        copyToast = true
+                    },
+                ).semantics { contentDescription = "Open link, long press to copy" },
+            )
+            BareGlyph(
+                icon = AppIcons.More,
+                label = "More options",
+                onClick = { menuOpen = true },
+            )
         }
 
         if (menuOpen) {
@@ -407,7 +444,7 @@ private fun DetailMetadata(
 ) {
     val bookmark = item.bookmark
     val title = titleFor(bookmark)
-    val description = bookmark.description.trim()
+    val description = descriptionOnly(bookmark)
     val pills = hashtagPills(bookmark, item.tags)
     val stats = detailStats(bookmark)
     val hasPrimary = title.isNotBlank() || description.isNotBlank() || pills.isNotEmpty()
@@ -418,14 +455,6 @@ private fun DetailMetadata(
     val soft = clear.onGlassSoft
     if (title.isNotBlank()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            BareGlyph(
-                icon = AppIcons.Share,
-                label = "Share",
-                onClick = onShare,
-                size = 32.dp,
-                iconSize = 17.dp,
-            )
-            Spacer(Modifier.width(6.dp))
             Text(
                 text = title,
                 color = ink,
@@ -438,18 +467,26 @@ private fun DetailMetadata(
                     onClick = onToggleTitle,
                 ),
             )
+            Spacer(Modifier.width(12.dp))
+            BareGlyph(
+                icon = AppIcons.Share,
+                label = "Share",
+                onClick = onShare,
+                size = 32.dp,
+                iconSize = 17.dp,
+            )
         }
     }
     if (stats.isNotEmpty()) {
         Row(
-            Modifier.padding(top = 8.dp),
+            Modifier.padding(top = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             stats.forEach { stat ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         stat.value,
                         color = soft,
@@ -462,32 +499,68 @@ private fun DetailMetadata(
         }
     }
     if (description.isNotBlank()) {
-        Text(
-            text = description,
-            color = soft,
-            style = ClearType.Body,
-            maxLines = collapsedMaxLines(descriptionExpanded),
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 10.dp).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onToggleDescription,
-            ),
-        )
-    }
-    if (pills.isNotEmpty()) {
+        if (descriptionExpanded) {
+            Column(
+                Modifier.padding(top = 20.dp)
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = description,
+                    color = soft,
+                    style = ClearType.Body,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onToggleDescription,
+                    ),
+                )
+                if (pills.isNotEmpty()) {
+                    FlowRow(
+                        Modifier.padding(top = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        pills.forEach { pill -> LightGlassChip(label = pill) }
+                    }
+                }
+            }
+        } else {
+            Text(
+                text = description,
+                color = soft,
+                style = ClearType.Body,
+                maxLines = descriptionMaxLines(false),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 20.dp).clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggleDescription,
+                ),
+            )
+            if (pills.isNotEmpty()) {
+                FlowRow(
+                    Modifier.padding(top = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    pills.forEach { pill -> LightGlassChip(label = pill) }
+                }
+            }
+        }
+    } else if (pills.isNotEmpty()) {
         FlowRow(
-            Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            Modifier.padding(top = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             pills.forEach { pill -> LightGlassChip(label = pill) }
         }
     }
     if (!hasPrimary) {
         Column(
-            Modifier.padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            Modifier.padding(top = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             fallback.forEach { line ->
                 Text(

@@ -109,4 +109,51 @@ class DetailNavigationTest {
         assertEquals(1, stats.size)
         assertTrue(stats[0].value.isNotBlank())
     }
+
+    @Test
+    fun metadataPanelFractionsPlaceTitleNearBottomAndLiftOnExpand() {
+        assertEquals(0.20f, METADATA_BOTTOM_FRACTION_COLLAPSED, 0.0001f)
+        assertEquals(0.48f, METADATA_BOTTOM_FRACTION_EXPANDED, 0.0001f)
+        assertEquals(0.20f, metadataBottomFraction(false), 0.0001f)
+        assertEquals(0.48f, metadataBottomFraction(true), 0.0001f)
+        assertEquals(160.dp, metadataBottomOffset(800.dp, false))
+        assertEquals(384.dp, metadataBottomOffset(800.dp, true))
+    }
+
+    @Test
+    fun metadataPanelHeightLeavesRoomAboveAndTitleTracksLift() {
+        assertEquals(616.dp, metadataPanelMaxHeight(800.dp, 160.dp))
+        assertEquals(392.dp, metadataPanelMaxHeight(800.dp, 384.dp))
+        assertEquals(0.dp, metadataPanelMaxHeight(800.dp, 800.dp))
+        assertEquals(440.dp, titleTopOffset(800.dp, 160.dp, 200.dp))
+        assertEquals(224.dp, titleTopOffset(800.dp, 384.dp, 192.dp))
+        assertEquals(0.dp, titleTopOffset(800.dp, 384.dp, 800.dp))
+    }
+
+    @Test
+    fun descriptionMaxLinesIsThreeCollapsedAndUnlimitedExpanded() {
+        assertEquals(3, descriptionMaxLines(false))
+        assertEquals(Int.MAX_VALUE, descriptionMaxLines(true))
+        assertEquals(descriptionMaxLines(false), collapsedMaxLines(false))
+        assertEquals(descriptionMaxLines(true), collapsedMaxLines(true))
+    }
+
+    @Test
+    fun descriptionOnlyNeverIncludesStatsOrFallbackMetadata() {
+        val bookmark = Bookmark(
+            url = "https://example.com",
+            originalUrl = "https://example.com",
+            normalizedUrl = "https://example.com",
+            description = "  Only the description  ",
+            siteName = "Example",
+            author = "Ada",
+            postedAt = "19 Nov 2026",
+            likesText = "283K",
+            commentsText = "42",
+        )
+        assertEquals("Only the description", descriptionOnly(bookmark))
+        assertTrue(!descriptionOnly(bookmark).contains("283K"))
+        assertTrue(!descriptionOnly(bookmark).contains("Ada"))
+        assertTrue(descriptionOnly(bookmark.copy(description = "  ")).isEmpty())
+    }
 }
