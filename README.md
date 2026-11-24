@@ -2,6 +2,8 @@
 
 A local-only Android app: share a link from any app and it appears as a Pinterest-style preview tile. No account, no analytics, no cloud, no tracking. Liquid-glass UI with a floating pill navigation bar and a full Appearance & Motion settings screen.
 
+The launcher icons and notification glyph were supplied by the project owner; see [NOTICE](NOTICE) for attribution.
+
 ## What it does
 
 - **Share to save.** Android's share sheet sends `text/plain` links (plus captions) straight into Savelin. Paste a link with **+** as well. The first URL in shared text is extracted, normalised and de-duplicated.
