@@ -2,7 +2,6 @@ package com.pinfold.app.ui.detail
 
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.data.model.Bookmark
-import com.pinfold.app.data.model.Tag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,26 +58,6 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun hashtagsAreNormalisedDeduplicatedAndCapped() {
-        val bookmark = Bookmark(
-            url = "https://example.com",
-            originalUrl = "https://example.com",
-            normalizedUrl = "https://example.com",
-            hashtags = " News, #tech, tech , , ",
-        )
-        val tags = listOf(Tag(name = "Design"), Tag(name = "#design"), Tag(name = " news "))
-        assertEquals(listOf("#News", "#tech", "#Design"), hashtagPills(bookmark, tags))
-        val many = Bookmark(
-            url = "https://example.com",
-            originalUrl = "https://example.com",
-            normalizedUrl = "https://example.com",
-            hashtags = (1..20).joinToString(",") { "tag$it" },
-        )
-        assertEquals(HASHTAG_LIMIT, hashtagPills(many, emptyList()).size)
-        assertTrue(hashtagPills(Bookmark(url = "", originalUrl = "", normalizedUrl = ""), emptyList()).isEmpty())
-    }
-
-    @Test
     fun collapsedLineCountsAreThreeAndUnlimited() {
         assertEquals(3, collapsedMaxLines(false))
         assertEquals(Int.MAX_VALUE, collapsedMaxLines(true))
@@ -111,39 +90,45 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun metadataPanelStaysFixedAtTwentyPercentFromBottom() {
-        assertEquals(0.20f, METADATA_BOTTOM_FRACTION, 0.0001f)
-        assertEquals(160.dp, metadataBottomOffset(800.dp))
+    fun metadataPanelStaysFixedAtThirtyFivePercentFromBottom() {
+        assertEquals(0.35f, METADATA_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(280.dp, metadataBottomOffset(800.dp))
         assertEquals(0.dp, metadataBottomOffset(0.dp))
     }
 
     @Test
-    fun titleAnchorIsTwentyPercentOfScreenHeight() {
-        assertEquals(0.20f, METADATA_BOTTOM_FRACTION, 0.0001f)
-        assertEquals(160f, titleBottomOffsetPx(800f, METADATA_BOTTOM_FRACTION), 0.0001f)
+    fun titleAnchorIsThirtyFivePercentOfScreenHeight() {
+        assertEquals(0.35f, METADATA_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(280f, titleBottomOffsetPx(800f, METADATA_BOTTOM_FRACTION), 0.0001f)
         assertEquals(0f, titleBottomOffsetPx(0f, METADATA_BOTTOM_FRACTION), 0.0001f)
-        assertEquals(240f, titleBottomOffsetPx(1200f, METADATA_BOTTOM_FRACTION), 0.0001f)
+        assertEquals(420f, titleBottomOffsetPx(1200f, METADATA_BOTTOM_FRACTION), 0.0001f)
         assertEquals(0f, titleBottomOffsetPx(800f, -0.5f), 0.0001f)
         assertEquals(800f, titleBottomOffsetPx(800f, 1.5f), 0.0001f)
-        assertEquals(160.dp, metadataBottomOffset(800.dp))
+        assertEquals(280.dp, metadataBottomOffset(800.dp))
     }
 
     @Test
     fun metadataBodyFitsBetweenTitleAnchorAndBottomActions() {
         assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
-        assertEquals(12.dp, METADATA_SECTION_GAP)
+        assertEquals(0.dp, METADATA_SECTION_GAP)
         val bottomOffset = metadataBottomOffset(800.dp)
         val bodyMaxHeight = maxOf(0.dp, bottomOffset - DETAIL_ACTIONS_RESERVED_HEIGHT)
-        assertEquals(92.dp, bodyMaxHeight)
+        assertEquals(212.dp, bodyMaxHeight)
         assertTrue(bottomOffset > DETAIL_ACTIONS_RESERVED_HEIGHT)
     }
 
     @Test
+    fun metadataSectionGapIsZeroForContiguousFlow() {
+        assertEquals(0f, metadataSectionGap(), 0f)
+        assertEquals(0.dp, METADATA_SECTION_GAP)
+    }
+
+    @Test
     fun metadataPanelHeightLeavesRoomAboveAndTitleTracksFixedOffset() {
-        assertEquals(616.dp, metadataPanelMaxHeight(800.dp, 160.dp))
+        assertEquals(496.dp, metadataPanelMaxHeight(800.dp, 280.dp))
         assertEquals(0.dp, metadataPanelMaxHeight(800.dp, 800.dp))
-        assertEquals(440.dp, titleTopOffset(800.dp, 160.dp, 200.dp))
-        assertEquals(0.dp, titleTopOffset(800.dp, 160.dp, 800.dp))
+        assertEquals(320.dp, titleTopOffset(800.dp, 280.dp, 200.dp))
+        assertEquals(0.dp, titleTopOffset(800.dp, 280.dp, 800.dp))
     }
 
     @Test

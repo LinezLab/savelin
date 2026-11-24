@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -73,7 +72,6 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
-import com.pinfold.app.data.model.Tag
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
@@ -81,7 +79,6 @@ import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassTextField
-import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.ClearType
@@ -97,13 +94,12 @@ import java.util.Locale
 internal const val HERO_BOTTOM_DISSOLVE_FRACTION = 0.42f
 internal const val SWIPE_MIN_THRESHOLD_PX = 96f
 internal const val SWIPE_HEIGHT_FRACTION = 0.15f
-internal const val HASHTAG_LIMIT = 12
 internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
-internal const val METADATA_BOTTOM_FRACTION = 0.20f
+internal const val METADATA_BOTTOM_FRACTION = 0.35f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
-internal val METADATA_SECTION_GAP: Dp = 12.dp
+internal val METADATA_SECTION_GAP: Dp = 0.dp
 internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 
@@ -146,6 +142,8 @@ internal fun metadataBottomOffset(maxHeight: Dp): Dp =
 internal fun titleBottomOffsetPx(maxHeightPx: Float, fraction: Float): Float =
     maxHeightPx * fraction.coerceIn(0f, 1f)
 
+internal fun metadataSectionGap(): Float = METADATA_SECTION_GAP.value
+
 internal fun metadataPanelMaxHeight(maxHeight: Dp, bottomOffset: Dp): Dp =
     maxOf(0.dp, maxHeight - bottomOffset - METADATA_PANEL_TOP_GAP)
 
@@ -158,19 +156,6 @@ internal fun descriptionMaxLines(expanded: Boolean): Int =
 internal fun collapsedMaxLines(expanded: Boolean): Int = descriptionMaxLines(expanded)
 
 internal fun descriptionOnly(bookmark: Bookmark): String = bookmark.description.trim()
-
-internal fun hashtagPills(bookmark: Bookmark, tags: List<Tag>): List<String> {
-    val unique = LinkedHashMap<String, String>()
-    fun add(raw: String) {
-        val bare = raw.trim().trimStart('#').trim()
-        if (bare.isEmpty()) return
-        val label = "#$bare"
-        unique.putIfAbsent(label.lowercase(Locale.getDefault()), label)
-    }
-    bookmark.hashtags.split(',').forEach(::add)
-    tags.forEach { add(it.name) }
-    return unique.values.take(HASHTAG_LIMIT)
-}
 
 internal fun formattedCreatedAt(epochMillis: Long): String = runCatching {
     val pattern = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
@@ -226,7 +211,6 @@ fun DetailScreen(
     var editTitle by remember { mutableStateOf("") }
     var editDescription by remember { mutableStateOf("") }
     var editNotes by remember { mutableStateOf("") }
-    var editTags by remember { mutableStateOf("") }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) viewModel.attachImage(bookmark, uri)
@@ -295,6 +279,7 @@ fun DetailScreen(
             val bottomOffset = with(density) {
                 titleBottomOffsetPx(screenHeightPx, METADATA_BOTTOM_FRACTION).toDp()
             }
+            val titleAnchorTop = maxOf(0.dp, maxHeight - bottomOffset)
             val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             val actionsClearance = DETAIL_ACTIONS_RESERVED_HEIGHT + navInset
             val belowTitleHeight = maxOf(0.dp, bottomOffset - actionsClearance)
@@ -321,10 +306,10 @@ fun DetailScreen(
                 }
             }
             Column(
-                Modifier.align(Alignment.BottomStart)
+                Modifier.align(Alignment.TopStart)
                     .fillMaxWidth()
                     .padding(horizontal = METADATA_PANEL_SIDE_MARGIN)
-                    .padding(bottom = actionsClearance)
+                    .padding(top = titleAnchorTop)
                     .heightIn(max = belowTitleHeight),
             ) {
                 DetailMetadataBody(
@@ -386,7 +371,6 @@ fun DetailScreen(
                         editTitle = bookmark.title
                         editDescription = bookmark.description
                         editNotes = bookmark.notes
-                        editTags = item.tags.joinToString(", ") { it.name }
                         editOpen = true
                     }),
                     GlassMenuItem(AppIcons.Refetch, "Refresh", onClick = { viewModel.refetch(bookmark) }),
@@ -418,7 +402,7 @@ fun DetailScreen(
                         editTitle.trim(),
                         editDescription.trim(),
                         editNotes,
-                        editTags.split(',').map { it.trim() }.filter { it.isNotBlank() },
+                        item.tags.map { it.name },
                     )
                     editOpen = false
                 },
@@ -427,7 +411,6 @@ fun DetailScreen(
                 GlassTextField(value = editTitle, onValueChange = { editTitle = it }, placeholder = "Title")
                 GlassTextField(value = editDescription, onValueChange = { editDescription = it }, placeholder = "Description", singleLine = false)
                 GlassTextField(value = editNotes, onValueChange = { editNotes = it }, placeholder = "Notes", singleLine = false)
-                GlassTextField(value = editTags, onValueChange = { editTags = it }, placeholder = "Tags, comma separated")
             }
         }
 
@@ -475,10 +458,9 @@ private fun ColumnScope.DetailMetadataBody(
 ) {
     val bookmark = item.bookmark
     val description = descriptionOnly(bookmark)
-    val pills = hashtagPills(bookmark, item.tags)
     val stats = detailStats(bookmark)
     val descriptionScrollState = rememberScrollState()
-    val hasPrimary = description.isNotBlank() || pills.isNotEmpty()
+    val hasPrimary = description.isNotBlank()
     val fallback = if (hasPrimary) emptyList() else fallbackMetadataLines(bookmark)
     if (!hasPrimary && fallback.isEmpty()) return
 
@@ -531,15 +513,6 @@ private fun ColumnScope.DetailMetadataBody(
                     onClick = onToggleDescription,
                 ),
         )
-    }
-    if (pills.isNotEmpty()) {
-        FlowRow(
-            Modifier.padding(top = METADATA_SECTION_GAP),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            pills.forEach { pill -> LightGlassChip(label = pill) }
-        }
     }
     if (!hasPrimary) {
         Column(
