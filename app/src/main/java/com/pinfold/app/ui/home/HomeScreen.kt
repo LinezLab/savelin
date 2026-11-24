@@ -54,6 +54,7 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
+import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.rememberPhotoInk
 import com.pinfold.app.ui.components.rememberPhotoPreview
 import com.pinfold.app.ui.glass.GlassChip
@@ -93,6 +94,7 @@ fun HomeScreen(
         else -> 5.dp
     }
     var quickMenu by remember { mutableStateOf<BookmarkWithTags?>(null) }
+    var reminderTarget by remember { mutableStateOf<BookmarkWithTags?>(null) }
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -180,7 +182,14 @@ fun HomeScreen(
                     }),
                     GlassMenuItem(AppIcons.Card, "Details", onClick = { onOpen(chosen) }),
                     GlassMenuItem(AppIcons.Important, "Important", onClick = { viewModel.toggleImportant(chosen.bookmark) }),
-                    GlassMenuItem(AppIcons.Reminder, "Reminder", onClick = { viewModel.setReminder(chosen.bookmark, System.currentTimeMillis() + 3_600_000L) }),
+                    GlassMenuItem(
+                        if (chosen.bookmark.id in reminderIds) AppIcons.ReminderMuted else AppIcons.Reminder,
+                        if (chosen.bookmark.id in reminderIds) "Clear reminder" else "Reminder",
+                        onClick = {
+                            if (chosen.bookmark.id in reminderIds) viewModel.clearReminder(chosen.bookmark)
+                            else reminderTarget = chosen
+                        },
+                    ),
                     GlassMenuItem(AppIcons.Share, "Share", onClick = {
                         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                             type = "text/plain"
@@ -190,6 +199,12 @@ fun HomeScreen(
                     }),
                     GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = { viewModel.delete(chosen.bookmark) }),
                 ),
+            )
+        }
+        reminderTarget?.let { target ->
+            ReminderPickerDialog(
+                onDismiss = { reminderTarget = null },
+                onPick = { trigger -> viewModel.setReminder(target.bookmark, trigger) },
             )
         }
 }

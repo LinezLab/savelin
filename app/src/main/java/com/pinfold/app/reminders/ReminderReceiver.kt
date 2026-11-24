@@ -9,8 +9,10 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.ReminderStatus
+import com.pinfold.app.data.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ReminderReceiver : BroadcastReceiver() {
@@ -24,7 +26,11 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 val db = PinfoldDatabase.get(context)
                 val bookmark = db.bookmarkDao().findById(bookmarkId)
-                showNotification(context, bookmark?.title.orEmpty())
+                val config = SettingsRepository(context.applicationContext).settings.first()
+                if (config.notifications) {
+                    val title = if (config.hideDetailsOnLockScreen) "" else bookmark?.title.orEmpty()
+                    showNotification(context, title)
+                }
                 db.reminderDao().setStatus(reminderId, ReminderStatus.FIRED)
             } finally {
                 pending.finish()

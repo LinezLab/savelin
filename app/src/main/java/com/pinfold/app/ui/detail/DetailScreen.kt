@@ -91,6 +91,7 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
+import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
@@ -248,6 +249,7 @@ fun DetailScreen(
     val hasReminder = bookmark.id in reminderIds
 
     var menuOpen by remember { mutableStateOf(false) }
+    var reminderOpen by remember { mutableStateOf(false) }
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
     var imageToast by remember { mutableStateOf<String?>(null) }
@@ -436,7 +438,7 @@ fun DetailScreen(
                         if (hasReminder) "Clear reminder" else "Set reminder",
                         onClick = {
                             if (hasReminder) viewModel.clearReminder(bookmark)
-                            else viewModel.setReminder(bookmark, System.currentTimeMillis() + 3_600_000L)
+                            else reminderOpen = true
                         },
                     ),
                     GlassMenuItem(AppIcons.Hide, if (bookmark.isPrivate) "Unmark private" else "Mark private", onClick = {
@@ -448,6 +450,13 @@ fun DetailScreen(
                         onBack()
                     }),
                 ),
+            )
+        }
+
+        if (reminderOpen) {
+            ReminderPickerDialog(
+                onDismiss = { reminderOpen = false },
+                onPick = { trigger -> viewModel.setReminder(bookmark, trigger) },
             )
         }
 
