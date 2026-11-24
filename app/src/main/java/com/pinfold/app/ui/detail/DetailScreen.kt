@@ -86,11 +86,7 @@ fun DetailScreen(
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val naturalHeight = maxWidth / aspect
             val heroHeight = minOf(naturalHeight, maxHeight * 0.72f)
-            val heroScale = if (heroHeight >= naturalHeight - 1.dp) {
-                ContentScale.FillWidth
-            } else {
-                ContentScale.Crop
-            }
+            val heroScale = ContentScale.FillWidth
             val seamPx = if (detailAmbientBackground && path != null) {
                 with(LocalDensity.current) { heroHeight.toPx() }
             } else 0f
@@ -131,8 +127,7 @@ private fun BoxScope.SharpHero(
     Box(
         Modifier.align(Alignment.TopCenter)
             .fillMaxWidth()
-            .height(heroHeight)
-            .padding(horizontal = 12.dp),
+            .height(heroHeight),
     ) {
         if (path != null) {
             AsyncImage(
