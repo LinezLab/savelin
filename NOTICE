@@ -55,3 +55,5 @@ See third_party/OFL-Outfit.txt.
 NIKEA (Limitype) is a commercial display font provided by the user. The single OTF is
 bundled at app/src/main/res/font/nikea.otf solely for the "Sonil" logo; all rights remain
 with Limitype and its licence holder. No redistribution rights are claimed or implied.
+
+App icon pack (AppIcons.zip) and notification source image (IMG_20261125_003854.png) were supplied by the project owner for Savelin. The launcher mipmaps and adaptive foreground were generated with appicon.co (https://appicon.co/), a free icon tool by Lance. The bundled launcher resources are under app/src/main/res/mipmap-*; the notification small icon (drawable-*/ic_stat_savelin.png) is a white-on-transparent silhouette derived from the owner-supplied PNG. No third-party licence is claimed over these user-supplied assets; all rights remain with the owner.

@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.pinfold.app.R
 import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.ReminderStatus
 import com.pinfold.app.data.settings.SettingsRepository
@@ -45,7 +46,7 @@ class ReminderReceiver : BroadcastReceiver() {
             manager.createNotificationChannel(channel)
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_savelin)
             .setContentTitle("Pinfold reminder")
             .setContentText(title.ifBlank { "A saved link is waiting for you" })
             .setAutoCancel(true)
