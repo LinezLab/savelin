@@ -401,8 +401,8 @@ fun DetailScreen(
                     copyToast = true
                 },
                 label = "Open link, long press to copy",
-                height = 48.dp,
-                horizontalPadding = 18.dp,
+                height = 38.dp,
+                horizontalPadding = 14.dp,
             ) {
                 OverlayOpenText()
             }
