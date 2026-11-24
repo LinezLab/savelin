@@ -89,8 +89,6 @@ object ArtworkDiagnostics {
             appendLine("accents=${snapshot.accents.joinToString(", ")}")
             appendLine("layers: image=$AMBIENT_ALPHA bloom=$BLOOM_ALPHA " +
                 "bottomFade=$BOTTOM_FADE_ALPHA scrim=$SCRIM_TOP_ALPHA")
-            appendLine("hero: halo=$HALO_SCALE blur=${HALO_BLUR_DP}dp " +
-                "tail=${HALO_TAIL_DP}dp")
             append("crossfade=${snapshot.fadeMs}ms blooms=${snapshot.blooms}")
         }
     }

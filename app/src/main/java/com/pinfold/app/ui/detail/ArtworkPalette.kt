@@ -20,12 +20,6 @@ internal const val BOTTOM_FADE_ALPHA = 0.38f
 internal const val SCRIM_TOP_ALPHA = 0.16f
 internal const val SCRIM_BOTTOM_ALPHA = 0.14f
 
-internal const val HALO_SCALE = 1.46f
-internal const val HALO_BLUR_DP = 58f
-internal const val HALO_OVERSHOOT_DP = 210f
-internal const val HALO_TAIL_DP = 120f
-internal const val HALO_ALPHA = 0.95f
-
 data class ArtworkPalette(
     val base: Color,
     val dominant: Color,
@@ -217,15 +211,6 @@ internal fun paletteBlooms(palette: ArtworkPalette): List<ToneBloom> {
             alpha = if (index < 2) BLOOM_ALPHA else BLOOM_ALPHA * 0.60f,
         )
     }
-}
-
-internal fun haloTailStart(haloHeight: Float): Float =
-    ((haloHeight - HALO_TAIL_DP) / max(1f, haloHeight)).coerceIn(0f, 1f)
-
-internal fun haloAlpha(tailStart: Float, progress: Float): Float = when {
-    progress <= tailStart -> 1f
-    progress >= 1f -> 0f
-    else -> (1f - progress) / (1f - tailStart).coerceAtLeast(0.0001f)
 }
 
 /** Smooth bottom diffusion ramp used by the image-derived fade. */

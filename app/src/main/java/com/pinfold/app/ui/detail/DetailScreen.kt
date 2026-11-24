@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -22,32 +21,20 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
@@ -111,7 +98,6 @@ fun DetailScreen(
             } else {
                 ContentScale.Crop
             }
-            if (detailAmbientBackground) HeroHalo(ambience.image, palette, heroHeight)
             SharpHero(path, palette, heroHeight, heroScale, context)
         }
 
@@ -130,50 +116,7 @@ fun DetailScreen(
     }
 }
 
-/**
- * Oversized blurred copy of the same artwork. It starts behind the hero and runs past its lower
- * edge, so the hero's rounded corners always reveal matching colour instead of a boundary.
- */
-@Composable
-private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, heroHeight: Dp) {
-    val haloHeight = heroHeight + HALO_OVERSHOOT_DP.dp
-    val tailStart = haloTailStart(haloHeight.value)
-    Box(
-        Modifier.align(Alignment.TopCenter)
-            .fillMaxWidth()
-            .height(haloHeight)
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0f to palette.base,
-                        tailStart to palette.base,
-                        1f to Color.Transparent,
-                    ),
-                    blendMode = BlendMode.DstIn,
-                )
-            },
-    ) {
-        if (image != null) {
-            Image(
-                bitmap = image,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
-                    .scale(HALO_SCALE)
-                    .blur(HALO_BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-                    .alpha(HALO_ALPHA),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(Modifier.fillMaxSize().drawBehind {
-                drawPaletteField(palette, paletteBlooms(palette), 1.15f)
-            })
-        }
-    }
-}
-
-/** Crisp artwork hero with rounded corners and a soft shadow tinted by the artwork itself. */
+/** Plain sharp artwork hero, with a palette field when no image path is available. */
 @Composable
 private fun BoxScope.SharpHero(
     path: String?,
@@ -182,19 +125,11 @@ private fun BoxScope.SharpHero(
     heroScale: ContentScale,
     context: android.content.Context,
 ) {
-    val shape = RoundedCornerShape(14.dp)
-    val glow = palette.accents.firstOrNull() ?: palette.dominant
     Box(
         Modifier.align(Alignment.TopCenter)
             .fillMaxWidth()
             .height(heroHeight)
-            .padding(horizontal = 12.dp)
-            .shadow(
-                elevation = 18.dp,
-                shape = shape,
-                ambientColor = glow.copy(alpha = 0.26f),
-                spotColor = palette.base.copy(alpha = 0.40f),
-            ),
+            .padding(horizontal = 12.dp),
     ) {
         if (path != null) {
             AsyncImage(

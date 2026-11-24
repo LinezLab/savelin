@@ -9,25 +9,6 @@ import org.junit.Test
 
 class AmbientCompositionTest {
     @Test
-    fun haloIsOversizedOpaqueAtTheEdgeAndFadesBelowIt() {
-        assertTrue(HALO_SCALE > 1.2f)
-        val heroHeight = 600f
-        val haloHeight = heroHeight + HALO_OVERSHOOT_DP
-        val tailStart = haloTailStart(haloHeight)
-        assertTrue("tailStart=$tailStart", tailStart in 0.7f..0.99f)
-        assertEquals(1f, haloAlpha(tailStart, heroHeight / haloHeight), 0.0001f)
-        assertEquals(0f, haloAlpha(tailStart, 1f), 0.0001f)
-
-        var previous = 1f
-        for (i in 0..100) {
-            val progress = tailStart + (1f - tailStart) * (i / 100f)
-            val alpha = haloAlpha(tailStart, progress)
-            assertTrue(alpha <= previous + 0.0001f)
-            previous = alpha
-        }
-    }
-
-    @Test
     fun crossfadeIsPerBookmarkAndReduceMotionSnaps() {
         assertFalse(crossfadeChanged(null, 7L))
         assertFalse(crossfadeChanged(7L, 7L))
@@ -61,7 +42,7 @@ class AmbientCompositionTest {
         assertTrue(text.contains("paletteBuckets=5"))
         assertTrue(text.contains("#FFD97123"))
         assertTrue(text.contains("layers: image="))
-        assertTrue(text.contains("hero: halo="))
+        assertFalse(text.contains("halo"))
         assertFalse(text.contains("feather="))
         assertTrue(text.contains("bottomFade="))
         assertTrue(text.contains("crossfade=${CROSSFADE_MS}ms"))
