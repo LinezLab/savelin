@@ -111,23 +111,18 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun metadataPanelFractionsPlaceTitleNearBottomAndLiftOnExpand() {
-        assertEquals(0.20f, METADATA_BOTTOM_FRACTION_COLLAPSED, 0.0001f)
-        assertEquals(0.48f, METADATA_BOTTOM_FRACTION_EXPANDED, 0.0001f)
-        assertEquals(0.20f, metadataBottomFraction(false), 0.0001f)
-        assertEquals(0.48f, metadataBottomFraction(true), 0.0001f)
-        assertEquals(160.dp, metadataBottomOffset(800.dp, false))
-        assertEquals(384.dp, metadataBottomOffset(800.dp, true))
+    fun metadataPanelStaysFixedAtTwentyPercentFromBottom() {
+        assertEquals(0.20f, METADATA_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(160.dp, metadataBottomOffset(800.dp))
+        assertEquals(0.dp, metadataBottomOffset(0.dp))
     }
 
     @Test
-    fun metadataPanelHeightLeavesRoomAboveAndTitleTracksLift() {
+    fun metadataPanelHeightLeavesRoomAboveAndTitleTracksFixedOffset() {
         assertEquals(616.dp, metadataPanelMaxHeight(800.dp, 160.dp))
-        assertEquals(392.dp, metadataPanelMaxHeight(800.dp, 384.dp))
         assertEquals(0.dp, metadataPanelMaxHeight(800.dp, 800.dp))
         assertEquals(440.dp, titleTopOffset(800.dp, 160.dp, 200.dp))
-        assertEquals(224.dp, titleTopOffset(800.dp, 384.dp, 192.dp))
-        assertEquals(0.dp, titleTopOffset(800.dp, 384.dp, 800.dp))
+        assertEquals(0.dp, titleTopOffset(800.dp, 160.dp, 800.dp))
     }
 
     @Test
@@ -136,6 +131,11 @@ class DetailNavigationTest {
         assertEquals(Int.MAX_VALUE, descriptionMaxLines(true))
         assertEquals(descriptionMaxLines(false), collapsedMaxLines(false))
         assertEquals(descriptionMaxLines(true), collapsedMaxLines(true))
+    }
+
+    @Test
+    fun expandedDescriptionScrollHeightIsFixedAt200Dp() {
+        assertEquals(200.dp, DESCRIPTION_SCROLL_MAX_HEIGHT)
     }
 
     @Test

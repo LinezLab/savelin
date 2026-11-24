@@ -7,11 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -101,11 +96,10 @@ internal const val SWIPE_HEIGHT_FRACTION = 0.15f
 internal const val HASHTAG_LIMIT = 12
 internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
-internal const val METADATA_BOTTOM_FRACTION_COLLAPSED = 0.20f
-internal const val METADATA_BOTTOM_FRACTION_EXPANDED = 0.48f
+internal const val METADATA_BOTTOM_FRACTION = 0.20f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
-internal const val DESCRIPTION_PANEL_TWEEN_MS = 300
+internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -140,11 +134,8 @@ internal fun fallbackMetadataLines(bookmark: Bookmark): List<String> {
 
 internal fun metadataTopOffset(heroHeight: Dp, gap: Dp): Dp = heroHeight + gap
 
-internal fun metadataBottomFraction(expanded: Boolean): Float =
-    if (expanded) METADATA_BOTTOM_FRACTION_EXPANDED else METADATA_BOTTOM_FRACTION_COLLAPSED
-
-internal fun metadataBottomOffset(maxHeight: Dp, expanded: Boolean): Dp =
-    maxHeight * metadataBottomFraction(expanded)
+internal fun metadataBottomOffset(maxHeight: Dp): Dp =
+    maxHeight * METADATA_BOTTOM_FRACTION
 
 internal fun metadataPanelMaxHeight(maxHeight: Dp, bottomOffset: Dp): Dp =
     maxOf(0.dp, maxHeight - bottomOffset - METADATA_PANEL_TOP_GAP)
@@ -237,13 +228,8 @@ fun DetailScreen(
     val dragAccumulated = remember { mutableStateOf(0f) }
     val dragConsumed = remember { mutableStateOf(false) }
     val navigate by rememberUpdatedState(onNavigate)
-    val descriptionExpandedNow by rememberUpdatedState(descriptionExpanded)
 
     LaunchedEffect(Unit) { DiagnosticsLog.uiAction("Detail", "Open") }
-    LaunchedEffect(descriptionExpanded) {
-        dragAccumulated.value = 0f
-        dragConsumed.value = false
-    }
 
     Box(
         modifier
@@ -266,7 +252,7 @@ fun DetailScreen(
                     },
                 ) { change, dragAmount ->
                     change.consume()
-                    if (!descriptionExpandedNow && !dragConsumed.value) {
+                    if (!dragConsumed.value) {
                         dragAccumulated.value += dragAmount
                         val delta = navigationDelta(dragAccumulated.value, swipeThreshold)
                         if (delta != 0) {
@@ -296,20 +282,7 @@ fun DetailScreen(
                 }
             }
             SharpHero(path, themeFloor, heroHeight, heroScale, context)
-            val bottomAnimationSpec: AnimationSpec<Float> = if (reduceMotion) {
-                snap()
-            } else {
-                tween(
-                    durationMillis = DESCRIPTION_PANEL_TWEEN_MS,
-                    easing = FastOutSlowInEasing,
-                )
-            }
-            val bottomFraction by animateFloatAsState(
-                targetValue = metadataBottomFraction(descriptionExpanded),
-                animationSpec = bottomAnimationSpec,
-                label = "metadataBottomFraction",
-            )
-            val bottomOffset = maxHeight * bottomFraction
+            val bottomOffset = metadataBottomOffset(maxHeight)
             Box(
                 Modifier.align(Alignment.BottomStart)
                     .fillMaxWidth()
@@ -448,6 +421,7 @@ private fun DetailMetadata(
     val description = descriptionOnly(bookmark)
     val pills = hashtagPills(bookmark, item.tags)
     val stats = detailStats(bookmark)
+    val descriptionScrollState = rememberScrollState()
     val hasPrimary = title.isNotBlank() || description.isNotBlank() || pills.isNotEmpty()
     val fallback = if (hasPrimary) emptyList() else fallbackMetadataLines(bookmark)
     if (!hasPrimary && fallback.isEmpty()) return
@@ -501,53 +475,38 @@ private fun DetailMetadata(
             }
         }
         if (description.isNotBlank()) {
-            if (descriptionExpanded) {
-                Column(
-                    Modifier.padding(top = 20.dp)
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    Text(
-                        text = description,
-                        color = soft,
-                        style = ClearType.Body,
-                        modifier = Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleDescription,
-                        ),
-                    )
-                    if (pills.isNotEmpty()) {
-                        FlowRow(
-                            Modifier.padding(top = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            pills.forEach { pill -> LightGlassChip(label = pill) }
-                        }
+            val scrollModifier = if (descriptionExpanded) {
+                Modifier
+                    .heightIn(max = DESCRIPTION_SCROLL_MAX_HEIGHT)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { change, _ -> change.consume() }
                     }
-                }
+                    .verticalScroll(descriptionScrollState)
             } else {
-                Text(
-                    text = description,
-                    color = soft,
-                    style = ClearType.Body,
-                    maxLines = descriptionMaxLines(false),
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 20.dp).clickable(
+                Modifier
+            }
+            Text(
+                text = description,
+                color = soft,
+                style = ClearType.Body,
+                maxLines = descriptionMaxLines(descriptionExpanded),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .then(scrollModifier)
+                    .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = onToggleDescription,
                     ),
-                )
-                if (pills.isNotEmpty()) {
-                    FlowRow(
-                        Modifier.padding(top = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        pills.forEach { pill -> LightGlassChip(label = pill) }
-                    }
+            )
+            if (pills.isNotEmpty()) {
+                FlowRow(
+                    Modifier.padding(top = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    pills.forEach { pill -> LightGlassChip(label = pill) }
                 }
             }
         } else if (pills.isNotEmpty()) {
