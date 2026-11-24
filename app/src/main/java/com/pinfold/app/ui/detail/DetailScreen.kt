@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -496,10 +497,11 @@ private fun DetailTitleRow(
 @Composable
 private fun StickySonilLogo() {
     val measurer = rememberTextMeasurer()
+    val ink = clear.hero
     val style = TextStyle(
         fontFamily = FontFamily(Font(R.font.nikea)),
         fontSize = DETAIL_LOGO_FONT_SIZE,
-        color = clear.hero,
+        color = ink,
     )
     val textLayout = remember(measurer, style) { measurer.measure(SONIL_LOGO_TEXT, style = style, maxLines = 1) }
     val density = LocalDensity.current
@@ -511,7 +513,7 @@ private fun StickySonilLogo() {
             blendMode = DETAIL_LOGO_BLEND_MODE
         },
     ) {
-        drawText(textLayout, color = clear.hero)
+        drawText(textLayout, color = ink)
         drawText(
             textLayout,
             color = Color.White.copy(alpha = DETAIL_LOGO_LUMINANCE_ALPHA),
