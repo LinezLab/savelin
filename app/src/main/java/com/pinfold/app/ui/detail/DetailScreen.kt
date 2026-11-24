@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -265,8 +266,7 @@ fun DetailScreen(
                     },
                 ) { change, dragAmount ->
                     change.consume()
-                    if (descriptionExpandedNow) return@detectVerticalDragGestures
-                    if (!dragConsumed.value) {
+                    if (!descriptionExpandedNow && !dragConsumed.value) {
                         dragAccumulated.value += dragAmount
                         val delta = navigationDelta(dragAccumulated.value, swipeThreshold)
                         if (delta != 0) {
@@ -296,16 +296,17 @@ fun DetailScreen(
                 }
             }
             SharpHero(path, themeFloor, heroHeight, heroScale, context)
+            val bottomAnimationSpec: AnimationSpec<Float> = if (reduceMotion) {
+                snap()
+            } else {
+                tween(
+                    durationMillis = DESCRIPTION_PANEL_TWEEN_MS,
+                    easing = FastOutSlowInEasing,
+                )
+            }
             val bottomFraction by animateFloatAsState(
                 targetValue = metadataBottomFraction(descriptionExpanded),
-                animationSpec = if (reduceMotion) {
-                    snap<Float>()
-                } else {
-                    tween(
-                        durationMillis = DESCRIPTION_PANEL_TWEEN_MS,
-                        easing = FastOutSlowInEasing,
-                    )
-                },
+                animationSpec = bottomAnimationSpec,
                 label = "metadataBottomFraction",
             )
             val bottomOffset = maxHeight * bottomFraction
