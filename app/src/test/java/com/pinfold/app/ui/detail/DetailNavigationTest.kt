@@ -146,25 +146,26 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openLabelUsesExclusionLayerBlendAndVibrantLemonAccent() {
-        assertEquals(BlendMode.Exclusion, OPEN_TEXT_BLEND_MODE)
-        assertEquals(Candy.Lemon, OPEN_TEXT_COLOR)
-        assertEquals(Color(0xFFFFC21A), OPEN_TEXT_COLOR)
+    fun openLabelRestoresOriginalOverlayBlendAndWhiteInk() {
+        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+        assertEquals(Color.White, OPEN_TEXT_COLOR)
         assertEquals(2.sp, OPEN_TEXT_LETTER_SPACING)
     }
 
     @Test
-    fun detailGlyphsUseTheSameExclusionLayerBlendAsOpenWithMintAccent() {
-        assertEquals(OPEN_TEXT_BLEND_MODE, DETAIL_GLYPH_BLEND_MODE)
+    fun detailGlyphsKeepExclusionBlendAndMintAccent() {
         assertEquals(BlendMode.Exclusion, DETAIL_GLYPH_BLEND_MODE)
+        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+        assertTrue(OPEN_TEXT_BLEND_MODE != DETAIL_GLYPH_BLEND_MODE)
         assertEquals(Candy.Mint, DETAIL_GLYPH_COLOR)
         assertEquals(Color(0xFF00BFB3), DETAIL_GLYPH_COLOR)
     }
 
     @Test
-    fun openTextDrawsVividAccentUnderReadableWhiteCore() {
-        assertEquals(0.85f, OPEN_TEXT_CORE_ALPHA, 0.0001f)
-        assertTrue(OPEN_TEXT_CORE_ALPHA in 0f..1f)
+    fun openTextLuminancePassAddsLowAlphaWhiteWithScreenBlend() {
+        assertEquals(0.5f, OPEN_TEXT_LUMINANCE_ALPHA, 0.0001f)
+        assertTrue(OPEN_TEXT_LUMINANCE_ALPHA in 0f..1f)
+        assertEquals(BlendMode.Screen, OPEN_TEXT_LUMINANCE_BLEND_MODE)
     }
 
     @Test
@@ -176,6 +177,16 @@ class DetailNavigationTest {
     fun sonilLogoUsesNikeaFontResource() {
         assertEquals("nikea", SONIL_LOGO_FONT_RES_NAME)
         assertEquals("Sonil", SONIL_LOGO_TEXT)
+    }
+
+    @Test
+    fun stickyDetailLogoUsesOverlayBlendAndLowAlphaLuminance() {
+        assertEquals(BlendMode.Overlay, DETAIL_LOGO_BLEND_MODE)
+        assertEquals(BlendMode.Screen, DETAIL_LOGO_LUMINANCE_BLEND_MODE)
+        assertEquals(0.5f, DETAIL_LOGO_LUMINANCE_ALPHA, 0.0001f)
+        assertTrue(DETAIL_LOGO_LUMINANCE_ALPHA in 0f..1f)
+        assertEquals(22.sp, DETAIL_LOGO_FONT_SIZE)
+        assertTrue(DETAIL_LOGO_FONT_SIZE.value < 64f)
     }
 
     @Test

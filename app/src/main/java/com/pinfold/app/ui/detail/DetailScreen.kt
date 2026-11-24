@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,8 +35,10 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +69,10 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.pinfold.app.R
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
@@ -91,6 +98,7 @@ import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeViewModel
+import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
 import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
@@ -114,9 +122,10 @@ internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
 internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
-internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Exclusion
-internal val OPEN_TEXT_COLOR: Color = Candy.Lemon
-internal val OPEN_TEXT_CORE_ALPHA: Float = 0.85f
+internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Overlay
+internal val OPEN_TEXT_COLOR: Color = Color.White
+internal val OPEN_TEXT_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val OPEN_TEXT_LUMINANCE_ALPHA: Float = 0.5f
 internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
 internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
 internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
@@ -126,6 +135,10 @@ internal val DETAIL_GLYPH_COLOR: Color = Candy.Mint
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
 internal val DETAIL_METADATA_INK: Color = Color.White
+internal val DETAIL_LOGO_BLEND_MODE: BlendMode = BlendMode.Overlay
+internal val DETAIL_LOGO_LUMINANCE_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val DETAIL_LOGO_LUMINANCE_ALPHA: Float = 0.5f
+internal val DETAIL_LOGO_FONT_SIZE: TextUnit = 22.sp
 
 internal fun smootherStep(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
@@ -350,6 +363,15 @@ fun DetailScreen(
             }
         }
 
+        Box(
+            Modifier.align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+                .padding(start = METADATA_PANEL_SIDE_MARGIN, top = 8.dp)
+                .semantics { contentDescription = "Sonil" },
+        ) {
+            StickySonilLogo()
+        }
+
         Row(
             Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -472,6 +494,33 @@ private fun DetailTitleRow(
 }
 
 @Composable
+private fun StickySonilLogo() {
+    val measurer = rememberTextMeasurer()
+    val style = TextStyle(
+        fontFamily = FontFamily(Font(R.font.nikea)),
+        fontSize = DETAIL_LOGO_FONT_SIZE,
+        color = clear.hero,
+    )
+    val textLayout = remember(measurer, style) { measurer.measure(SONIL_LOGO_TEXT, style = style, maxLines = 1) }
+    val density = LocalDensity.current
+    val width = with(density) { textLayout.size.width.toDp() }
+    val height = with(density) { textLayout.size.height.toDp() }
+    Canvas(
+        Modifier.size(width, height).graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+            blendMode = DETAIL_LOGO_BLEND_MODE
+        },
+    ) {
+        drawText(textLayout, color = clear.hero)
+        drawText(
+            textLayout,
+            color = Color.White.copy(alpha = DETAIL_LOGO_LUMINANCE_ALPHA),
+            blendMode = DETAIL_LOGO_LUMINANCE_BLEND_MODE,
+        )
+    }
+}
+
+@Composable
 private fun OverlayOpenText(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -509,7 +558,11 @@ private fun OverlayOpenText(
             },
         ) {
             drawText(textLayout, color = OPEN_TEXT_COLOR)
-            drawText(textLayout, color = Color.White.copy(alpha = OPEN_TEXT_CORE_ALPHA))
+            drawText(
+                textLayout,
+                color = Color.White.copy(alpha = OPEN_TEXT_LUMINANCE_ALPHA),
+                blendMode = OPEN_TEXT_LUMINANCE_BLEND_MODE,
+            )
         }
     }
 }
