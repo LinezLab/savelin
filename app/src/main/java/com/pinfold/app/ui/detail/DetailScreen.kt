@@ -454,63 +454,87 @@ private fun DetailMetadata(
 
     val ink = clear.onGlass
     val soft = clear.onGlassSoft
-    if (title.isNotBlank()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = title,
-                color = ink,
-                style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onToggleTitle,
-                ),
-            )
-            Spacer(Modifier.width(12.dp))
-            BareGlyph(
-                icon = AppIcons.Share,
-                label = "Share",
-                onClick = onShare,
-                size = 32.dp,
-                iconSize = 17.dp,
-            )
+    Column(Modifier.fillMaxWidth()) {
+        if (title.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    color = ink,
+                    style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onToggleTitle,
+                    ),
+                )
+                Spacer(Modifier.width(12.dp))
+                BareGlyph(
+                    icon = AppIcons.Share,
+                    label = "Share",
+                    onClick = onShare,
+                    size = 32.dp,
+                    iconSize = 17.dp,
+                )
+            }
         }
-    }
-    if (stats.isNotEmpty()) {
-        Row(
-            Modifier.padding(top = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            stats.forEach { stat ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stat.value,
-                        color = soft,
-                        style = ClearType.Caption,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+        if (stats.isNotEmpty()) {
+            Row(
+                Modifier.padding(top = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                stats.forEach { stat ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AppIcons.Icon(stat.icon, null, tint = soft, size = 14.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            stat.value,
+                            color = soft,
+                            style = ClearType.Caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
-    }
-    if (description.isNotBlank()) {
-        if (descriptionExpanded) {
-            Column(
-                Modifier.padding(top = 20.dp)
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState()),
-            ) {
+        if (description.isNotBlank()) {
+            if (descriptionExpanded) {
+                Column(
+                    Modifier.padding(top = 20.dp)
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        text = description,
+                        color = soft,
+                        style = ClearType.Body,
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onToggleDescription,
+                        ),
+                    )
+                    if (pills.isNotEmpty()) {
+                        FlowRow(
+                            Modifier.padding(top = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            pills.forEach { pill -> LightGlassChip(label = pill) }
+                        }
+                    }
+                }
+            } else {
                 Text(
                     text = description,
                     color = soft,
                     style = ClearType.Body,
-                    modifier = Modifier.clickable(
+                    maxLines = descriptionMaxLines(false),
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 20.dp).clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = onToggleDescription,
@@ -526,51 +550,29 @@ private fun DetailMetadata(
                     }
                 }
             }
-        } else {
-            Text(
-                text = description,
-                color = soft,
-                style = ClearType.Body,
-                maxLines = descriptionMaxLines(false),
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 20.dp).clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onToggleDescription,
-                ),
-            )
-            if (pills.isNotEmpty()) {
-                FlowRow(
-                    Modifier.padding(top = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    pills.forEach { pill -> LightGlassChip(label = pill) }
-                }
+        } else if (pills.isNotEmpty()) {
+            FlowRow(
+                Modifier.padding(top = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                pills.forEach { pill -> LightGlassChip(label = pill) }
             }
         }
-    } else if (pills.isNotEmpty()) {
-        FlowRow(
-            Modifier.padding(top = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            pills.forEach { pill -> LightGlassChip(label = pill) }
-        }
-    }
-    if (!hasPrimary) {
-        Column(
-            Modifier.padding(top = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            fallback.forEach { line ->
-                Text(
-                    line,
-                    color = soft,
-                    style = ClearType.Caption,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        if (!hasPrimary) {
+            Column(
+                Modifier.padding(top = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                fallback.forEach { line ->
+                    Text(
+                        line,
+                        color = soft,
+                        style = ClearType.Caption,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
