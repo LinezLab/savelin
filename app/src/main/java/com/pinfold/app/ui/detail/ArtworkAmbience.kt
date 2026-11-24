@@ -88,9 +88,9 @@ object ArtworkDiagnostics {
             appendLine("source=${snapshot.source.name} paletteBuckets=${snapshot.buckets}")
             appendLine("accents=${snapshot.accents.joinToString(", ")}")
             appendLine("layers: image=$AMBIENT_ALPHA bloom=$BLOOM_ALPHA " +
-                "diffusion=$DIFFUSION_ALPHA scrim=$SCRIM_TOP_ALPHA fade=$BOTTOM_FADE_ALPHA")
-            appendLine("hero: feather=$HERO_EDGE_FEATHER_FRACTION halo=$HALO_SCALE " +
-                "blur=${HALO_BLUR_DP}dp tail=${HALO_TAIL_DP}dp")
+                "bottomFade=$BOTTOM_FADE_ALPHA scrim=$SCRIM_TOP_ALPHA")
+            appendLine("hero: halo=$HALO_SCALE blur=${HALO_BLUR_DP}dp " +
+                "tail=${HALO_TAIL_DP}dp")
             append("crossfade=${snapshot.fadeMs}ms blooms=${snapshot.blooms}")
         }
     }
@@ -145,7 +145,7 @@ internal fun loadAmbience(id: Long, path: String): ArtworkAmbience {
     cachedAmbience(id)?.let { return it }
     val small = decodeScaled(path, PALETTE_SAMPLE_LIMIT)
         ?: return fallbackAmbience(id)
-    val soft = decodeScaled(path, 128)
+    val soft = decodeScaled(path, 256)
         ?: return fallbackAmbience(id)
     val pixels = IntArray(small.width * small.height)
     small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)

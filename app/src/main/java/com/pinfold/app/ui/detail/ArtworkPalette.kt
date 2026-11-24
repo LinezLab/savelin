@@ -12,25 +12,19 @@ internal const val BLOOM_COUNT = 5
 internal const val BLOOM_ALPHA = 0.40f
 internal const val GRAIN_ALPHA = 0.035f
 
-internal const val AMBIENT_SCALE = 1.38f
-internal const val AMBIENT_BLUR_DP = 54f
-internal const val AMBIENT_ALPHA = 0.94f
-internal const val DIFFUSION_HEIGHT = 0.56f
-internal const val DIFFUSION_SCALE = 1.55f
-internal const val DIFFUSION_BLUR_DP = 70f
-internal const val DIFFUSION_ALPHA = 0.86f
-internal const val BOTTOM_FADE_DP = 340f
-internal const val BOTTOM_FADE_ALPHA = 0.88f
-internal const val SCRIM_TOP_ALPHA = 0.32f
-internal const val SCRIM_BOTTOM_ALPHA = 0.28f
+internal const val AMBIENT_SCALE = 1.5f
+internal const val AMBIENT_BLUR_DP = 90f
+internal const val AMBIENT_ALPHA = 1.0f
+internal const val BOTTOM_FADE_DP = 200f
+internal const val BOTTOM_FADE_ALPHA = 0.38f
+internal const val SCRIM_TOP_ALPHA = 0.16f
+internal const val SCRIM_BOTTOM_ALPHA = 0.14f
 
-internal const val HERO_EDGE_FEATHER_FRACTION = 0.36f
 internal const val HALO_SCALE = 1.46f
 internal const val HALO_BLUR_DP = 58f
 internal const val HALO_OVERSHOOT_DP = 210f
 internal const val HALO_TAIL_DP = 120f
 internal const val HALO_ALPHA = 0.95f
-internal const val HERO_WASH_ALPHA = 0.24f
 
 data class ArtworkPalette(
     val base: Color,
@@ -171,8 +165,8 @@ internal fun extractPalette(pixels: IntArray): ArtworkPalette {
     val value = dominantHsv[2]
     val base = Color.hsv(
         hue,
-        saturation.coerceIn(0.24f, 0.92f),
-        (value * 0.23f).coerceIn(0.10f, 0.30f),
+        saturation.coerceIn(0.30f, 0.85f),
+        value.coerceIn(0.55f, 0.92f),
     )
 
     val accents = mutableListOf<Color>()
@@ -200,7 +194,7 @@ internal fun fallbackPalette(seed: Long): ArtworkPalette {
         Color.hsv((hue + 242f) % 360f, 0.58f, 0.80f),
         Color.hsv((hue + 46f) % 360f, 0.50f, 0.74f),
     )
-    return ArtworkPalette(Color.hsv(hue, 0.46f, 0.22f), accents.first(), accents, 0)
+    return ArtworkPalette(Color.hsv(hue, 0.50f, 0.72f), accents.first(), accents, 0)
 }
 
 /** Soft, overlapping pools of light placed at fixed, visually balanced positions. */
@@ -223,15 +217,6 @@ internal fun paletteBlooms(palette: ArtworkPalette): List<ToneBloom> {
             alpha = if (index < 2) BLOOM_ALPHA else BLOOM_ALPHA * 0.60f,
         )
     }
-}
-
-internal val heroFeatherStart: Float get() = 1f - HERO_EDGE_FEATHER_FRACTION
-
-/** Long alpha ramp for the sharp hero; reaches exactly one at the top and zero at its edge. */
-internal fun heroEdgeAlpha(progress: Float): Float = when {
-    progress <= heroFeatherStart -> 1f
-    progress >= 1f -> 0f
-    else -> (1f - progress) / HERO_EDGE_FEATHER_FRACTION
 }
 
 internal fun haloTailStart(haloHeight: Float): Float =

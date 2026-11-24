@@ -18,6 +18,13 @@ class ArtworkPaletteTest {
         return rgbToHsv(r, g, b)[0]
     }
 
+    private fun hsvOf(color: Color): FloatArray {
+        val r = (color.red * 255f).toInt().coerceIn(0, 255)
+        val g = (color.green * 255f).toInt().coerceIn(0, 255)
+        val b = (color.blue * 255f).toInt().coerceIn(0, 255)
+        return rgbToHsv(r, g, b)
+    }
+
     @Test
     fun extractedHuesFollowTheArtwork() {
         listOf(
@@ -32,11 +39,12 @@ class ArtworkPaletteTest {
     }
 
     @Test
-    fun baseIsDarkImageDerivedAndAccentsAreRich() {
+    fun baseIsBrightImageDerivedAndAccentsAreRich() {
         val palette = extractPalette(solid(0xFF1E5ADC.toInt()))
-        assertTrue(palette.base.red < palette.dominant.red)
-        assertTrue(palette.base.green < palette.dominant.green)
-        assertTrue(palette.base.blue < palette.dominant.blue)
+        val baseHsv = hsvOf(palette.base)
+        assertTrue("value=${baseHsv[2]}", baseHsv[2] in 0.55f..0.92f)
+        assertTrue("saturation=${baseHsv[1]}", baseHsv[1] in 0.30f..0.85f)
+        assertTrue(palette.base.alpha >= 0.99f)
         assertTrue(palette.buckets >= 1)
         assertTrue(palette.accents.size >= 4)
         assertTrue(palette.accents.none(::isDim))
@@ -82,6 +90,7 @@ class ArtworkPaletteTest {
         assertNotEquals(first.dominant, fallbackPalette(12L).dominant)
         assertEquals(4, first.accents.size)
         assertEquals(0, first.buckets)
+        assertTrue(hsvOf(first.base)[2] >= 0.70f)
         assertTrue(first.accents.none(::isDim))
         assertTrue(first.accents.distinct().size >= 3)
     }

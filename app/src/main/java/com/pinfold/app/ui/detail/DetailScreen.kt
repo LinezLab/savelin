@@ -22,17 +22,21 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -54,12 +58,13 @@ import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import java.io.File
 
-/** Background-first detail screen: sharp artwork dissolving into its own ambient field. */
+/** Background-first detail screen: artwork and its ambience can be switched off together. */
 @Composable
 fun DetailScreen(
     item: BookmarkWithTags,
     reduceMotion: Boolean,
     onBack: () -> Unit,
+    detailAmbientBackground: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val bookmark = item.bookmark
@@ -76,20 +81,26 @@ fun DetailScreen(
         } else 1f
     }
     val context = LocalContext.current
+    val plainBackground = MaterialTheme.colorScheme.background
 
     LaunchedEffect(Unit) { DiagnosticsLog.uiAction("Detail", "Open") }
 
-    Box(modifier.fillMaxSize().background(palette.base)) {
-        Crossfade(
-            targetState = ambience,
-            animationSpec = if (reduceMotion) {
-                snap()
-            } else {
-                tween(durationMillis = crossfadeDurationMs(reduceMotion), easing = FastOutSlowInEasing)
-            },
-            label = "detailAmbience",
-        ) { target ->
-            AmbientBackdrop(target)
+    Box(
+        modifier.fillMaxSize()
+            .background(if (detailAmbientBackground) palette.base else plainBackground),
+    ) {
+        if (detailAmbientBackground) {
+            Crossfade(
+                targetState = ambience,
+                animationSpec = if (reduceMotion) {
+                    snap()
+                } else {
+                    tween(durationMillis = crossfadeDurationMs(reduceMotion), easing = FastOutSlowInEasing)
+                },
+                label = "detailAmbience",
+            ) { target ->
+                AmbientBackdrop(target)
+            }
         }
 
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -100,9 +111,8 @@ fun DetailScreen(
             } else {
                 ContentScale.Crop
             }
-            HeroHalo(ambience.image, palette, heroHeight)
+            if (detailAmbientBackground) HeroHalo(ambience.image, palette, heroHeight)
             SharpHero(path, palette, heroHeight, heroScale, context)
-            HeroEdgeWash(palette.base, heroHeight)
         }
 
         Box(
@@ -122,7 +132,7 @@ fun DetailScreen(
 
 /**
  * Oversized blurred copy of the same artwork. It starts behind the hero and runs past its lower
- * edge, so the hero's alpha ramp always reveals matching colour instead of a boundary.
+ * edge, so the hero's rounded corners always reveal matching colour instead of a boundary.
  */
 @Composable
 private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, heroHeight: Dp) {
@@ -137,8 +147,8 @@ private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, hero
                 drawContent()
                 drawRect(
                     brush = Brush.verticalGradient(
-                        0f to Color.Black,
-                        tailStart to Color.Black,
+                        0f to palette.base,
+                        tailStart to palette.base,
                         1f to Color.Transparent,
                     ),
                     blendMode = BlendMode.DstIn,
@@ -151,7 +161,7 @@ private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, hero
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize()
                     .scale(HALO_SCALE)
-                    .blur(HALO_BLUR_DP.dp)
+                    .blur(HALO_BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
                     .alpha(HALO_ALPHA),
                 contentScale = ContentScale.Crop,
             )
@@ -163,7 +173,7 @@ private fun BoxScope.HeroHalo(image: ImageBitmap?, palette: ArtworkPalette, hero
     }
 }
 
-/** Sharp hero with a long, continuous alpha ramp at its lower edge. */
+/** Crisp artwork hero with rounded corners and a soft shadow tinted by the artwork itself. */
 @Composable
 private fun BoxScope.SharpHero(
     path: String?,
@@ -172,22 +182,19 @@ private fun BoxScope.SharpHero(
     heroScale: ContentScale,
     context: android.content.Context,
 ) {
+    val shape = RoundedCornerShape(14.dp)
+    val glow = palette.accents.firstOrNull() ?: palette.dominant
     Box(
         Modifier.align(Alignment.TopCenter)
             .fillMaxWidth()
             .height(heroHeight)
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0f to Color.Black,
-                        heroFeatherStart to Color.Black,
-                        1f to Color.Transparent,
-                    ),
-                    blendMode = BlendMode.DstIn,
-                )
-            },
+            .padding(horizontal = 12.dp)
+            .shadow(
+                elevation = 18.dp,
+                shape = shape,
+                ambientColor = glow.copy(alpha = 0.26f),
+                spotColor = palette.base.copy(alpha = 0.40f),
+            ),
     ) {
         if (path != null) {
             AsyncImage(
@@ -202,27 +209,6 @@ private fun BoxScope.SharpHero(
             })
         }
     }
-}
-
-/** Dark wash derived from the artwork, transparent at both ends of the feather band. */
-@Composable
-private fun BoxScope.HeroEdgeWash(base: Color, heroHeight: Dp) {
-    Box(
-        Modifier.align(Alignment.TopCenter)
-            .fillMaxWidth()
-            .height(heroHeight)
-            .drawBehind {
-                val wash = blendColors(base, Color.Black, 0.42f).copy(alpha = HERO_WASH_ALPHA)
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        heroFeatherStart to Color.Transparent,
-                        (heroFeatherStart + 1f) / 2f to wash,
-                        1f to Color.Transparent,
-                    ),
-                )
-            },
-    )
 }
 
 private fun DrawScope.drawBackChevron() {

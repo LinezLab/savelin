@@ -9,28 +9,6 @@ import org.junit.Test
 
 class AmbientCompositionTest {
     @Test
-    fun heroEdgeIsALongContinuousAlphaRamp() {
-        assertTrue(HERO_EDGE_FEATHER_FRACTION >= 0.30f)
-        val start = heroFeatherStart
-        assertTrue("start=$start", start in 0.5f..0.8f)
-        assertEquals(1f, heroEdgeAlpha(0f), 0.0001f)
-        assertEquals(1f, heroEdgeAlpha(start), 0.0001f)
-        assertEquals(0f, heroEdgeAlpha(1f), 0.0001f)
-        assertEquals(0.5f, heroEdgeAlpha((start + 1f) / 2f), 0.02f)
-
-        var previous = 1f
-        var largestStep = 0f
-        for (i in 0..200) {
-            val progress = start + (1f - start) * (i / 200f)
-            val alpha = heroEdgeAlpha(progress)
-            assertTrue("alpha rose at $progress", alpha <= previous + 0.0001f)
-            largestStep = maxOf(largestStep, previous - alpha)
-            previous = alpha
-        }
-        assertTrue("largest step $largestStep must be imperceptible", largestStep <= 0.01f)
-    }
-
-    @Test
     fun haloIsOversizedOpaqueAtTheEdgeAndFadesBelowIt() {
         assertTrue(HALO_SCALE > 1.2f)
         val heroHeight = 600f
@@ -83,7 +61,9 @@ class AmbientCompositionTest {
         assertTrue(text.contains("paletteBuckets=5"))
         assertTrue(text.contains("#FFD97123"))
         assertTrue(text.contains("layers: image="))
-        assertTrue(text.contains("hero: feather="))
+        assertTrue(text.contains("hero: halo="))
+        assertFalse(text.contains("feather="))
+        assertTrue(text.contains("bottomFade="))
         assertTrue(text.contains("crossfade=${CROSSFADE_MS}ms"))
         assertFalse(text.contains("bookmarkId"))
         assertFalse(text.contains("path="))

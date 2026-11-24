@@ -79,6 +79,7 @@ data class AppSettings(
     val backgroundAnimate: Boolean = true,
     val backgroundDim: Float = 0.2f,
     val backgroundDetails: String = "ARTWORK",
+    val detailAmbientBackground: Boolean = true,
     val backgroundShape: String = "SOFT",
     val backgroundSource: String = "PALETTE",
     val backgroundFps: Int = 0,
@@ -173,6 +174,7 @@ class SettingsRepository(private val context: Context) {
                 "SOLID" -> "THEME"
                 else -> storedDetails ?: "ARTWORK"
             },
+            detailAmbientBackground = p[Keys.detailAmbientBackground] ?: true,
             backgroundShape = p[Keys.backgroundShape] ?: "SOFT",
             backgroundSource = p[Keys.backgroundSource] ?: "PALETTE",
             backgroundFps = p[Keys.backgroundFps] ?: 0,
@@ -316,6 +318,7 @@ class SettingsRepository(private val context: Context) {
         val backgroundAnimate = booleanPreferencesKey("backgroundAnimate")
         val backgroundDim = floatPreferencesKey("backgroundDim")
         val backgroundDetails = stringPreferencesKey("backgroundDetails")
+        val detailAmbientBackground = booleanPreferencesKey("detailAmbientBackground")
         val backgroundShape = stringPreferencesKey("backgroundShape")
         val backgroundSource = stringPreferencesKey("backgroundSource")
         val backgroundFps = intPreferencesKey("backgroundFps")

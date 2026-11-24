@@ -161,7 +161,12 @@ fun App(sharedText: String? = null) {
                     }
                 }
                 detail?.let { item ->
-                    DetailScreen(item = item, reduceMotion = appearance.reduceMotion, onBack = { detail = null })
+                    DetailScreen(
+                        item = item,
+                        reduceMotion = appearance.reduceMotion,
+                        detailAmbientBackground = appearance.detailAmbientBackground,
+                        onBack = { detail = null },
+                    )
                 }
                 if (appearance.topShade) {
                     val glass = GlassSettings.style

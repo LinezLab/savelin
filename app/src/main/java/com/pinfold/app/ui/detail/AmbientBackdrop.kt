@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -75,7 +75,7 @@ private fun grainTexture(): ImageBitmap {
     return Bitmap.createBitmap(pixels, side, side, Bitmap.Config.ARGB_8888).asImageBitmap()
 }
 
-/** Layered artwork ambient: blurred image, soft palette blooms, bottom diffusion, scrim, grain. */
+/** Layered artwork ambient: blurred image, palette blooms, bottom fade, scrim, grain. */
 @Composable
 internal fun AmbientBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Modifier) {
     val palette = ambience.palette
@@ -93,7 +93,7 @@ internal fun AmbientBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Mod
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize()
                     .scale(AMBIENT_SCALE)
-                    .blur(AMBIENT_BLUR_DP.dp)
+                    .blur(AMBIENT_BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
                     .alpha(AMBIENT_ALPHA),
                 contentScale = ContentScale.Crop,
             )
@@ -102,20 +102,6 @@ internal fun AmbientBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Mod
         }
 
         Box(Modifier.fillMaxSize().drawBehind { drawLightPools(blooms) })
-
-        if (ambience.image != null) {
-            Image(
-                bitmap = ambience.image,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .fillMaxHeight(DIFFUSION_HEIGHT)
-                    .scale(DIFFUSION_SCALE)
-                    .blur(DIFFUSION_BLUR_DP.dp)
-                    .alpha(DIFFUSION_ALPHA),
-                contentScale = ContentScale.Crop,
-            )
-        }
 
         Box(
             Modifier.align(Alignment.BottomCenter)
@@ -126,8 +112,7 @@ internal fun AmbientBackdrop(ambience: ArtworkAmbience, modifier: Modifier = Mod
                         listOf(
                             Color.Transparent,
                             palette.base.copy(alpha = BOTTOM_FADE_ALPHA * 0.55f),
-                            blendColors(palette.base, Color.Black, 0.45f)
-                                .copy(alpha = BOTTOM_FADE_ALPHA),
+                            palette.base.copy(alpha = BOTTOM_FADE_ALPHA),
                         ),
                     ),
                 ),
