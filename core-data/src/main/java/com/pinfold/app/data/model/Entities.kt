@@ -73,12 +73,14 @@ data class BookmarkFts(
     val platform: String?,
 )
 
+@Serializable
 @Entity(tableName = "tags", indices = [Index(value = ["name"], unique = true)])
 data class Tag(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
 )
 
+@Serializable
 @Entity(
     tableName = "bookmark_tags",
     primaryKeys = ["bookmarkId", "tagId"],
@@ -89,6 +91,7 @@ data class BookmarkTag(
     val tagId: Long,
 )
 
+@Serializable
 @Entity(tableName = "collections")
 data class Collection(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -105,6 +108,7 @@ object ReminderStatus {
     const val DONE = "DONE"
 }
 
+@Serializable
 @Entity(tableName = "reminders", indices = [Index("bookmarkId"), Index("triggerAt")])
 data class Reminder(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

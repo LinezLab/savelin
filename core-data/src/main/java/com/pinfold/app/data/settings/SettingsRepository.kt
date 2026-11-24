@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -198,6 +199,23 @@ class SettingsRepository(private val context: Context) {
     suspend fun setHideDetailsOnLockScreen(value: Boolean) = put(Keys.hideDetailsOnLockScreen, value)
     suspend fun setBiometricLock(value: Boolean) = put(Keys.biometricLock, value)
     suspend fun setEnableClipboardChip(value: Boolean) = put(Keys.enableClipboardChip, value)
+
+    suspend fun exportAll(): Map<String, Any?> = context.settingsStore.data.first().asMap().mapKeys { it.key.name }
+
+    suspend fun importAll(values: Map<String, Any?>) {
+        context.settingsStore.edit { prefs ->
+            values.forEach { (name, value) ->
+                when (value) {
+                    is Boolean -> prefs[booleanPreferencesKey(name)] = value
+                    is String -> prefs[stringPreferencesKey(name)] = value
+                    is Int -> prefs[intPreferencesKey(name)] = value
+                    is Long -> prefs[longPreferencesKey(name)] = value
+                    is Float -> prefs[floatPreferencesKey(name)] = value
+                    else -> Unit
+                }
+            }
+        }
+    }
 
     suspend fun set(name: String, value: Any) {
         when (value) {

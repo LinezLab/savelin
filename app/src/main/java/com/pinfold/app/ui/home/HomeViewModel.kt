@@ -151,14 +151,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun exportBackup(target: Uri) = viewModelScope.launch(Dispatchers.IO) {
         val context = getApplication<Application>()
-        val source = com.pinfold.app.backup.BackupManager(context).export()
+        val source = com.pinfold.app.backup.BackupManager(context, settingsRepository).export()
         context.contentResolver.openInputStream(source)?.use { input ->
             context.contentResolver.openOutputStream(target)?.use { output -> input.copyTo(output) }
         }
     }
 
     fun importBackup(source: Uri, onResult: (Int) -> Unit) = viewModelScope.launch(Dispatchers.IO) {
-        val added = com.pinfold.app.backup.BackupManager(getApplication()).import(source)
+        val added = com.pinfold.app.backup.BackupManager(getApplication(), settingsRepository).import(source)
         withContext(Dispatchers.Main) { onResult(added) }
     }
 
