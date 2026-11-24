@@ -486,14 +486,16 @@ fun GlassTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = true,
+    ink: Color? = null,
 ) {
     val c = clear
+    val resolvedInk = ink ?: c.ink
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = singleLine,
-        textStyle = ClearType.Body.copy(color = c.ink),
-        cursorBrush = SolidColor(c.ink),
+        textStyle = ClearType.Body.copy(color = resolvedInk),
+        cursorBrush = SolidColor(resolvedInk),
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
@@ -504,7 +506,7 @@ fun GlassTextField(
                     .then(SavelinGlass.modifier(RoundedRectangle(16.dp)))
                     .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
-                if (value.isEmpty()) Text(placeholder, style = ClearType.Body, color = if (error) Candy.Tomato else c.onGlassSoft)
+                if (value.isEmpty()) Text(placeholder, style = ClearType.Body, color = if (error) Candy.Tomato else resolvedInk.copy(alpha = 0.72f))
                 inner()
             }
         },

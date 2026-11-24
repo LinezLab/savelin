@@ -29,12 +29,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
-import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassDropdown
-import com.pinfold.app.ui.components.copyDiagnosticsText
-import com.pinfold.app.ui.settings.ComponentsSection
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassSettings
@@ -54,7 +50,6 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     val settings by viewModel.settings.collectAsState()
     var glassFine by remember { mutableStateOf(false) }
     var motionFine by remember { mutableStateOf(false) }
-    var toast by remember { mutableStateOf<String?>(null) }
     val style = GlassSettings.style
     val motion = MotionSettings.style
     val materialName = GlassStyle.Named.firstOrNull { it.second == style }?.first ?: "Custom"
@@ -63,7 +58,6 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
     val motionOptions = MotionStyle.Presets.map { it.label }.let { if (it.contains(motionName)) it else it + motionName }
 
     SettingsScaffold("Liquid glass & motion", onBack = viewModel::closeSettingsPage) {
-        ComponentsSection(viewModel)
         SettingsSection("FILTERS") {
             SettingsCard {
                 SettingsRow(AppIcons.Filter, Candy.Mint, "Remember filters", "Keep Important and Due on restart", trailing = {
@@ -87,26 +81,6 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             SettingsRow(icon = AppIcons.Haptics, tileColor = Candy.Mint, title = "Touch and hold effects", trailing = {
                 GlassSwitch(checked = settings.touchHoldEffect, onChange = { viewModel.setSetting("touchHoldEffect", it) })
             })
-        }
-
-        SettingsSection("TOP GLASS SHADE") {
-            SettingsCard {
-                SettingsRow(AppIcons.Appearance, Candy.Sky, "Top glass shade", trailing = {
-                    GlassSwitch(settings.topShade) { viewModel.setSetting("topShade", it) }
-                })
-                FineSlider("Shade height", settings.topShadeHeight.toFloat(), 0f..64f) { viewModel.setSetting("topShadeHeight", it.toInt()) }
-                FineSlider("Shade strength", settings.topShadeStrength, 0f..0.6f) { viewModel.setSetting("topShadeStrength", it) }
-            }
-        }
-
-        SettingsSection("DIAGNOSTICS") {
-            SettingsCard {
-                SettingsRow(AppIcons.Info, Candy.Sky, "Glass engine", "Reduced — Canvas background fallback (no shader)")
-                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
-                    context.copyDiagnosticsText(DiagnosticsLog.format())
-                    toast = "Diagnostics copied (redacted)"
-                }
-            }
         }
 
         SettingsSection("GLASS MATERIAL") {
@@ -200,7 +174,6 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             })
         }
     }
-    toast?.let { DiagnosticsToast(it) { toast = null } }
 }
 
 /** A real, small glass surface over a colourful backdrop — the preset is applied, not described. */

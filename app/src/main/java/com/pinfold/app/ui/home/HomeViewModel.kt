@@ -95,7 +95,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
-    fun openBackground() { settingsPageState.value = "BACKGROUND" }
     fun openDriveSync() { settingsPageState.value = "DRIVE_SYNC" }
 
     var driveToken: String? = null

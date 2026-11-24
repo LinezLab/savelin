@@ -238,7 +238,7 @@ fun DetailScreen(
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
     var titleExpanded by remember { mutableStateOf(false) }
-    var descriptionExpanded by remember { mutableStateOf(DESCRIPTION_STARTS_EXPANDED) }
+    val descriptionExpanded = DESCRIPTION_STARTS_EXPANDED
     var editTitle by remember { mutableStateOf("") }
     var editDescription by remember { mutableStateOf("") }
     var editNotes by remember { mutableStateOf("") }
@@ -346,7 +346,6 @@ fun DetailScreen(
                 DetailMetadataBody(
                     item = item,
                     descriptionExpanded = descriptionExpanded,
-                    onToggleDescription = { descriptionExpanded = !descriptionExpanded },
                 )
             }
         }
@@ -388,6 +387,7 @@ fun DetailScreen(
             GlassMenuOverlay(
                 title = titleFor(bookmark),
                 onDismiss = { menuOpen = false },
+                ink = clear.hero,
                 items = listOf(
                     GlassMenuItem(AppIcons.Edit, "Edit", onClick = {
                         editTitle = bookmark.title
@@ -429,10 +429,11 @@ fun DetailScreen(
                     editOpen = false
                 },
                 dismiss = "Cancel",
+                ink = clear.hero,
             ) {
-                GlassTextField(value = editTitle, onValueChange = { editTitle = it }, placeholder = "Title")
-                GlassTextField(value = editDescription, onValueChange = { editDescription = it }, placeholder = "Description", singleLine = false)
-                GlassTextField(value = editNotes, onValueChange = { editNotes = it }, placeholder = "Notes", singleLine = false)
+                GlassTextField(value = editTitle, onValueChange = { editTitle = it }, placeholder = "Title", ink = clear.hero)
+                GlassTextField(value = editDescription, onValueChange = { editDescription = it }, placeholder = "Description", singleLine = false, ink = clear.hero)
+                GlassTextField(value = editNotes, onValueChange = { editNotes = it }, placeholder = "Notes", singleLine = false, ink = clear.hero)
             }
         }
 
@@ -517,7 +518,6 @@ private fun OverlayOpenText(
 private fun ColumnScope.DetailMetadataBody(
     item: BookmarkWithTags,
     descriptionExpanded: Boolean,
-    onToggleDescription: () -> Unit,
 ) {
     val bookmark = item.bookmark
     val description = descriptionOnly(bookmark)
@@ -579,11 +579,6 @@ private fun ColumnScope.DetailMetadataBody(
                             blendMode = BlendMode.DstIn,
                         )
                     }
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onToggleDescription,
-                    ),
             ) {
                 Text(
                     text = description,

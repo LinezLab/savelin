@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pinfold.app.ui.glass.ComponentGlass
+import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,6 +88,9 @@ fun App(sharedText: String? = null) {
     LaunchedEffect(appearance.chipEffect) {
         ComponentGlass.setChipEffect(context, appearance.chipEffect)
     }
+    LaunchedEffect(appearance.haptics) {
+        GlassSettings.updateHaptics(context, appearance.haptics != "OFF")
+    }
     LaunchedEffect(tab, settingsPage, detail?.bookmark?.id) {
         DiagnosticsLog.uiAction("Nav", "screen=" + when {
             detail != null -> "Details"
@@ -127,8 +131,6 @@ fun App(sharedText: String? = null) {
                     if (tab == HomeTab.SETTINGS) {
                         if (settingsPage == "GLASS_MOTION") {
                             com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
-                        } else if (settingsPage == "BACKGROUND") {
-                            com.pinfold.app.ui.settings.BackgroundScreen(viewModel)
                         } else if (settingsPage == "DRIVE_SYNC") {
                             com.pinfold.app.ui.settings.DriveSyncScreen(viewModel)
                         } else {

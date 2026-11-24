@@ -17,11 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.CrashReporter
-import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
-import com.pinfold.app.ui.components.DiagnosticsToast
-import com.pinfold.app.ui.components.copyDiagnosticsText
-import com.pinfold.app.ui.detail.ArtworkDiagnostics
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
@@ -32,9 +28,7 @@ import com.pinfold.app.ui.home.HomeViewModel
 fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
-    val networkLog by viewModel.networkLog.collectAsState()
     var importResult by remember { mutableStateOf<Int?>(null) }
-    var toast by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
         if (uri != null) viewModel.exportBackup(uri)
     }
@@ -55,7 +49,6 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                     }
                 }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
-                SettingsRow(AppIcons.CustomImage, Candy.Mint, "Background", "${settings.backgroundStyle} · ${settings.backgroundLoopSeconds}s loop", onClick = viewModel::openBackground)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
                     GlassSwitch(settings.detailAmbientBackground) { viewModel.setSetting("detailAmbientBackground", it) }
                 })
@@ -68,18 +61,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
 
         SettingsSection("LIBRARY") {
             SettingsCard {
-                SettingsChoiceRow(AppIcons.Card, Candy.Sky, "Default view", settings.defaultView, listOf("CARD", "COMPACT")) { viewModel.setSetting("defaultView", it) }
                 SettingsChoiceRow(AppIcons.Filter, Candy.Grape, "Columns", settings.cardColumns.toString(), (1..4).map { it.toString() }) { viewModel.setCardColumns(it.toInt()) }
                 SettingsChoiceRow(AppIcons.Compact, Candy.Bubblegum, "Card caption", settings.cardCaptionStyle, listOf("BELOW", "GLASS_STRIP", "IMAGE_ONLY")) { viewModel.setCardCaptionStyle(it) }
-                SettingsChoiceRow(AppIcons.Select, Candy.Tangerine, "Tap on a bookmark", settings.tapAction, listOf("OPEN", "DETAILS", "ASK")) { viewModel.setSetting("tapAction", it) }
-                SettingsChoiceRow(AppIcons.Sort, Candy.Lime, "Sort order", settings.sortOrder, listOf("NEWEST", "OLDEST")) { viewModel.setSetting("sortOrder", it) }
-                SettingsChoiceRow(AppIcons.Delete, Candy.Tomato, "Trash retention (days)", settings.trashRetentionDays.toString(), listOf("7", "30", "90")) { viewModel.setSetting("trashRetentionDays", it.toInt()) }
             }
         }
 
         SettingsSection("LINKS AND PREVIEWS") {
             SettingsCard {
-                SettingsChoiceRow(AppIcons.Open, Candy.Sky, "Open links in", settings.openLinksIn, listOf("NATIVE", "BROWSER")) { viewModel.setSetting("openLinksIn", it) }
                 SettingsChoiceRow(AppIcons.Biometric, Candy.Grape, "Preview identity", settings.previewIdentity, listOf("MOBILE", "CRAWLER")) { viewModel.setSetting("previewIdentity", it) }
                 SettingsRow(AppIcons.Warning, Candy.Tangerine, "Third-party preview helpers", trailing = {
                     GlassSwitch(settings.previewHelpers) { viewModel.setProxies(it) }
@@ -87,7 +75,6 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Refetch, Candy.Mint, "Refetch missing previews", trailing = {
                     GlassSwitch(settings.refetchMissing) { viewModel.setSetting("refetchMissing", it) }
                 })
-                SettingsChoiceRow(AppIcons.CustomImage, Candy.Bubblegum, "Image quality", settings.imageQuality, listOf("QUALITY", "BALANCED", "DATA_SAVER")) { viewModel.setSetting("imageQuality", it) }
             }
         }
 
@@ -120,7 +107,6 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Offline, Candy.Tangerine, "Offline mode", trailing = {
                     GlassSwitch(settings.offlineMode) { viewModel.setOffline(it) }
                 })
-                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Network transparency log", "${networkLog.size} recent")
             }
         }
 
@@ -146,9 +132,6 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Expand, Candy.Tangerine, "Immersive mode", trailing = {
                     GlassSwitch(settings.immersiveMode) { viewModel.setSetting("immersiveMode", it) }
                 })
-                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Show frame time overlay", trailing = {
-                    GlassSwitch(settings.frameOverlay) { viewModel.setFrameOverlay(it) }
-                })
             }
         }
 
@@ -156,44 +139,8 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
             SettingsCard {
                 SettingsRow(AppIcons.Licences, Candy.Sky, "Open source licences")
                 SettingsRow(AppIcons.Lock, Candy.Mint, "Privacy promises")
-                SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context),
-                    onLongClick = {
-                        val report = CrashReporter.writeTestReport(context)
-                        context.copyDiagnosticsText(report)
-                        toast = "Sample crash report written + copied"
-                    })
-                SettingsRow(AppIcons.NetworkLog, Candy.Lime, "Copy diagnostics", "${DiagnosticsLog.size} redacted events") {
-                    context.copyDiagnosticsText(DiagnosticsLog.format())
-                    toast = "Diagnostics copied (redacted)"
-                }
-                SettingsRow(
-                    AppIcons.Appearance,
-                    Candy.Grape,
-                    "Artwork background diagnostics",
-                    ArtworkDiagnostics.last()?.summary ?: "No details screen visited yet",
-                ) {
-                    context.copyDiagnosticsText(ArtworkDiagnostics.format())
-                    toast = "Artwork diagnostics copied (redacted)"
-                }
-                SettingsRow(
-                    AppIcons.NetworkLog,
-                    Candy.Sky,
-                    "Copy artwork diagnostics",
-                    "Last ambient decision + layer alphas",
-                ) {
-                    context.copyDiagnosticsText(ArtworkDiagnostics.format())
-                    toast = "Artwork diagnostics copied (redacted)"
-                }
-                SettingsRow(AppIcons.NetworkLog, Candy.Mint, "Copy full diagnostics", "Last crash report + events + issues") {
-                    context.copyDiagnosticsText(CrashReporter.fullDiagnostics(context))
-                    toast = "Full diagnostics copied (redacted)"
-                }
-                SettingsRow(AppIcons.Warning, Candy.Tomato, "Copy issues log", "${DiagnosticsLog.issueCount} recorded") {
-                    context.copyDiagnosticsText(DiagnosticsLog.formatIssues())
-                    toast = "Issues log copied (redacted)"
-                }
+                SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context))
             }
         }
     }
-    toast?.let { DiagnosticsToast(it) { toast = null } }
 }

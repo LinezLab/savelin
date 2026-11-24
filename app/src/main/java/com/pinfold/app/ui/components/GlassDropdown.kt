@@ -29,6 +29,7 @@ import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.revealRow
 import com.pinfold.app.ui.glass.rememberMenuRow
 import com.pinfold.app.ui.glass.rememberSpringAppear
+import com.pinfold.app.ui.settings.displayOption
 
 /**
  * A setting that opens an in-screen glass pop-up with EVERY option and a check on the current one.
@@ -46,7 +47,7 @@ fun GlassDropdown(
     var expanded by remember { mutableStateOf(false) }
     Box(modifier) {
         GlassPillButton(onClick = { expanded = true }, height = 48.dp, label = label) {
-            Text("$label: $selected", color = SavelinGlass.ink)
+            Text("$label: ${displayOption(selected)}", color = SavelinGlass.ink)
             AppIcons.Icon(AppIcons.Expand, null, tint = SavelinGlass.inkSoft, size = 16.dp)
         }
         if (expanded) {
@@ -102,7 +103,7 @@ fun GlassChoicePopUp(
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(option, color = SavelinGlass.ink, modifier = Modifier.weight(1f))
+                        Text(displayOption(option), color = SavelinGlass.ink, modifier = Modifier.weight(1f))
                         if (option == selected) {
                             AppIcons.Icon(AppIcons.Selected, "Selected", tint = SavelinGlass.ink, size = 20.dp)
                         }

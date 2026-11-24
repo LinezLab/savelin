@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.item
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,13 +97,6 @@ fun HomeScreen(
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-        Text(
-            text = SONIL_LOGO_TEXT,
-            fontFamily = SonilLogoFont,
-            fontSize = 48.sp,
-            color = clear.ink,
-            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
-        )
         if (searchActive && query.isNotBlank()) {
             Text(
                 "${distinctItems.size} result${if (distinctItems.size == 1) "" else "s"}",
@@ -131,13 +125,22 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(
                 start = 4.dp,
-                top = 8.dp,
+                top = 0.dp,
                 end = 4.dp,
                 bottom = 88.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
             ),
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
         ) {
+            item(span = StaggeredGridItemSpan.FullLine) {
+                Text(
+                    text = SONIL_LOGO_TEXT,
+                    fontFamily = SonilLogoFont,
+                    fontSize = 64.sp,
+                    color = clear.ink,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
+                )
+            }
             items(distinctItems, key = { "bookmark-${it.bookmark.id}" }, contentType = { "bookmark" }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(

@@ -250,9 +250,11 @@ fun SavelinGlassDialog(
     confirmEnabled: Boolean = true,
     destructive: Boolean = false,
     dismissible: Boolean = true,
+    ink: Color? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val c = clear
+    val resolvedInk = ink ?: SavelinGlass.ink
     val latest by rememberUpdatedState(onConfirm)
     GlassOverlay(animatesOut = true) {
         val leaving = LocalOverlayPresence.current?.leaving == true
@@ -286,7 +288,7 @@ fun SavelinGlassDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (title != null) {
-                    Text(title, style = ClearType.Headline, color = SavelinGlass.ink, modifier = Modifier.revealRow(contentReveal))
+                    Text(title, style = ClearType.Headline, color = resolvedInk, modifier = Modifier.revealRow(contentReveal))
                 }
                 Column(Modifier.revealRow(contentReveal).heightIn(max = 420.dp).verticalScroll(rememberScrollState())) { content() }
                 if (confirm != null || dismiss != null) {
@@ -296,7 +298,7 @@ fun SavelinGlassDialog(
                     ) {
                         if (dismiss != null) {
                             GlassPillButton(onClick = { (onDismissButton ?: onDismiss)() }, height = 46.dp, modifier = Modifier.revealRow(dismissReveal)) {
-                                Text(dismiss, style = ClearType.BodyStrong, color = SavelinGlass.ink, maxLines = 1)
+                                Text(dismiss, style = ClearType.BodyStrong, color = resolvedInk, maxLines = 1)
                             }
                         }
                         if (confirm != null) {
@@ -309,7 +311,7 @@ fun SavelinGlassDialog(
                                 Text(
                                     confirm,
                                     style = ClearType.BodyStrong,
-                                    color = if (!confirmEnabled) c.onGlassSoft else if (destructive) com.pinfold.app.ui.glass.theme.Candy.Tomato else SavelinGlass.ink,
+                                    color = if (!confirmEnabled) c.onGlassSoft else if (destructive) com.pinfold.app.ui.glass.theme.Candy.Tomato else resolvedInk,
                                     maxLines = 1,
                                 )
                             }

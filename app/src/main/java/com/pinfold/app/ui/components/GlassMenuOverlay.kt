@@ -43,7 +43,6 @@ import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.revealRow
 import com.pinfold.app.ui.glass.rememberMenuRow
 import com.pinfold.app.ui.glass.rememberSpringAppear
-import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 
 data class GlassMenuItem(val icon: Int, val label: String, val onClick: () -> Unit, val destructive: Boolean = false)
@@ -59,8 +58,9 @@ fun GlassMenuOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
+    ink: Color? = null,
 ) {
-    val ink = SavelinGlass.ink
+    val resolvedInk = ink ?: SavelinGlass.ink
     GlassOverlay(animatesOut = true) {
         BackHandler(onBack = onDismiss)
         val appear = rememberSpringAppear()
@@ -84,14 +84,14 @@ fun GlassMenuOverlay(
                     Text(
                         title,
                         style = MaterialTheme.typography.bodySmall,
-                        color = ink.copy(alpha = 0.8f),
+                        color = resolvedInk.copy(alpha = 0.8f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
                 items.forEachIndexed { i, entry ->
-                    MenuRow(entry, ink, i, onDismiss)
+                    MenuRow(entry, resolvedInk, i, onDismiss)
                 }
             }
         }
@@ -100,13 +100,13 @@ fun GlassMenuOverlay(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MenuRow(entry: GlassMenuItem, ink: Color, index: Int, onDismiss: () -> Unit) {
+private fun MenuRow(entry: GlassMenuItem, resolvedInk: Color, index: Int, onDismiss: () -> Unit) {
     val row = rememberMenuRow(index)
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val haptics = com.pinfold.app.ui.glass.LocalHaptics.current
     val dark = clear.dark
-    val tint = if (entry.destructive) Candy.Tomato else ink
+    val tint = resolvedInk
     Row(
         Modifier.fillMaxWidth().revealRow(row).heightIn(min = 48.dp)
             .drawBehind {

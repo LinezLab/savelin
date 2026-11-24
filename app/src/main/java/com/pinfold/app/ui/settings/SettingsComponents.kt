@@ -45,6 +45,9 @@ import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
 
+internal fun displayOption(raw: String): String =
+    raw.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
 @Composable
 fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Column(
@@ -132,7 +135,7 @@ fun SettingsChoiceRow(
     onSelect: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    SettingsRow(icon = icon, tileColor = tileColor, title = title, subtitle = subtitle, onClick = { open = true })
+    SettingsRow(icon = icon, tileColor = tileColor, title = title, subtitle = displayOption(subtitle), onClick = { open = true })
     if (open) {
         GlassChoicePopUp(
             title = title,

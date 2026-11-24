@@ -18,6 +18,7 @@ import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.ui.App
 import com.pinfold.app.sync.DriveSignInHost
 import com.pinfold.app.sync.GoogleDriveSignIn
+import com.pinfold.app.ui.glass.ProvideGlassHaptics
 import com.pinfold.app.ui.glass.theme.SavelinTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +77,9 @@ class MainActivity : FragmentActivity(), DriveSignInHost {
         incomingShare.value = sharedText(intent)
         setContent {
             SavelinTheme(dark = dark) {
-                App(sharedText = incomingShare.collectAsState().value)
+                ProvideGlassHaptics {
+                    App(sharedText = incomingShare.collectAsState().value)
+                }
             }
         }
     }
