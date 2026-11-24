@@ -141,16 +141,16 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openLabelUsesWhiteScreenBlendToStayVisibleOnDark() {
-        assertEquals(BlendMode.Screen, OPEN_TEXT_BLEND_MODE)
+    fun openLabelUsesWhiteDifferenceLayerBlendAndWideLetterSpacing() {
+        assertEquals(BlendMode.Difference, OPEN_TEXT_BLEND_MODE)
         assertEquals(Color.White, OPEN_TEXT_COLOR)
+        assertEquals(2.sp, OPEN_TEXT_LETTER_SPACING)
     }
 
     @Test
-    fun detailGlyphsUseTheSameWhiteScreenBlendAsOpen() {
+    fun detailGlyphsUseTheSameDifferenceLayerBlendAsOpen() {
         assertEquals(OPEN_TEXT_BLEND_MODE, DETAIL_GLYPH_BLEND_MODE)
-        assertEquals(BlendMode.Screen, DETAIL_GLYPH_BLEND_MODE)
-        assertEquals(Color.White, DETAIL_GLYPH_TINT_COLOR)
+        assertEquals(BlendMode.Difference, DETAIL_GLYPH_BLEND_MODE)
     }
 
     @Test
@@ -163,24 +163,35 @@ class DetailNavigationTest {
 
     @Test
     fun descriptionDissolveFadesOnlyInsideTopAndBottomEdges() {
-        assertEquals(0.06f, DESCRIPTION_DISSOLVE_EDGE_FRACTION, 0f)
-        val stops = descriptionDissolveStops()
+        val edge = 0.14f
+        val stops = descriptionDissolveStops(edge)
         assertEquals(4, stops.size)
         assertEquals(0f, stops[0].first, 0f)
         assertEquals(Color.Transparent, stops[0].second)
-        assertEquals(0.06f, stops[1].first, 0f)
+        assertEquals(edge, stops[1].first, 0f)
         assertEquals(Color.Black, stops[1].second)
-        assertEquals(0.94f, stops[2].first, 0f)
+        assertEquals(1f - edge, stops[2].first, 0f)
         assertEquals(Color.Black, stops[2].second)
         assertEquals(1f, stops[3].first, 0f)
         assertEquals(Color.Transparent, stops[3].second)
+        assertEquals(
+            DESCRIPTION_DISSOLVE_EDGE_DP.value / DESCRIPTION_SCROLL_MAX_HEIGHT.value,
+            edge,
+            0.0001f,
+        )
     }
 
     @Test
-    fun descriptionInnerPaddingKeepsFirstAndLastLinesOutsideDissolveBand() {
+    fun descriptionDissolveEdgeOverlapsInnerPaddingButKeepsFirstLineReadable() {
         assertEquals(16.dp, DESCRIPTION_INNER_PADDING)
-        val fadeBandDp = DESCRIPTION_DISSOLVE_EDGE_FRACTION * DESCRIPTION_SCROLL_MAX_HEIGHT.value
-        assertTrue(DESCRIPTION_INNER_PADDING.value > fadeBandDp)
+        assertEquals(28.dp, DESCRIPTION_DISSOLVE_EDGE_DP)
+        assertTrue(DESCRIPTION_DISSOLVE_EDGE_DP > DESCRIPTION_INNER_PADDING)
+        val edge = DESCRIPTION_DISSOLVE_EDGE_DP.value / DESCRIPTION_SCROLL_MAX_HEIGHT.value
+        val stops = descriptionDissolveStops(edge)
+        val paddingFraction = DESCRIPTION_INNER_PADDING.value / DESCRIPTION_SCROLL_MAX_HEIGHT.value
+        val alphaAtPadding = (paddingFraction - stops[0].first) / (stops[1].first - stops[0].first)
+        assertTrue(alphaAtPadding in 0.5f..1.0f)
+        assertEquals(16f / 28f, alphaAtPadding, 0.0001f)
     }
 
     @Test

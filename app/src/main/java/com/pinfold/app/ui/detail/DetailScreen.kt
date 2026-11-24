@@ -9,7 +9,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -57,7 +56,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -65,7 +63,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -107,7 +104,6 @@ internal const val COLLAPSED_TITLE_LINES = 2
 internal const val COLLAPSED_DESCRIPTION_LINES = 3
 internal const val METADATA_BOTTOM_FRACTION = 0.35f
 internal const val DESCRIPTION_STARTS_EXPANDED = true
-internal const val DESCRIPTION_DISSOLVE_EDGE_FRACTION = 0.06f
 internal val METADATA_PANEL_TOP_GAP: Dp = 24.dp
 internal val METADATA_PANEL_SIDE_MARGIN: Dp = 20.dp
 internal val METADATA_SECTION_GAP: Dp = 3.dp
@@ -115,14 +111,15 @@ internal val METADATA_BODY_VERTICAL_GAP: Dp = METADATA_SECTION_GAP
 internal val DETAIL_ACTIONS_RESERVED_HEIGHT: Dp = 68.dp
 internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
+internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
-internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Screen
+internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Difference
 internal val OPEN_TEXT_COLOR: Color = Color.White
 internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
 internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
 internal val OPEN_TEXT_FONT_WEIGHT: FontWeight = FontWeight.SemiBold
-internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Screen
-internal val DETAIL_GLYPH_TINT_COLOR: Color = Color.White
+internal val OPEN_TEXT_LETTER_SPACING: TextUnit = 2.sp
+internal val DETAIL_GLYPH_BLEND_MODE: BlendMode = BlendMode.Difference
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 20.dp
 
@@ -180,10 +177,10 @@ internal fun collapsedMaxLines(expanded: Boolean): Int = descriptionMaxLines(exp
 
 internal fun descriptionOnly(bookmark: Bookmark): String = bookmark.description.trim()
 
-internal fun descriptionDissolveStops(): Array<Pair<Float, Color>> = arrayOf(
+internal fun descriptionDissolveStops(edge: Float): Array<Pair<Float, Color>> = arrayOf(
     0f to Color.Transparent,
-    DESCRIPTION_DISSOLVE_EDGE_FRACTION to Color.Black,
-    1f - DESCRIPTION_DISSOLVE_EDGE_FRACTION to Color.Black,
+    edge to Color.Black,
+    1f - edge to Color.Black,
     1f to Color.Transparent,
 )
 
@@ -480,6 +477,7 @@ private fun OverlayOpenText(
         color = OPEN_TEXT_COLOR,
         fontSize = OPEN_TEXT_FONT_SIZE,
         lineHeight = OPEN_TEXT_LINE_HEIGHT,
+        letterSpacing = OPEN_TEXT_LETTER_SPACING,
     )
     val textLayout = remember(measurer, style) { measurer.measure("Open", style = style, maxLines = 1) }
     val density = LocalDensity.current
@@ -499,8 +497,13 @@ private fun OverlayOpenText(
             .semantics { contentDescription = "Open link, long press to copy" },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(textWidth, textHeight)) {
-            drawText(textLayout, color = OPEN_TEXT_COLOR, blendMode = OPEN_TEXT_BLEND_MODE)
+        Canvas(
+            Modifier.size(textWidth, textHeight).graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = OPEN_TEXT_BLEND_MODE
+            },
+        ) {
+            drawText(textLayout, color = Color.White)
         }
     }
 }
@@ -561,9 +564,10 @@ private fun ColumnScope.DetailMetadataBody(
                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                     .drawWithContent {
                         drawContent()
+                        val edge = (DESCRIPTION_DISSOLVE_EDGE_DP.toPx() / size.height).coerceIn(0f, 0.45f)
                         drawRect(
                             brush = Brush.verticalGradient(
-                                colorStops = descriptionDissolveStops(),
+                                colorStops = descriptionDissolveStops(edge),
                                 startY = 0f,
                                 endY = size.height,
                             ),
@@ -640,12 +644,15 @@ private fun BareGlyph(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Image(
-            painter = painterResource(icon),
-            contentDescription = null,
-            modifier = Modifier.size(iconSize),
-            colorFilter = ColorFilter.tint(DETAIL_GLYPH_TINT_COLOR, blendMode = DETAIL_GLYPH_BLEND_MODE),
-        )
+        Box(
+            Modifier.graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                blendMode = DETAIL_GLYPH_BLEND_MODE
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            AppIcons.Icon(icon, null, tint = clear.hero, size = iconSize)
+        }
     }
 }
 
