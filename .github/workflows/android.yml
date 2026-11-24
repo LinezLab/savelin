@@ -34,7 +34,13 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-37.0" "build-tools;37.0.0"
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew lintDebug testDebugUnitTest --stacktrace
+      - name: Run checks with failure details
+        run: |
+          set -o pipefail
+          ./gradlew lintDebug testDebugUnitTest --stacktrace 2>&1 | tee /tmp/savelin-check.log || {
+            grep -E "^e: |error:|FAILED|FAILURE|What went wrong|Execution failed" /tmp/savelin-check.log | head -40 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          }
       - uses: actions/upload-artifact@v7
         if: always()
         with:
