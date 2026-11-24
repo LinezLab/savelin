@@ -2,6 +2,7 @@ package com.pinfold.app.ui.glass.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -9,9 +10,11 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.pinfold.app.ui.glass.R
 
 object Candy {
     val Tomato = Color(0xFFFF5B4F)
@@ -153,12 +156,24 @@ fun SavelinTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () 
         )
     }
     androidx.compose.runtime.CompositionLocalProvider(LocalClearColors provides colors) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = Typography(defaultFontFamily = Outfit),
+            content = content,
+        )
     }
 }
 
+/** Outfit is bundled in this module so every consumer shares one typographic voice. */
+internal val Outfit: FontFamily = FontFamily(
+    Font(R.font.outfit_regular, FontWeight.Normal),
+    Font(R.font.outfit_medium, FontWeight.Medium),
+    Font(R.font.outfit_semibold, FontWeight.SemiBold),
+    Font(R.font.outfit_bold, FontWeight.Bold),
+)
+
 private val type: TextStyle
-    get() = TextStyle(fontFamily = FontFamily.Default)
+    get() = TextStyle(fontFamily = Outfit)
 
 object ClearType {
     val Hero = type.copy(fontWeight = FontWeight.Bold, fontSize = 54.sp, lineHeight = 56.sp, letterSpacing = (-1.4).sp)

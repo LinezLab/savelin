@@ -48,3 +48,8 @@ BitChord (https://github.com/kushagrasinghx/BitChord)
 Copyright the BitChord contributors. Licensed under GPL-3.0.
 Detail artwork mesh background method studied from BitChord (GPL-3.0), kushagrasinghx/BitChord.
 No BitChord source is bundled; Savelin's mesh implementation is original Kotlin.
+
+Outfit (https://github.com/Outfitio/Outfit-Fonts)
+Copyright the Outfit contributors. Licensed under the SIL Open Font License 1.1.
+Outfit TTFs are bundled under core-ui-glass/src/main/res/font and are the app-wide font family.
+See third_party/OFL-Outfit.txt.
