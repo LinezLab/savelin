@@ -35,6 +35,10 @@ class ImageStore(private val context: Context, private val client: OkHttpClient)
 
     fun store(id: Long, imageUrl: String): StoredImage? {
         val bytes = download(imageUrl) ?: return null
+        return storeBytes(id, bytes)
+    }
+
+    fun storeBytes(id: Long, bytes: ByteArray): StoredImage? {
         val decoded = decode(bytes) ?: return null
         val scaled = scale(decoded)
         val final = File(pathFor(id))

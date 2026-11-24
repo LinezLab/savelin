@@ -230,7 +230,8 @@ fun DetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val bookmark = item.bookmark
-    val path = remember(bookmark.id, bookmark.imagePath) {
+    var refreshTick by remember { mutableStateOf(0L) }
+    val path = remember(bookmark.id, bookmark.imagePath, bookmark.updatedAt, refreshTick) {
         bookmark.imagePath?.takeIf { it.isNotBlank() }
             ?.let { File(it).takeIf { file -> file.isFile }?.absolutePath }
     }
@@ -249,6 +250,7 @@ fun DetailScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
+    var imageToast by remember { mutableStateOf<String?>(null) }
     var titleExpanded by remember { mutableStateOf(false) }
     val descriptionExpanded = DESCRIPTION_STARTS_EXPANDED
     var editTitle by remember { mutableStateOf("") }
@@ -256,7 +258,9 @@ fun DetailScreen(
     var editNotes by remember { mutableStateOf("") }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) viewModel.attachImage(bookmark, uri)
+        if (uri != null) viewModel.attachImage(bookmark, uri) { ok ->
+            imageToast = if (ok) "Image saved" else "Could not attach image"
+        }
     }
 
     val screenHeightPx = LocalWindowInfo.current.containerSize.height.toFloat()
@@ -317,7 +321,7 @@ fun DetailScreen(
                     )
                 }
             }
-            SharpHero(path, themeFloor, heroHeight, heroScale, context)
+            SharpHero(path, themeFloor, heroHeight, heroScale, context, path + "#" + bookmark.updatedAt + "#" + refreshTick)
             val density = LocalDensity.current
             val bottomOffset = with(density) {
                 titleBottomOffsetPx(screenHeightPx, METADATA_BOTTOM_FRACTION).toDp()
@@ -416,7 +420,16 @@ fun DetailScreen(
                         editNotes = bookmark.notes
                         editOpen = true
                     }),
-                    GlassMenuItem(AppIcons.Refetch, "Refresh", onClick = { viewModel.refetch(bookmark) }),
+                    GlassMenuItem(AppIcons.Refetch, "Refresh", onClick = {
+                        viewModel.refreshNow(bookmark) { ok ->
+                            if (ok) {
+                                ArtworkMesh.invalidateMesh(bookmark.id)
+                                refreshTick++
+                            } else {
+                                viewModel.refetch(bookmark)
+                            }
+                        }
+                    }),
                     GlassMenuItem(AppIcons.CustomImage, "Add custom image", onClick = { imagePicker.launch("image/*") }),
                     GlassMenuItem(
                         if (hasReminder) AppIcons.ReminderMuted else AppIcons.Reminder,
@@ -463,6 +476,7 @@ fun DetailScreen(
         }
 
         if (copyToast) DiagnosticsToast("Link copied") { copyToast = false }
+        imageToast?.let { DiagnosticsToast(it) { imageToast = null } }
     }
 }
 
@@ -726,6 +740,7 @@ private fun BoxScope.SharpHero(
     heroHeight: Dp,
     heroScale: ContentScale,
     context: android.content.Context,
+    cacheKey: String,
 ) {
     Box(
         Modifier.align(Alignment.TopCenter)
@@ -734,7 +749,7 @@ private fun BoxScope.SharpHero(
     ) {
         if (path != null) {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(File(path)).build(),
+                model = ImageRequest.Builder(context).data(File(path)).memoryCacheKey(cacheKey).build(),
                 contentDescription = null,
                 contentScale = heroScale,
                 modifier = Modifier.fillMaxSize()

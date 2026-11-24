@@ -37,6 +37,11 @@ private val meshCache = LinkedHashMap<Long, ImageBitmap>()
 internal fun cachedMesh(id: Long): ImageBitmap? = meshCache[id]
 
 @Synchronized
+internal fun invalidateMesh(id: Long) {
+    meshCache.remove(id)
+}
+
+@Synchronized
 internal fun cacheMesh(id: Long, mesh: ImageBitmap) {
     meshCache[id] = mesh
     while (meshCache.size > MESH_CACHE_ENTRIES) {

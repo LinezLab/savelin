@@ -16,6 +16,9 @@ import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.reminders.ReminderScheduler
+import com.pinfold.app.network.MetadataCleaner
+import com.pinfold.app.network.PlatformDetector
+import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.UrlNormalizer
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.resolvers.HttpClientFactory
@@ -218,6 +221,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refetch(item: Bookmark) {
+        if (!settings.value.refetchMissing) return
         val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setInputData(workDataOf(LinkFetchWorker.KEY_URL to item.url))
@@ -234,25 +238,87 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             .randomOrNull()
     }
 
-    fun attachImage(item: Bookmark, uri: Uri) = viewModelScope.launch {
+    fun refreshNow(item: Bookmark, onDone: (Boolean) -> Unit) = viewModelScope.launch {
+        val config = settings.value
+        val refreshed = withContext(Dispatchers.IO) {
+            runCatching {
+                if (config.offlineMode) return@runCatching false
+                val normalized = UrlNormalizer.normalize(item.url)
+                val client = HttpClientFactory.create()
+                val fetcher = PreviewFetcher(client)
+                val proxyTemplate = if (config.proxiesEnabled) config.proxyTemplate else ""
+                val preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
+                val store = ImageStore(getApplication(), client)
+                val stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
+                    runCatching { store.store(item.id, candidate) }.getOrNull()
+                }
+                val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
+                val cleaned = MetadataCleaner.clean(
+                    title = preview.title,
+                    description = preview.description,
+                    author = preview.author,
+                    siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
+                    platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
+                    fallbackTitle = PlatformDetector.siteName(normalized),
+                )
+                db.bookmarkDao().update(
+                    current.copy(
+                        title = cleaned.displayTitle,
+                        displayTitle = cleaned.displayTitle,
+                        authorHandle = cleaned.authorHandle,
+                        caption = MetadataCleaner.cleanForDisplay(cleaned.caption),
+                        likesText = cleaned.likesText,
+                        commentsText = cleaned.commentsText,
+                        postedAt = cleaned.postedAt,
+                        hashtags = cleaned.hashtags.joinToString(","),
+                        description = preview.description,
+                        siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
+                        platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
+                        author = preview.author,
+                        remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty(),
+                        imagePath = stored?.path ?: current.imagePath,
+                        imageWidth = stored?.width ?: current.imageWidth,
+                        imageHeight = stored?.height ?: current.imageHeight,
+                        blurhash = stored?.blurhash ?: current.blurhash,
+                        fetchStatus = if (stored != null) com.pinfold.app.data.model.FetchStatus.OK else com.pinfold.app.data.model.FetchStatus.PARTIAL,
+                        fetchError = if (stored == null) "No preview image" else "",
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                true
+            }.getOrDefault(false)
+        }
+        withContext(Dispatchers.Main) { onDone(refreshed) }
+    }
+
+    fun attachImage(item: Bookmark, uri: Uri, onResult: (Boolean) -> Unit = {}) = viewModelScope.launch {
         val context = getApplication<Application>()
-        val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@launch
-        val store = ImageStore(context, HttpClientFactory.create())
-        val file = java.io.File(store.pathFor(item.id))
-        file.outputStream().use { it.write(bytes) }
-        store.createBlurPreview(item.id, file)
-        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
-        db.bookmarkDao().updateImage(
-            id = item.id,
-            path = file.absolutePath,
-            width = options.outWidth,
-            height = options.outHeight,
-            blurhash = null,
-            remoteUrl = item.remoteImageUrl,
-            status = com.pinfold.app.data.model.FetchStatus.OK,
-        )
-        db.bookmarkDao().update(db.bookmarkDao().findById(item.id)!!.copy(customImage = true))
+        val attached = withContext(Dispatchers.IO) {
+            runCatching {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return@runCatching false
+                val stored = ImageStore(context, HttpClientFactory.create()).storeBytes(item.id, bytes)
+                    ?: return@runCatching false
+                val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
+                db.bookmarkDao().update(
+                    current.copy(
+                        imagePath = stored.path,
+                        imageWidth = stored.width,
+                        imageHeight = stored.height,
+                        blurhash = stored.blurhash,
+                        customImage = true,
+                        fetchStatus = com.pinfold.app.data.model.FetchStatus.OK,
+                        fetchError = "",
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                true
+            }.getOrDefault(false)
+        }
+        withContext(Dispatchers.Main) {
+            if (attached) com.pinfold.app.ui.detail.ArtworkMesh.invalidateMesh(item.id)
+            onResult(attached)
+        }
     }
 
     fun clearReminder(item: Bookmark) = viewModelScope.launch {
