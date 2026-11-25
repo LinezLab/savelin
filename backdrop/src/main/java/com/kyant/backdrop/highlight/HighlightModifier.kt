@@ -8,6 +8,7 @@ package com.kyant.backdrop.highlight
 
 import android.graphics.BlurMaskFilter
 import android.os.Build
+import android.util.Log
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Paint
@@ -145,15 +146,19 @@ internal class HighlightNode(
             if (!unchanged) {
                 configurePaint(highlight)
                 highlightLayer.record(safeSize) {
-                    translate(1f, 1f) {
-                        val canvas = drawContext.canvas
-                        canvas.save()
-                        try {
-                            canvas.clipOutline(outline, clipPath)
-                            canvas.drawOutline(outline, paint)
-                        } finally {
-                            canvas.restore()
+                    try {
+                        translate(1f, 1f) {
+                            val canvas = drawContext.canvas
+                            canvas.save()
+                            try {
+                                canvas.clipOutline(outline, clipPath)
+                                canvas.drawOutline(outline, paint)
+                            } finally {
+                                canvas.restore()
+                            }
                         }
+                    } catch (t: Throwable) {
+                        Log.e("SavelinBackdrop", "layer record failed", t)
                     }
                 }
                 recordedSize = safeSize

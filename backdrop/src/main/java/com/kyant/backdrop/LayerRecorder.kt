@@ -6,6 +6,7 @@
 
 package com.kyant.backdrop
 
+import android.util.Log
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.node.DelegatableNode
@@ -25,6 +26,8 @@ internal fun DrawScope.recordLayer(
         drawContext.density = density
         try {
             this.block()
+        } catch (t: Throwable) {
+            Log.e("SavelinBackdrop", "layer record failed", t)
         } finally {
             drawContext.density = prevDensity
         }

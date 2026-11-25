@@ -1,5 +1,6 @@
 package com.kyant.backdrop
 
+import android.util.Log
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -129,7 +130,11 @@ private class FloatingLayerNode(
         val s = this.size.toIntSize()
         layer.topLeft = IntOffset(-m, -m)
         layer.record(IntSize(s.width + 2 * m, s.height + 2 * m)) {
-            translate(m.toFloat(), m.toFloat()) { this@draw.drawContent() }
+            try {
+                translate(m.toFloat(), m.toFloat()) { this@draw.drawContent() }
+            } catch (t: Throwable) {
+                Log.e("SavelinBackdrop", "layer record failed", t)
+            }
         }
         drawLayer(layer)
     }

@@ -7,6 +7,7 @@
 package com.kyant.backdrop.shadow
 
 import android.os.Build
+import android.util.Log
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
@@ -120,16 +121,20 @@ internal class InnerShadowNode(
                 prevRadius = radius
             }
             shadowLayer.record {
-                val canvas = drawContext.canvas
-                canvas.save()
                 try {
-                    canvas.clipOutline(outline, clipPath)
-                    canvas.drawOutline(outline, paint)
-                    canvas.translate(offsetX, offsetY)
-                    canvas.drawOutline(outline, ShadowMaskPaint)
-                    canvas.translate(-offsetX, -offsetY)
-                } finally {
-                    canvas.restore()
+                    val canvas = drawContext.canvas
+                    canvas.save()
+                    try {
+                        canvas.clipOutline(outline, clipPath)
+                        canvas.drawOutline(outline, paint)
+                        canvas.translate(offsetX, offsetY)
+                        canvas.drawOutline(outline, ShadowMaskPaint)
+                        canvas.translate(-offsetX, -offsetY)
+                    } finally {
+                        canvas.restore()
+                    }
+                } catch (t: Throwable) {
+                    Log.e("SavelinBackdrop", "layer record failed", t)
                 }
             }
 
