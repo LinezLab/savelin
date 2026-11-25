@@ -522,7 +522,13 @@ fun GlassTextField(
  * is the buttons' own (Back, More), so it bends its edges as they do.
  */
 @Composable
-fun GlassToast(text: String, action: String?, onAction: () -> Unit, modifier: Modifier = Modifier) {
+fun GlassToast(
+    text: String,
+    action: String?,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+    actionIcon: (@Composable () -> Unit)? = null,
+) {
     val c = clear
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, GlassMotion.morph()) }
@@ -544,7 +550,7 @@ fun GlassToast(text: String, action: String?, onAction: () -> Unit, modifier: Mo
         if (action != null) {
             Spacer(Modifier.width(10.dp))
             GlassPill(onClick = onAction, height = 38.dp, horizontalPadding = 14.dp) {
-                Text(action, style = ClearType.Label, color = SavelinGlass.ink)
+                actionIcon?.invoke() ?: Text(action, style = ClearType.Label, color = SavelinGlass.ink)
             }
         }
     }

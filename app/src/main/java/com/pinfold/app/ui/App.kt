@@ -7,12 +7,15 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pinfold.app.ui.glass.ComponentGlass
 import com.pinfold.app.ui.glass.GlassSettings
+import com.pinfold.app.ui.glass.GlassToast
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.diagnostics.DiagnosticsLog
@@ -37,6 +41,7 @@ import com.pinfold.app.ui.glass.Aurora
 import com.pinfold.app.ui.glass.AuroraMoods
 import com.pinfold.app.ui.glass.GlassStage
 import com.pinfold.app.ui.glass.MotionSettings
+import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FilterRail
 import com.pinfold.app.ui.components.FloatingPillNav
@@ -51,6 +56,7 @@ import com.pinfold.app.ui.detail.DetailScreen
 import com.pinfold.app.ui.splash.SplashScreen
 import com.pinfold.app.ui.settings.SettingsScreen
 import com.pinfold.app.data.model.BookmarkWithTags
+import kotlinx.coroutines.delay
 
 internal val HOME_BACKGROUND_LIGHT: Color = Color.White
 internal val HOME_BACKGROUND_DARK: Color = Color.Black
@@ -124,8 +130,15 @@ fun App(
         BiometricGate(onUnlock = { locked = false })
         return
     }
+    var linkToast by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(clipboardShare?.second) {
-        clipboardShare?.first?.let { draft = it; showAdd = true }
+        val url = clipboardShare?.first ?: return@LaunchedEffect
+        if (!viewModel.isSaved(url)) linkToast = url
+    }
+    LaunchedEffect(linkToast) {
+        if (linkToast == null) return@LaunchedEffect
+        delay(3600)
+        linkToast = null
     }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
@@ -207,6 +220,25 @@ fun App(
                             value = draft,
                             onValueChange = { draft = it },
                             placeholder = "Paste a link or shared text",
+                        )
+                    }
+                }
+                linkToast?.let { url ->
+                    Box(
+                        Modifier.align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 96.dp),
+                    ) {
+                        GlassToast(
+                            text = "Link detected",
+                            action = "+",
+                            onAction = {
+                                viewModel.saveLink(url)
+                                linkToast = null
+                            },
+                            actionIcon = {
+                                AppIcons.Icon(AppIcons.Add, "Save link", tint = clear.onGlass, size = 18.dp)
+                            },
                         )
                     }
                 }

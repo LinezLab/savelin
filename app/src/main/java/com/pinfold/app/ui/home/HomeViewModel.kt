@@ -174,6 +174,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         WorkManager.getInstance(getApplication<Application>()).enqueue(request)
     }
 
+    suspend fun isSaved(raw: String): Boolean = withContext(Dispatchers.IO) {
+        repository.findByNormalizedUrl(UrlNormalizer.normalize(raw.trim())) != null
+    }
+
     fun toggleImportant(item: Bookmark) = viewModelScope.launch {
         db.bookmarkDao().setImportant(item.id, !item.isImportant)
     }
