@@ -64,10 +64,10 @@ object DiagnosticsLog {
 
     fun format(limit: Int = Int.MAX_VALUE): String {
         val lines = if (limit >= events.size) snapshot() else snapshotLast(limit)
-        if (lines.isEmpty()) return "Savelin diagnostics: no events recorded."
+        if (lines.isEmpty()) return "Sonil diagnostics: no events recorded."
         val stamp = stamp()
         return buildString {
-            appendLine("Savelin diagnostics (redacted, times UTC)")
+            appendLine("Sonil diagnostics (redacted, times UTC)")
             for (event in lines) {
                 append('[').append(stamp.format(Date(event.time))).append("] ")
                     .append(event.level.name).append('/').append(event.tag).append(": ").appendLine(event.message)
@@ -80,7 +80,7 @@ object DiagnosticsLog {
         if (lines.isEmpty()) return "No issues recorded."
         val stamp = stamp()
         return buildString {
-            appendLine("Savelin issues (redacted, times UTC)")
+            appendLine("Sonil issues (redacted, times UTC)")
             for (issue in lines) {
                 append('[').append(stamp.format(Date(issue.time))).append("] ")
                     .append(issue.scope).append(": ").append(issue.what)

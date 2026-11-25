@@ -11,6 +11,6 @@ class PinfoldApplication : Application() {
         super.onCreate()
         CrashReporter.install(this)
         GlassSettings.load(this)
-        DiagnosticsLog.log(LogLevel.INFO, "App", "Savelin started")
+        DiagnosticsLog.log(LogLevel.INFO, "App", "Sonil started")
     }
 }

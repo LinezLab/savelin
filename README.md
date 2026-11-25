@@ -1,4 +1,4 @@
-# Savelin
+# Sonil
 
 A local-only Android app: share a link from any app and it appears as a Pinterest-style preview tile. No account, no analytics, no cloud, no tracking. Liquid-glass UI with a floating pill navigation bar and a full Appearance & Motion settings screen.
 
@@ -6,15 +6,15 @@ The launcher icons and notification glyph were supplied by the project owner; se
 
 ## What it does
 
-- **Share to save.** Android's share sheet sends `text/plain` links (plus captions) straight into Savelin. Paste a link with **+** as well. The first URL in shared text is extracted, normalised and de-duplicated.
+- **Share to save.** Android's share sheet sends `text/plain` links (plus captions) straight into Sonil. Paste a link with **+** as well. The first URL in shared text is extracted, normalised and de-duplicated.
 - **Real previews when possible.** A Shelf-style direct fetch (WhatsApp then desktop User-Agent, 5s timeouts, text/html only) is tried FIRST for metadata and the image. If it cannot supply an image, the current Open Graph / Twitter-card mobile and crawler retries run. Instagram author/caption parsing follows PostVault. YouTube and Reddit have fast paths. See [docs/RECON-SHELF.md](docs/RECON-SHELF.md).
 - **Images stay on the device.** The preview image is downloaded, re-encoded as WebP (max 1080 px), stored in app-private storage with a blurhash, and never referenced by its expiring remote URL again.
-- **Graceful fallbacks.** If a login wall or empty tags block the preview, Savelin shows a generated tile with **Refetch image** and **Add custom image** actions. An opt-in proxy template is available in Settings for the hard cases.
+- **Graceful fallbacks.** If a login wall or empty tags block the preview, Sonil shows a generated tile with **Refetch image** and **Add custom image** actions. An opt-in proxy template is available in Settings for the hard cases.
 - **Organise.** Important, archived, tags, collections, notes, search (SQLite FTS), and reminders with notifications.
 - **Appearance & Motion.** Five glass presets, five motion styles, transition picker, animation speed, haptics, hold-to-preview delay/effect, reduce-transparency/reduce-motion, low-end device mode and an FPS overlay.
 - **Privacy controls.** Offline mode, a network-transparency log of every host contacted, biometric lock, and ZIP backup/export/import that keeps your data on your device.
 
-> Honest limit: no account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. Savelin reduces failures with extra fallbacks and manual images, but cannot guarantee a real image for every link.
+> Honest limit: no account-free method can fetch previews for private accounts, login-walled posts, or content a platform deliberately hides from link-preview requests. Sonil reduces failures with extra fallbacks and manual images, but cannot guarantee a real image for every link.
 
 ## Privacy guarantees
 

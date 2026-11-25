@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
 
 fun Context.copyDiagnosticsText(text: String) {
     val manager = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-    manager?.setPrimaryClip(ClipData.newPlainText("Savelin diagnostics", text))
+    manager?.setPrimaryClip(ClipData.newPlainText("Sonil diagnostics", text))
 }
 
 /** A short glass toast that removes itself, so a copy action never leaves a panel on screen. */

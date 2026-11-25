@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pinfold"
+rootProject.name = "Sonil"
 include(":app")
 include(":backdrop")
 include(":core-ui-glass")

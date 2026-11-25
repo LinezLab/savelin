@@ -42,12 +42,12 @@ class ReminderReceiver : BroadcastReceiver() {
     private fun showNotification(context: Context, title: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Reminders", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel(CHANNEL_ID, "Sonil reminders", NotificationManager.IMPORTANCE_HIGH)
             manager.createNotificationChannel(channel)
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_savelin)
-            .setContentTitle("Pinfold reminder")
+            .setContentTitle("Sonil reminder")
             .setContentText(title.ifBlank { "A saved link is waiting for you" })
             .setAutoCancel(true)
             .build()

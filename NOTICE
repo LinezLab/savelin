@@ -1,5 +1,5 @@
-Savelin
-Copyright 2026 The Savelin contributors
+Sonil
+Copyright 2026 The Sonil contributors
 
 This product includes software developed by third parties.
 
@@ -30,7 +30,7 @@ See docs/RECON-SHELF.md.
 Android-Link-Preview (https://github.com/vishalkumarsinghvi/Android-Link-Preview)
 Copyright the Android-Link-Preview contributors. MIT per its README. The metadata
 extraction concept is credited here; the library is NOT bundled and no source was
-copied. Savelin's ShelfStyleResolver is original Kotlin/OkHttp/Jsoup code.
+copied. Sonil's ShelfStyleResolver is original Kotlin/OkHttp/Jsoup code.
 See docs/RECON-SHELF.md.
 
 Lucide icons (https://lucide.dev/)
@@ -45,7 +45,7 @@ Open source licences screen in Settings.
 BitChord (https://github.com/kushagrasinghx/BitChord)
 Copyright the BitChord contributors. Licensed under GPL-3.0.
 Detail artwork mesh background method studied from BitChord (GPL-3.0), kushagrasinghx/BitChord.
-No BitChord source is bundled; Savelin's mesh implementation is original Kotlin.
+No BitChord source is bundled; Sonil's mesh implementation is original Kotlin.
 
 Outfit (https://github.com/Outfitio/Outfit-Fonts)
 Copyright the Outfit contributors. Licensed under the SIL Open Font License 1.1.
@@ -56,4 +56,4 @@ NIKEA (Limitype) is a commercial display font provided by the user. The single O
 bundled at app/src/main/res/font/nikea.otf solely for the "Sonil" logo; all rights remain
 with Limitype and its licence holder. No redistribution rights are claimed or implied.
 
-App icon pack (AppIcons.zip) and notification source image (IMG_20261125_003854.png) were supplied by the project owner for Savelin. The launcher mipmaps and adaptive foreground were generated with appicon.co (https://appicon.co/), a free icon tool by Lance. The bundled launcher resources are under app/src/main/res/mipmap-*; the notification small icon (drawable-*/ic_stat_savelin.png) is a white-on-transparent silhouette derived from the owner-supplied PNG. No third-party licence is claimed over these user-supplied assets; all rights remain with the owner.
+App icon pack (AppIcons.zip) and notification source image (IMG_20261125_003854.png) were supplied by the project owner for Sonil. The launcher mipmaps and adaptive foreground were generated with appicon.co (https://appicon.co/), a free icon tool by Lance. The bundled launcher resources are under app/src/main/res/mipmap-*; the notification small icon (drawable-*/ic_stat_savelin.png) is a white-on-transparent silhouette derived from the owner-supplied PNG. No third-party licence is claimed over these user-supplied assets; all rights remain with the owner.

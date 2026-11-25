@@ -112,7 +112,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
 
         SettingsSection("DATA") {
             SettingsCard {
-                SettingsRow(AppIcons.Export, Candy.Sky, "Backup and export") { exportLauncher.launch("savelin-backup.zip") }
+                SettingsRow(AppIcons.Export, Candy.Sky, "Backup and export") { exportLauncher.launch("sonil-backup.zip") }
                 SettingsRow(AppIcons.Import, Candy.Mint, "Import") { importLauncher.launch("application/zip") }
                 importResult?.let { Text("Imported $it new bookmarks", color = com.pinfold.app.ui.glass.theme.clear.ink) }
             }

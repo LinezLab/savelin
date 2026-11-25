@@ -68,7 +68,7 @@ class BackupManager(
             }
             Pref(name, kind, text)
         }
-        val file = File(context.cacheDir, "pinfold-backup.zip")
+        val file = File(context.cacheDir, "sonil-backup.zip")
         ZipOutputStream(file.outputStream().buffered()).use { zip ->
             writeJson(zip, "bookmarks.json", json.encodeToString(BackupFile(BACKUP_FORMAT, bookmarks)))
             writeJson(zip, "settings.json", json.encodeToString(SettingsFile(prefs)))
