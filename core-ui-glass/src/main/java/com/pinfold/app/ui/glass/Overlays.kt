@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.animation.core.spring
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +121,7 @@ fun GlassDialog(
         val leaving = LocalOverlayPresence.current?.leaving == true
         BackHandler(enabled = dismissible && !leaving, onBack = onDismiss)
         // pops in on a glass spring (a little past full size, then settles); leaves quickly, no bounce
-        val appear = rememberSpringAppear()
+        val appear = rememberSpringAppear(enter = IosMotion.Menu, exit = IosMotion.alpha(IosMotion.PressStiffness))
         val contentReveal = rememberRowReveal(appear, 0)
         val dismissReveal = rememberRowReveal(appear, 1)
         val confirmReveal = rememberRowReveal(appear, 2)
@@ -134,7 +133,7 @@ fun GlassDialog(
                     .widthIn(max = 380.dp)
                     .fillMaxWidth()
                     .floatingLayer {
-                        val s = lerp(0.86f, 1f, appear.value)
+                        val s = lerp(0.86f, 1f, appear.value.coerceIn(0f, 1f))
                         scaleX = s
                         scaleY = s
                         alpha = appear.value.coerceIn(0f, 1f)
@@ -264,7 +263,7 @@ fun GlassSheet(
                                 appear.snapTo(from)
                                 onDismiss()
                             } else {
-                                drag.animateTo(0f, SpringMotion.dragSettle(), if (MotionSettings.reduceMotion) 0f else velocity)
+                                drag.animateTo(0f, IosMotion.spec(IosMotion.PressDamping, IosMotion.PressStiffness), if (MotionSettings.reduceMotion) 0f else velocity)
                             }
                         },
                     ),
@@ -291,8 +290,8 @@ fun GlassSheet(
 
 // the old app's sheet, a shade bouncier: it rises ~3 % past rest and settles once, whatever the motion
 // setting (scaled by Jelly it shivered)
-private val SheetEnter: AnimationSpec<Float> get() = SpringMotion.reduceOr(spring<Float>(dampingRatio = 0.74f, stiffness = 380f, visibilityThreshold = 0.001f))
-private val SheetExit: AnimationSpec<Float> get() = SpringMotion.reduceOr(spring<Float>(dampingRatio = 1f, stiffness = 600f, visibilityThreshold = 0.001f))
+private val SheetEnter: AnimationSpec<Float> get() = IosMotion.spec(IosMotion.MenuDamping, IosMotion.PressStiffness, 0.001f)
+private val SheetExit: AnimationSpec<Float> get() = IosMotion.alpha(IosMotion.PressStiffness)
 
 /** A row of a sheet or menu: a candy icon blob, a label, an optional value. */
 @Composable
@@ -419,10 +418,10 @@ private fun GlassMenuLayoutContent(
         // folding back into the button is quick and never bounces
         // (a spring both ways: closed mid-swing it carries its speed on instead of starting a new
         // curve from a standstill, and the screens' curve from Settings no longer reaches the glass)
-        val appear = rememberOverlayAppear(enter = GlassMotion.unfold(), exit = GlassMotion.fold())
+        val appear = rememberOverlayAppear(enter = IosMotion.Menu, exit = IosMotion.alpha(IosMotion.PressStiffness))
         val lag = remember { Animatable(0f) }
         LaunchedEffect(leaving) {
-            if (!leaving) lag.animateTo(1f, GlassMotion.unfoldLag()) else lag.animateTo(0f, GlassMotion.fold())
+            if (!leaving) lag.animateTo(1f, IosMotion.spec(IosMotion.LayoutDamping, IosMotion.MenuStiffness)) else lag.animateTo(0f, IosMotion.alpha(IosMotion.PressStiffness))
         }
         Box(Modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, null, onClick = onDismiss))
         val local = Rect(host.windowToLocal(anchor.topLeft), host.windowToLocal(anchor.bottomRight))
@@ -531,7 +530,7 @@ fun GlassToast(
 ) {
     val c = clear
     val appear = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { appear.animateTo(1f, GlassMotion.morph()) }
+    LaunchedEffect(Unit) { appear.animateTo(1f, IosMotion.Menu) }
     val luminance = rememberGlassLuminance(enabled = true)
     val ink = adaptiveInk(luminance, c.ink)
     Row(

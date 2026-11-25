@@ -5,7 +5,6 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -232,13 +231,13 @@ internal fun LiquidMorphSurface(
                 p.animateTo(1f, GlassMotion.morphOpen())
             } else {
                 // its button gone with its screen: dissolve too, never fold into a place that is no longer there
-                if (!ghost && MorphAnchors.glyphAt(anchor) == null) fade.animateTo(0f, androidx.compose.animation.core.tween(150))
+                if (!ghost && MorphAnchors.glyphAt(anchor) == null) fade.animateTo(0f, IosMotion.alpha(IosMotion.PressStiffness))
                 // an option picked: a quicker fold that ends the moment it looks landed (the action waits on
                 // it); dismissed: the unhurried fold
                 else if (chosenAction != null) p.animateTo(0f, GlassMotion.morphChosen())
                 else p.animateTo(0f, GlassMotion.morphClose())
                 // no real button under it (a menu opened by a long press): the drop it folded back into melts away
-                if (ghost) fade.animateTo(0f, androidx.compose.animation.core.tween(110))
+                if (ghost) fade.animateTo(0f, IosMotion.alpha(600f))
                 // the glass has landed: the real button takes its place and the morph is gone before the
                 // row's action starts (an action that changes screen would otherwise slide the button away
                 // while the morph's circle stayed put: two circles); then the action

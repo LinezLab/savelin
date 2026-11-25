@@ -133,7 +133,7 @@ fun Aurora(mood: AuroraMood, modifier: Modifier = Modifier) {
     LaunchedEffect(mood) {
         mood.blobs.forEachIndexed { i, p ->
             val target = p to Offset(mood.radius, 0f)
-            if (anims[i].targetValue != target) launch { anims[i].animateTo(target, androidx.compose.animation.core.tween(900, easing = Fluid.Ease)) }
+            if (anims[i].targetValue != target) launch { anims[i].animateTo(target, IosMotion.spec(IosMotion.LayoutDamping, 900f)) }
         }
     }
     val bitmap = remember { arrayOfNulls<ImageBitmap>(1) }
@@ -167,7 +167,7 @@ fun Aurora(mood: AuroraMood, modifier: Modifier = Modifier) {
     )
     // the mock's own sky for this screen (light theme), crossfading as the screens change
     val painting = if (!colors.dark) mood.painting else null
-    androidx.compose.animation.Crossfade(painting, modifier.fillMaxSize(), animationSpec = androidx.compose.animation.core.tween(700), label = "sky") { id ->
+    androidx.compose.animation.Crossfade(painting, modifier.fillMaxSize(), animationSpec = IosMotion.finiteAlpha(), label = "sky") { id ->
         if (id != null) {
             androidx.compose.foundation.Image(
                 androidx.compose.ui.graphics.painter.BitmapPainter(ImageBitmap.imageResource(id), filterQuality = FilterQuality.High),
@@ -277,8 +277,8 @@ fun GlassOverlay(animatesOut: Boolean = false, content: @Composable BoxScope.() 
  */
 @Composable
 fun rememberOverlayAppear(
-    enter: androidx.compose.animation.core.AnimationSpec<Float> = Fluid.rise(),
-    exit: androidx.compose.animation.core.AnimationSpec<Float> = Fluid.dismiss(),
+    enter: androidx.compose.animation.core.AnimationSpec<Float> = IosMotion.alpha(IosMotion.MenuStiffness),
+    exit: androidx.compose.animation.core.AnimationSpec<Float> = IosMotion.alpha(IosMotion.PressStiffness),
 ): Animatable<Float, androidx.compose.animation.core.AnimationVector1D> {
     val presence = LocalOverlayPresence.current
     val a = remember { Animatable(0f) }
@@ -301,8 +301,8 @@ fun rememberOverlayAppear(
  */
 @Composable
 fun rememberSpringAppear(
-    enter: AnimationSpec<Float> = SpringMotion.popOpen(),
-    exit: AnimationSpec<Float> = SpringMotion.popClose(),
+    enter: AnimationSpec<Float> = IosMotion.Menu,
+    exit: AnimationSpec<Float> = IosMotion.alpha(IosMotion.MenuStiffness),
 ): Animatable<Float, AnimationVector1D> = rememberOverlayAppear(enter = enter, exit = exit)
 
 /**
@@ -316,10 +316,10 @@ fun rememberRowReveal(appear: Animatable<Float, AnimationVector1D>, index: Int):
     val open by remember { derivedStateOf { appear.value >= 0.4f } }
     LaunchedEffect(open, index) {
         if (open) {
-            if (index > 0) delay(index * 35L)
-            row.animateTo(1f, SpringMotion.popOpen())
+            if (!MotionSettings.reduceMotion && index > 0) delay(index * 35L)
+            row.animateTo(1f, IosMotion.Menu)
         } else {
-            row.animateTo(0f, SpringMotion.popClose())
+            row.animateTo(0f, IosMotion.alpha(IosMotion.MenuStiffness))
         }
     }
     return row
@@ -335,10 +335,10 @@ fun rememberMenuRow(index: Int): Animatable<Float, AnimationVector1D> {
     val leaving = LocalOverlayPresence.current?.leaving == true
     LaunchedEffect(leaving, index) {
         if (!leaving) {
-            if (index > 0) delay(index * 35L)
-            row.animateTo(1f, SpringMotion.popOpen())
+            if (!MotionSettings.reduceMotion && index > 0) delay(index * 35L)
+            row.animateTo(1f, IosMotion.Menu)
         } else {
-            row.animateTo(0f, SpringMotion.popClose())
+            row.animateTo(0f, IosMotion.alpha(IosMotion.MenuStiffness))
         }
     }
     return row

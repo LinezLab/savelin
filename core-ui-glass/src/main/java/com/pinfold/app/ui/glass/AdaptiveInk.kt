@@ -13,7 +13,6 @@ import android.view.ViewTreeObserver
 import android.view.Window
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -231,7 +230,7 @@ fun rememberSurroundLuminance(): SurroundLuminance? {
                 first = false
             } else if (kotlin.math.abs(lum - state.anim.targetValue) > 0.1f) {
                 // only a real change of what it is over moves it: a neighbour's glint does not
-                launch { state.anim.animateTo(lum, tween(360)) }
+                launch { state.anim.animateTo(lum, IosMotion.alpha(360f)) }
             }
         }
     }
@@ -290,7 +289,7 @@ fun rememberAdaptiveInk(fallback: Color): InkProbe {
         useLight -> InkOnLight
         else -> Color.White
     }
-    val color by animateColorAsState(target, tween(200), label = "adaptiveInk")
+    val color by animateColorAsState(target, IosMotion.alpha(200f), label = "adaptiveInk")
     val modifier = remember { Modifier.onGloballyPositioned { box[0] = it.boundsInWindow() } }
     return InkProbe(modifier, color)
 }

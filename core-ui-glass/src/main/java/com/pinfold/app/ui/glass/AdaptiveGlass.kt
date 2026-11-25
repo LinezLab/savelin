@@ -3,7 +3,6 @@ package com.pinfold.app.ui.glass
 import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -113,7 +112,7 @@ class GlassLuminance internal constructor(initial: Float, internal val layer: Gr
                     measured = true
                 } else if (kotlin.math.abs(lum - anim.targetValue) > 0.07f) {
                     // only a real change behind it moves it (a small one, read again and again, made it breathe)
-                    anim.animateTo(lum, tween(420))
+                    anim.animateTo(lum, IosMotion.alpha(420f))
                 }
             }
             delay(SAMPLE_INTERVAL_MS)
@@ -155,7 +154,7 @@ val LocalMenuInk = androidx.compose.runtime.compositionLocalOf { Color.Unspecifi
 fun adaptiveInk(luminance: GlassLuminance?, fallback: Color): Color {
     if (luminance == null) return fallback
     val target = if (luminance.onLight) InkOnLight else Color.White
-    val ink by animateColorAsState(target, tween(220), label = "adaptiveGlassInk")
+    val ink by animateColorAsState(target, IosMotion.alpha(220f), label = "adaptiveGlassInk")
     return ink
 }
 

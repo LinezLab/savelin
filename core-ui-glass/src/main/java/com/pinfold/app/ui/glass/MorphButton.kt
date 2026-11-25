@@ -262,7 +262,7 @@ private fun RectMorphSurface(
                     }
                 }
             } else if (!ghost && MorphAnchors.glyphAt(anchor) == null) {
-                fade.animateTo(0f, androidx.compose.animation.core.tween(150))
+                fade.animateTo(0f, IosMotion.alpha(IosMotion.PressStiffness))
                 gone()
                 presence?.done()
                 runChosen()
@@ -278,7 +278,7 @@ private fun RectMorphSurface(
                         drop.animateTo(0f, SpringMotion.reduceOr(spring(1f, MotionSettings.stiffness(423f), 0.0005f)))
                     }
                 }
-                if (ghost) fade.animateTo(0f, androidx.compose.animation.core.tween(110))
+                if (ghost) fade.animateTo(0f, IosMotion.alpha(600f))
                 gone()
                 presence?.done()
                 runChosen()
