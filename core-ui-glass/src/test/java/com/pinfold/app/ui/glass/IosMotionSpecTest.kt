@@ -44,8 +44,8 @@ class IosMotionSpecTest {
         assertTrue(IosMotion.Menu is TweenSpec<*>)
         assertTrue(IosMotion.Layout is TweenSpec<*>)
         assertTrue(IosMotion.Place is TweenSpec<*>)
-        assertTrue(IosMotion.alpha() is TweenSpec<*>)
-        assertTrue(IosMotion.finiteAlpha() is TweenSpec<*>)
+        assertTrue(IosMotion.alpha<Float>() is TweenSpec<*>)
+        assertTrue(IosMotion.finiteAlpha<Float>() is TweenSpec<*>)
         MotionSettings.updateReduceMotion(false)
     }
 
