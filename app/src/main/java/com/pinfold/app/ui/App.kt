@@ -1,5 +1,9 @@
 package com.pinfold.app.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -46,6 +50,7 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FilterRail
 import com.pinfold.app.ui.components.FloatingPillNav
+import com.pinfold.app.ui.components.MultiSelectActionCapsule
 import com.pinfold.app.ui.background.effectiveBackgroundFps
 import com.pinfold.app.ui.background.rememberAppInForeground
 import com.pinfold.app.ui.background.rememberPowerSaveMode
@@ -75,6 +80,7 @@ fun App(
     var consumedOpen by remember { mutableStateOf<Long?>(null) }
     var locked by remember { mutableStateOf(false) }
     var showSplash by remember { mutableStateOf(true) }
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
@@ -84,6 +90,7 @@ fun App(
     val items by viewModel.items.collectAsState()
     val ordered = remember(items) { items.distinctBy { it.bookmark.id } }
     val liveDetail = detail?.let { snap -> items.firstOrNull { it.bookmark.id == snap.bookmark.id } ?: snap }
+    val selectedItems = remember(selectedIds, ordered) { ordered.filter { it.bookmark.id in selectedIds } }
     val context = LocalContext.current
     val foreground = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
@@ -132,6 +139,7 @@ fun App(
         return
     }
     var linkToast by remember { mutableStateOf<String?>(null) }
+    var statusToast by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(clipboardShare?.second) {
         val url = clipboardShare?.first ?: return@LaunchedEffect
         if (!viewModel.isSaved(url)) linkToast = url
@@ -140,6 +148,11 @@ fun App(
         if (linkToast == null) return@LaunchedEffect
         delay(3600)
         linkToast = null
+    }
+    LaunchedEffect(statusToast) {
+        if (statusToast == null) return@LaunchedEffect
+        delay(2200)
+        statusToast = null
     }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
@@ -162,9 +175,10 @@ fun App(
         },
         screens = {
             val overlaysOpen = LocalGlassOverlayHost.current?.hasOverlays == true
-            BackHandler(enabled = !overlaysOpen && (detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS)) {
+            BackHandler(enabled = !overlaysOpen && (selectedIds.isNotEmpty() || detail != null || searchActive || settingsPage != "HOME" || tab == HomeTab.SETTINGS)) {
                 DiagnosticsLog.uiAction("Nav", "Back")
                 when {
+                    selectedIds.isNotEmpty() -> selectedIds = emptySet()
                     detail != null -> detail = null
                     searchActive -> viewModel.setSearchActive(false)
                     settingsPage != "HOME" -> viewModel.closeSettingsPage()
@@ -182,7 +196,13 @@ fun App(
                             SettingsScreen(viewModel)
                         }
                     } else {
-                        HomeScreen(viewModel, onOpen = { detail = it })
+                        HomeScreen(
+                            viewModel,
+                            onOpen = { detail = it; selectedIds = emptySet() },
+                            selectedIds = selectedIds,
+                            onStartSelection = { id -> selectedIds = setOf(id) },
+                            onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
+                        )
                     }
                 }
                 liveDetail?.let { item ->
@@ -243,6 +263,15 @@ fun App(
                         )
                     }
                 }
+                statusToast?.let { message ->
+                    Box(
+                        Modifier.align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 96.dp),
+                    ) {
+                        GlassToast(text = message, action = null, onAction = {})
+                    }
+                }
                 CrashReportNotice()
             }
         },
@@ -264,13 +293,43 @@ fun App(
                         onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+                    if (selectedIds.isNotEmpty()) {
+                        MultiSelectActionCapsule(
+                            count = selectedIds.size,
+                            modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 12.dp, bottom = 84.dp),
+                            onDelete = {
+                                selectedItems.forEach { viewModel.delete(it.bookmark) }
+                                selectedIds = emptySet()
+                            },
+                            onRefetch = {
+                                selectedItems.forEach { viewModel.refetch(it.bookmark) }
+                                selectedIds = emptySet()
+                            },
+                            onCopy = {
+                                val links = selectedItems.joinToString("\n") { it.bookmark.url }
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                clipboard?.setPrimaryClip(ClipData.newPlainText("Sonil links", links))
+                                statusToast = "Copied " + selectedIds.size + " links"
+                                selectedIds = emptySet()
+                            },
+                            onShare = {
+                                val links = selectedItems.joinToString("\n") { it.bookmark.url }
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, links)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Share links"))
+                                selectedIds = emptySet()
+                            },
+                        )
+                    }
                 }
                 val dueCount = viewModel.reminderIds.collectAsState().value.size
                 FilterRail(
                     important = viewModel.importantFilter.collectAsState().value,
                     due = viewModel.reminderFilter.collectAsState().value,
                     dueCount = dueCount,
-                    visible = !searchActive,
+                    visible = !searchActive && selectedIds.isEmpty(),
                     onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
                     onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
                     modifier = Modifier.align(Alignment.BottomEnd),

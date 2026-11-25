@@ -2,6 +2,7 @@ package com.pinfold.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -32,16 +33,15 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.awaitEachGesture
-import androidx.compose.ui.input.pointer.awaitFirstDown
+import androidx.compose.ui.input.pointer.awaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.waitForUpOrCancellation
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
+import com.pinfold.app.ui.glass.BarGlyphButton
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.LocalHaptics
@@ -223,15 +223,54 @@ private fun NavGlyph(
                 onLongClick = onLongClick?.let { l -> { haptics?.play(Feel.Bloom); l() } },
             )
             .then(if (consumeTouches) Modifier.pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    down.consume()
-                    waitForUpOrCancellation()?.consume()
+                awaitPointerEventScope {
+                    while (true) awaitPointerEvent().changes.forEach { it.consume() }
                 }
             } else Modifier)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         AppIcons.Icon(icon, null, tint = ink, size = iconSize)
+    }
+}
+
+/** The multi-select quick actions, floated just above the Settings circle. */
+@Composable
+fun MultiSelectActionCapsule(
+    count: Int,
+    onDelete: () -> Unit,
+    onRefetch: () -> Unit,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val ink = clear.onGlass
+    Row(
+        modifier
+            .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+            .clip(Capsule)
+            .clickable(remember { MutableInteractionSource() }, null) {}
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            "$count selected",
+            color = ink,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+        BarGlyphButton(onClick = onDelete, label = "Delete selected", size = 40.dp) {
+            AppIcons.Icon(AppIcons.Delete, null, tint = ink, size = 19.dp)
+        }
+        BarGlyphButton(onClick = onRefetch, label = "Refresh selected", size = 40.dp) {
+            AppIcons.Icon(AppIcons.Refetch, null, tint = ink, size = 19.dp)
+        }
+        BarGlyphButton(onClick = onCopy, label = "Copy selected links", size = 40.dp) {
+            AppIcons.Icon(AppIcons.Copy, null, tint = ink, size = 19.dp)
+        }
+        BarGlyphButton(onClick = onShare, label = "Share selected links", size = 40.dp) {
+            AppIcons.Icon(AppIcons.Share, null, tint = ink, size = 19.dp)
+        }
     }
 }
