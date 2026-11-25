@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.sp
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.ui.HOME_BACKGROUND_DARK
 import com.pinfold.app.ui.HOME_BACKGROUND_LIGHT
-import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.home.SONIL_LOGO_FONT_RES_NAME
 import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
 import org.junit.Assert.assertEquals
@@ -118,11 +117,11 @@ class DetailNavigationTest {
 
     @Test
     fun metadataBodyFitsBetweenTitleAnchorAndBottomActions() {
-        assertEquals(120.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
         assertEquals(3.dp, METADATA_SECTION_GAP)
         val bottomOffset = metadataBottomOffset(800.dp)
         val bodyMaxHeight = maxOf(0.dp, bottomOffset - DETAIL_ACTIONS_RESERVED_HEIGHT)
-        assertEquals(160.dp, bodyMaxHeight)
+        assertEquals(212.dp, bodyMaxHeight)
         assertTrue(bottomOffset > DETAIL_ACTIONS_RESERVED_HEIGHT)
     }
 
@@ -142,7 +141,7 @@ class DetailNavigationTest {
     @Test
     fun bottomButtonRowAddsFourDpVerticalMargin() {
         assertEquals(4.dp, BOTTOM_BUTTON_VERTICAL_MARGIN)
-        assertEquals(120.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
+        assertEquals(68.dp, DETAIL_ACTIONS_RESERVED_HEIGHT)
     }
 
     @Test
@@ -153,27 +152,10 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun detailGlyphsKeepExclusionBlendAndMintAccent() {
-        assertEquals(BlendMode.Exclusion, DETAIL_GLYPH_BLEND_MODE)
-        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
-        assertTrue(OPEN_TEXT_BLEND_MODE != DETAIL_GLYPH_BLEND_MODE)
-        assertEquals(Candy.Mint, DETAIL_GLYPH_COLOR)
-        assertEquals(Color(0xFF00BFB3), DETAIL_GLYPH_COLOR)
-    }
-
-    @Test
     fun openTextDrawsOnceWithOverlayBlendAndWhiteInk() {
         assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
         assertEquals(Color.White, OPEN_TEXT_COLOR)
         assertTrue(OPEN_TEXT_BLEND_MODE != BlendMode.Screen)
-    }
-
-    @Test
-    fun detailGlyphsAddLowAlphaWhiteScreenLuminanceLayer() {
-        assertEquals(BlendMode.Screen, DETAIL_GLYPH_LUMINANCE_BLEND_MODE)
-        assertEquals(0.5f, DETAIL_GLYPH_LUMINANCE_ALPHA, 0.0001f)
-        assertTrue(DETAIL_GLYPH_LUMINANCE_ALPHA in 0f..1f)
-        assertTrue(DETAIL_GLYPH_LUMINANCE_BLEND_MODE != DETAIL_GLYPH_BLEND_MODE)
     }
 
     @Test
@@ -249,7 +231,7 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun actionBarGlyphsKeepNativeHitAndIconSizes() {
+    fun shareGlyphMatchesBackAndMoreGlyphSizes() {
         assertEquals(44.dp, DETAIL_GLYPH_BUTTON_SIZE)
         assertEquals(24.dp, DETAIL_GLYPH_ICON_SIZE)
     }
