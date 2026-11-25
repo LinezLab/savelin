@@ -1,5 +1,7 @@
 package com.pinfold.app.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,8 +42,6 @@ import com.pinfold.app.ui.components.GlassChoicePopUp
 import com.pinfold.app.ui.glass.GlassBackButton
 import com.pinfold.app.ui.glass.GlassSlider
 import com.pinfold.app.ui.glass.GlassToggle
-import com.pinfold.app.ui.glass.RoundedRectangle
-import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
@@ -82,16 +83,19 @@ fun SettingsSection(header: String, content: @Composable () -> Unit) {
     content()
 }
 
-/** A taller glass card with breathing room on all sides, so 200 % text and RTL stay readable. */
+/** A taller plain card with breathing room on all sides, so 200 % text and RTL stay readable. */
 @Composable
 fun SettingsCard(
     contentPadding: PaddingValues = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
     verticalArrangement: Arrangement.Vertical? = null,
     content: @Composable () -> Unit,
 ) {
+    val shape = RoundedCornerShape(22.dp)
     Column(
         Modifier.fillMaxWidth().padding(vertical = 6.dp)
-            .then(SavelinGlass.modifier(RoundedRectangle(22.dp)))
+            .clip(shape)
+            .background(if (clear.dark) Color(0xFF121216) else Color(0xFFF4F4F8))
+            .border(1.dp, clear.line, shape)
             .padding(contentPadding),
         verticalArrangement = verticalArrangement ?: Arrangement.Top,
     ) { content() }
@@ -114,7 +118,7 @@ fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(36.dp).then(SavelinGlass.modifier(RoundedCornerShape(10.dp))),
+            Modifier.size(36.dp).background(tileColor.copy(alpha = if (clear.dark) 0.2f else 0.14f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) { AppIcons.Icon(icon, null, tint = clear.onGlass, size = 18.dp) }
         Spacer(Modifier.size(14.dp))
@@ -170,9 +174,12 @@ fun ChoiceTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val shape = RoundedCornerShape(18.dp)
     Column(
         modifier.sizeIn(minWidth = 116.dp, minHeight = 134.dp, maxWidth = 116.dp, maxHeight = 134.dp)
-            .then(SavelinGlass.modifier(RoundedCornerShape(18.dp)))
+            .clip(shape)
+            .background(if (clear.dark) Color(0xFF121216) else Color(0xFFF4F4F8))
+            .border(1.dp, clear.line, shape)
             .pressable(onClick = onClick)
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
