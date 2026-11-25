@@ -137,6 +137,7 @@ class PreviewFetcher(
             author = results.firstNonBlank { it.author },
             caption = results.firstNonBlank { it.caption },
             imageUrls = results.flatMap { it.imageUrls }.distinct(),
+            faviconUrls = results.flatMap { it.faviconUrls }.distinct(),
             html = results.firstNonBlank { it.html },
             source = primary.source,
         )

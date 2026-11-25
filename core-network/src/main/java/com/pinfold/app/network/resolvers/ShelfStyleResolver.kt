@@ -75,6 +75,7 @@ class ShelfStyleResolver(
                 description = description,
                 siteName = siteName,
                 imageUrls = if (imageUrl.isBlank()) emptyList() else listOf(imageUrl),
+                faviconUrls = FaviconExtractor.collect(doc, finalUrl),
                 html = html.take(16_000),
                 source = source,
             )
@@ -87,8 +88,6 @@ class ShelfStyleResolver(
                 doc.select("meta[itemprop=image]").attr("content"),
                 doc.select("meta[name=image]").attr("content"),
                 doc.select("link[rel=image_src]").attr("href"),
-                doc.select("link[rel=apple-touch-icon]").attr("href"),
-                doc.select("link[rel=icon]").attr("href"),
                 doc.select("img[src][width][height]").firstOrNull { img ->
                     (img.attr("width").toIntOrNull() ?: 0) >= 200 &&
                         (img.attr("height").toIntOrNull() ?: 0) >= 200

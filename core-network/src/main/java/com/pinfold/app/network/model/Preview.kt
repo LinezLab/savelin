@@ -9,6 +9,7 @@ data class Preview(
     val author: String = "",
     val caption: String = "",
     val imageUrls: List<String> = emptyList(),
+    val faviconUrls: List<String> = emptyList(),
     val html: String = "",
     val source: String = "",
 ) {

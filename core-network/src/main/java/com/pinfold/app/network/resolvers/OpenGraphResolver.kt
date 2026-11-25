@@ -81,6 +81,7 @@ class OpenGraphResolver(
                 author = author,
                 caption = caption,
                 imageUrls = resolved,
+                faviconUrls = FaviconExtractor.collect(doc, finalUrl),
                 html = html.take(16_000),
                 source = source,
             )
