@@ -67,7 +67,6 @@ data class AppSettings(
     val reminderFilter: Boolean = false,
     val chipEffect: String = "LIGHT",
     val componentGlass: String = "",
-    val performanceMode: String = "AUTO",
     val immersiveMode: Boolean = false,
     val adaptiveLuminance: Boolean = false,
     val touchHoldEffect: Boolean = true,
@@ -143,7 +142,6 @@ class SettingsRepository(private val context: Context) {
             reminderFilter = p[Keys.reminderFilter] ?: false,
             chipEffect = p[Keys.chipEffect] ?: "LIGHT",
             componentGlass = p[Keys.componentGlass] ?: "",
-            performanceMode = p[Keys.performanceMode] ?: "AUTO",
             immersiveMode = p[Keys.immersiveMode] ?: false,
             adaptiveLuminance = p[Keys.adaptiveLuminance] ?: false,
             touchHoldEffect = p[Keys.touchHoldEffect] ?: true,
@@ -293,7 +291,6 @@ class SettingsRepository(private val context: Context) {
         val reminderFilter = booleanPreferencesKey("reminderFilter")
         val chipEffect = stringPreferencesKey("chipEffect")
         val componentGlass = stringPreferencesKey("componentGlass")
-        val performanceMode = stringPreferencesKey("performanceMode")
         val immersiveMode = booleanPreferencesKey("immersiveMode")
         val adaptiveLuminance = booleanPreferencesKey("adaptiveLuminance")
         val touchHoldEffect = booleanPreferencesKey("touchHoldEffect")

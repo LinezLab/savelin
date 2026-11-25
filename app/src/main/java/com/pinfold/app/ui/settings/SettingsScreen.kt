@@ -118,7 +118,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
             }
         }
 
-        SettingsSection("ACCESSIBILITY AND PERFORMANCE") {
+        SettingsSection("ACCESSIBILITY") {
             SettingsCard {
                 SettingsRow(AppIcons.Motion, Candy.Bubblegum, "Reduce motion", trailing = {
                     GlassSwitch(settings.reduceMotion) { viewModel.setReduceMotion(it) }
@@ -127,7 +127,6 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                     GlassSwitch(settings.reduceTransparency) { viewModel.setReduceTransparency(it) }
                 })
                 SettingsChoiceRow(AppIcons.Tags, Candy.Lemon, "Icon labels", settings.iconLabels, listOf("ICONS_ONLY", "SELECTED", "ALWAYS")) { viewModel.setSetting("iconLabels", it) }
-                SettingsChoiceRow(AppIcons.Motion, Candy.Grape, "Performance mode", settings.performanceMode, listOf("AUTO", "QUALITY", "BALANCED", "BATTERY")) { viewModel.setSetting("performanceMode", it) }
                 SettingsRow(AppIcons.Expand, Candy.Tangerine, "Immersive mode", trailing = {
                     GlassSwitch(settings.immersiveMode) { viewModel.setSetting("immersiveMode", it) }
                 })
