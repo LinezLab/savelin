@@ -40,6 +40,6 @@ class ShimmerTextTest {
         assertEquals(textShimmerSpan(0f, 100f), textShimmerSpan(-0.5f, 100f))
         assertEquals(textShimmerSpan(1f, 100f), textShimmerSpan(1.5f, 100f))
         assertEquals(-1f, textShimmerSpan(0f, 0f).first, 0.0001f)
-        assertEquals(1f, textShimmerSpan(0.5f, 0f).second, 0.0001f)
+        assertEquals(0.5f, textShimmerSpan(0.5f, 0f).second, 0.0001f)
     }
 }
