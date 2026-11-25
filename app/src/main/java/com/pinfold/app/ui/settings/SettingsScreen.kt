@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.CrashReporter
+import com.pinfold.app.reminders.repeatMinutesFromSetting
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.glass.GlassSettings
@@ -86,6 +87,13 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                     GlassSwitch(settings.notifications) { viewModel.setSetting("notifications", it) }
                 })
                 SettingsChoiceRow(AppIcons.Snooze, Candy.Lime, "Default snooze (min)", settings.defaultSnoozeMinutes.toString(), listOf("5", "15", "30", "60", "120")) { viewModel.setSetting("defaultSnoozeMinutes", it.toInt()) }
+                SettingsChoiceRow(
+                    AppIcons.Snooze,
+                    Candy.Lime,
+                    "Repeat unopened",
+                    if (settings.reminderRepeatMinutes == 0) "OFF" else settings.reminderRepeatMinutes.toString(),
+                    listOf("OFF", "5", "15", "30", "60"),
+                ) { viewModel.setSetting("reminderRepeatMinutes", repeatMinutesFromSetting(it)) }
                 SettingsRow(AppIcons.Hide, Candy.Grape, "Hide details on lock screen", trailing = {
                     GlassSwitch(settings.hideDetailsOnLockScreen) { viewModel.setHideDetailsOnLockScreen(it) }
                 })

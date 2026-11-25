@@ -329,6 +329,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun clearReminderById(id: Long) = viewModelScope.launch {
+        db.reminderDao().delete(id)
+        ReminderScheduler.cancel(getApplication(), id)
+    }
+
     fun setReminder(item: Bookmark, triggerAt: Long) = viewModelScope.launch {
         val reminder = com.pinfold.app.data.model.Reminder(bookmarkId = item.id, triggerAt = triggerAt)
         val id = db.reminderDao().insert(reminder)

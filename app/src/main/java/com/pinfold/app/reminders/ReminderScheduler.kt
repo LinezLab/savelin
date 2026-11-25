@@ -10,6 +10,9 @@ import com.pinfold.app.data.model.Reminder
 object ReminderScheduler {
     const val EXTRA_BOOKMARK_ID = "bookmarkId"
     const val EXTRA_REMINDER_ID = "reminderId"
+    const val ACTION_REMIND_LATER = "com.pinfold.app.REMIND_LATER"
+    const val EXTRA_SNOOZE_MINUTES = "snoozeMinutes"
+    const val LATER_MINUTES = 10
 
     fun schedule(context: Context, reminder: Reminder) {
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

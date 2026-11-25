@@ -40,8 +40,29 @@ internal fun shouldShowUrlImage(showImage: Boolean, path: String?): Boolean =
 
 internal fun useDecoratedAppIcon(urlBitmapPresent: Boolean) = !urlBitmapPresent
 
+internal fun repeatMinutesFromSetting(value: String): Int {
+    if (value.equals("OFF", ignoreCase = true)) return 0
+    return value.toIntOrNull()?.coerceAtLeast(0) ?: 0
+}
+
+internal fun nextTriggerAt(now: Long, minutes: Int): Long {
+    if (minutes <= 0) return now
+    val delay = minutes.toLong() * 60_000L
+    return if (Long.MAX_VALUE - now < delay) Long.MAX_VALUE else now + delay
+}
+
+internal fun shouldReschedule(status: String, minutes: Int): Boolean =
+    minutes > 0 && status == ReminderStatus.FIRED
+
+internal fun snoozeMinutesOrDefault(value: Int): Int =
+    if (value > 0) value else ReminderScheduler.LATER_MINUTES
+
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ReminderScheduler.ACTION_REMIND_LATER) {
+            handleRemindLater(context, intent)
+            return
+        }
         val bookmarkId = intent.getLongExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, -1L)
         val reminderId = intent.getLongExtra(ReminderScheduler.EXTRA_REMINDER_ID, -1L)
         if (bookmarkId < 0 || reminderId < 0) return
@@ -49,6 +70,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                val now = System.currentTimeMillis()
                 val db = PinfoldDatabase.get(context)
                 val bookmark = db.bookmarkDao().findById(bookmarkId)
                 val config = SettingsRepository(context.applicationContext).settings.first()
@@ -58,12 +80,53 @@ class ReminderReceiver : BroadcastReceiver() {
                         context,
                         title,
                         bookmarkId,
+                        reminderId,
                         bookmark?.url,
                         bookmark?.imagePath,
                         !config.hideDetailsOnLockScreen,
                     )
                 }
                 db.reminderDao().setStatus(reminderId, ReminderStatus.FIRED)
+                val repeat = config.reminderRepeatMinutes
+                if (config.notifications && repeat > 0) {
+                    db.reminderDao().findById(reminderId)?.let { current ->
+                        if (shouldReschedule(current.status, repeat)) {
+                            val next = current.copy(
+                                triggerAt = nextTriggerAt(now, repeat),
+                                status = ReminderStatus.PENDING,
+                            )
+                            db.reminderDao().update(next)
+                            ReminderScheduler.schedule(context, next)
+                        }
+                    }
+                }
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    private fun handleRemindLater(context: Context, intent: Intent) {
+        val bookmarkId = intent.getLongExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, -1L)
+        val reminderId = intent.getLongExtra(ReminderScheduler.EXTRA_REMINDER_ID, -1L)
+        if (bookmarkId < 0 || reminderId < 0) return
+        val minutes = snoozeMinutesOrDefault(
+            intent.getIntExtra(ReminderScheduler.EXTRA_SNOOZE_MINUTES, ReminderScheduler.LATER_MINUTES)
+        )
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = PinfoldDatabase.get(context)
+                val existing = db.reminderDao().findById(reminderId) ?: return@launch
+                val next = existing.copy(
+                    triggerAt = nextTriggerAt(System.currentTimeMillis(), minutes),
+                    status = ReminderStatus.SNOOZED,
+                )
+                db.reminderDao().update(next)
+                ReminderScheduler.cancel(context, reminderId)
+                ReminderScheduler.schedule(context, next)
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.cancel(bookmarkId.toInt())
             } finally {
                 pending.finish()
             }
@@ -74,6 +137,7 @@ class ReminderReceiver : BroadcastReceiver() {
         context: Context,
         title: String,
         bookmarkId: Long,
+        reminderId: Long,
         url: String?,
         imagePath: String?,
         showImage: Boolean,
@@ -89,7 +153,19 @@ class ReminderReceiver : BroadcastReceiver() {
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, bookmarkId)
+                putExtra(ReminderScheduler.EXTRA_REMINDER_ID, reminderId)
                 putExtra("openUrl", url.orEmpty())
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val later = PendingIntent.getBroadcast(
+            context,
+            reminderId.toInt() xor 0x4000_0000,
+            Intent(context, ReminderReceiver::class.java).apply {
+                action = ReminderScheduler.ACTION_REMIND_LATER
+                putExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, bookmarkId)
+                putExtra(ReminderScheduler.EXTRA_REMINDER_ID, reminderId)
+                putExtra(ReminderScheduler.EXTRA_SNOOZE_MINUTES, ReminderScheduler.LATER_MINUTES)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -105,6 +181,13 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentTitle("Sonil reminder")
             .setContentText(contentText)
             .setContentIntent(open)
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.ic_alarm_clock,
+                    "Remind me later",
+                    later,
+                ).build()
+            )
             .setLargeIcon(urlBitmap ?: appIcon)
             .setColor(Color.parseColor("#8401F2"))
             .setAutoCancel(true)

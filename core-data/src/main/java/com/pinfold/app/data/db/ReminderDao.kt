@@ -18,6 +18,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE bookmarkId = :bookmarkId")
     suspend fun forBookmark(bookmarkId: Long): List<Reminder>
 
+    @Query("SELECT * FROM reminders WHERE id = :id")
+    suspend fun findById(id: Long): Reminder?
+
     @Insert
     suspend fun insert(reminder: Reminder): Long
 

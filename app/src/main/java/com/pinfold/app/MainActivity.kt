@@ -19,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.reminders.ReminderScheduler
 import com.pinfold.app.ui.App
@@ -147,6 +148,13 @@ class MainActivity : FragmentActivity() {
     private fun readOpenIntent(source: Intent?) {
         val id = source?.getLongExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, -1L) ?: -1L
         if (id >= 0) openBookmark.value = id to ++openSequence
+        val reminderId = source?.getLongExtra(ReminderScheduler.EXTRA_REMINDER_ID, -1L) ?: -1L
+        if (reminderId >= 0) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                PinfoldDatabase.get(applicationContext).reminderDao().delete(reminderId)
+                ReminderScheduler.cancel(applicationContext, reminderId)
+            }
+        }
     }
 
     private fun sharedText(source: Intent?): String? = source?.takeIf { it.action == Intent.ACTION_SEND }?.let {
