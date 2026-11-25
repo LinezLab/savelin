@@ -65,6 +65,7 @@ import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
+import com.pinfold.app.ui.glass.GlassHost
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.LightGlassChip
@@ -295,69 +296,76 @@ private fun BookmarkCard(
                 pressedRim = RoundedCornerShape(20.dp),
             ),
     ) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
-            if (model != null) {
-                AsyncImage(
-                    model = model,
-                    contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(ratio),
-                )
-            } else {
-                FallbackTile(bookmark.platform.ifBlank { "Web" }, bookmark.displayTitle.ifBlank { bookmark.title })
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val sourceName = bookmark.siteName.ifBlank { bookmark.platform.ifBlank { "Web" } }
-                LightGlassChip(
-                    label = sourceName,
-                    shape = RoundedCornerShape(10.dp),
-                    icon = {
-                        if (faviconPath != null) {
-                            AsyncImage(
-                                model = faviconPath,
-                                contentDescription = sourceName,
-                                modifier = Modifier.size(14.dp).clip(CircleShape),
-                            )
-                        } else {
-                            Box(
-                                Modifier.size(14.dp).clip(CircleShape)
-                                    .background(clear.onGlass.copy(alpha = 0.28f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    sourceName.take(1).uppercase(),
-                                    color = clear.onGlass,
-                                    style = MaterialTheme.typography.labelSmall,
+        val cardRatio = if (model != null) ratio else 4f / 5f
+        GlassHost(
+            modifier = Modifier.fillMaxWidth().aspectRatio(cardRatio).clip(RoundedCornerShape(20.dp)),
+            paint = {
+                if (model != null) {
+                    AsyncImage(
+                        model = model,
+                        contentDescription = bookmark.displayTitle.ifBlank { bookmark.title },
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(ratio),
+                    )
+                } else {
+                    FallbackTile(bookmark.platform.ifBlank { "Web" }, bookmark.displayTitle.ifBlank { bookmark.title })
+                }
+            },
+            opaque = true,
+            content = {
+                Row(
+                    Modifier.fillMaxWidth().padding(6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val sourceName = bookmark.siteName.ifBlank { bookmark.platform.ifBlank { "Web" } }
+                    LightGlassChip(
+                        label = sourceName,
+                        shape = RoundedCornerShape(10.dp),
+                        icon = {
+                            if (faviconPath != null) {
+                                AsyncImage(
+                                    model = faviconPath,
+                                    contentDescription = sourceName,
+                                    modifier = Modifier.size(14.dp).clip(CircleShape),
                                 )
+                            } else {
+                                Box(
+                                    Modifier.size(14.dp).clip(CircleShape)
+                                        .background(clear.onGlass.copy(alpha = 0.28f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        sourceName.take(1).uppercase(),
+                                        color = clear.onGlass,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        },
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
+                            LightGlassChip(
+                                shape = CircleShape,
+                                contentDescription = "Play video",
+                            ) {
+                                AppIcons.Icon(AppIcons.Open, "Play video", tint = clear.onGlass, size = 14.dp)
                             }
                         }
-                    },
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
-                        LightGlassChip(
-                            shape = CircleShape,
-                            contentDescription = "Play video",
-                        ) {
-                            AppIcons.Icon(AppIcons.Open, "Play video", tint = clear.onGlass, size = 14.dp)
-                        }
-                    }
-                    if (bookmark.isImportant || hasReminder) {
-                        LightGlassChip(
-                            shape = CircleShape,
-                            contentDescription = "Bookmark status",
-                        ) {
-                            if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.onGlass, size = 14.dp)
-                            if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = clear.onGlass, size = 14.dp)
+                        if (bookmark.isImportant || hasReminder) {
+                            LightGlassChip(
+                                shape = CircleShape,
+                                contentDescription = "Bookmark status",
+                            ) {
+                                if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.onGlass, size = 14.dp)
+                                if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = clear.onGlass, size = 14.dp)
+                            }
                         }
                     }
                 }
-            }
-        }
+            },
+        )
         if (captionStyle != "IMAGE_ONLY") {
             Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.fillMaxWidth(0.85f)) {
