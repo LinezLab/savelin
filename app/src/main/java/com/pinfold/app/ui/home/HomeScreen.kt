@@ -62,6 +62,7 @@ import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.rememberPhotoInk
 import com.pinfold.app.ui.components.rememberPhotoPreviewWithLuminance
+import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.BarGlyphButton
 import com.pinfold.app.ui.glass.GlassCircle
@@ -207,11 +208,7 @@ fun HomeScreen(
                         },
                     ),
                     GlassMenuItem(AppIcons.Share, "Share", onClick = {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(android.content.Intent.EXTRA_TEXT, chosen.bookmark.url)
-                        }
-                        context.startActivity(android.content.Intent.createChooser(intent, "Share"))
+                        context.shareText(chosen.bookmark.url)
                     }),
                     GlassMenuItem(AppIcons.Delete, "Delete", destructive = true, onClick = { viewModel.delete(chosen.bookmark) }),
                 ),

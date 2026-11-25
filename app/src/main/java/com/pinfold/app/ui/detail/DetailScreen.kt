@@ -92,6 +92,7 @@ import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
+import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
@@ -340,11 +341,7 @@ fun DetailScreen(
                         titleExpanded = titleExpanded,
                         onToggleTitle = { titleExpanded = !titleExpanded },
                         onShare = {
-                            val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, bookmark.url)
-                            }
-                            context.startActivity(Intent.createChooser(send, "Share"))
+                            context.shareText(bookmark.url)
                         },
                     )
                 }

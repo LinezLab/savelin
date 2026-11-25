@@ -3,7 +3,6 @@ package com.pinfold.app.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -50,7 +49,7 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FilterRail
 import com.pinfold.app.ui.components.FloatingPillNav
-import com.pinfold.app.ui.components.MultiSelectActionCapsule
+import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.background.effectiveBackgroundFps
 import com.pinfold.app.ui.background.rememberAppInForeground
 import com.pinfold.app.ui.background.rememberPowerSaveMode
@@ -293,46 +292,38 @@ fun App(
                         onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
-                    if (selectedIds.isNotEmpty()) {
-                        MultiSelectActionCapsule(
-                            count = selectedIds.size,
-                            modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 12.dp, bottom = 84.dp),
-                            onDelete = {
-                                selectedItems.forEach { viewModel.delete(it.bookmark) }
-                                selectedIds = emptySet()
-                            },
-                            onRefetch = {
-                                selectedItems.forEach { viewModel.refetch(it.bookmark) }
-                                selectedIds = emptySet()
-                            },
-                            onCopy = {
-                                val links = selectedItems.joinToString("\n") { it.bookmark.url }
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                clipboard?.setPrimaryClip(ClipData.newPlainText("Sonil links", links))
-                                statusToast = "Copied " + selectedIds.size + " links"
-                                selectedIds = emptySet()
-                            },
-                            onShare = {
-                                val links = selectedItems.joinToString("\n") { it.bookmark.url }
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, links)
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Share links"))
-                                selectedIds = emptySet()
-                            },
-                        )
-                    }
                 }
                 val dueCount = viewModel.reminderIds.collectAsState().value.size
                 FilterRail(
                     important = viewModel.importantFilter.collectAsState().value,
                     due = viewModel.reminderFilter.collectAsState().value,
                     dueCount = dueCount,
-                    visible = !searchActive && selectedIds.isEmpty(),
+                    visible = !searchActive,
                     onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
                     onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
                     modifier = Modifier.align(Alignment.BottomEnd),
+                    selectionActive = selectedIds.isNotEmpty(),
+                    selectedCount = selectedIds.size,
+                    onDelete = {
+                        selectedItems.forEach { viewModel.delete(it.bookmark) }
+                        selectedIds = emptySet()
+                    },
+                    onRefetch = {
+                        selectedItems.forEach { viewModel.refetch(it.bookmark) }
+                        selectedIds = emptySet()
+                    },
+                    onCopy = {
+                        val links = selectedItems.joinToString("\n") { it.bookmark.url }
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        clipboard?.setPrimaryClip(ClipData.newPlainText("Sonil links", links))
+                        statusToast = "Copied " + selectedIds.size + " links"
+                        selectedIds = emptySet()
+                    },
+                    onShare = {
+                        val links = selectedItems.joinToString("\n") { it.bookmark.url }
+                        context.shareText(links, "Share links")
+                        selectedIds = emptySet()
+                    },
                 )
             }
         }

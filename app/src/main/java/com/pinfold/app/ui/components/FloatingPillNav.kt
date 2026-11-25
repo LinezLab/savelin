@@ -2,9 +2,7 @@ package com.pinfold.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -33,14 +31,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
-import com.pinfold.app.ui.glass.BarGlyphButton
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.LocalHaptics
@@ -87,7 +83,6 @@ fun FloatingPillNav(
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.fillMaxSize()) {
-                val inactive = remember { MutableInteractionSource() }
                 if (searchActive) {
                     ButtonsRow(
                         Modifier.fillMaxSize().graphicsLayer {
@@ -95,8 +90,9 @@ fun FloatingPillNav(
                             alpha = a
                             val s = 0.92f + 0.08f * a
                             scaleX = s; scaleY = s
-                        }.clickable(inactive, null) {},
+                        },
                         onSearchToggle, onAdd, onAddLong, colors.onGlass,
+                        enabled = false,
                     )
                     SearchFieldRow(
                         Modifier.fillMaxSize().graphicsLayer {
@@ -109,7 +105,7 @@ fun FloatingPillNav(
                     )
                 } else {
                     SearchFieldRow(
-                        Modifier.fillMaxSize().graphicsLayer { alpha = morph.coerceIn(0f, 1f) }.clickable(inactive, null) {},
+                        Modifier.fillMaxSize().graphicsLayer { alpha = morph.coerceIn(0f, 1f) },
                         query, onQueryChange, onSearchToggle, false, colors.onGlass, colors.onGlassSoft,
                     )
                     ButtonsRow(
@@ -120,6 +116,7 @@ fun FloatingPillNav(
                             scaleX = s; scaleY = s
                         },
                         onSearchToggle, onAdd, onAddLong, colors.onGlass,
+                        enabled = true,
                     )
                 }
             }
@@ -142,13 +139,14 @@ private fun ButtonsRow(
     onAdd: () -> Unit,
     onAddLong: () -> Unit,
     ink: Color,
+    enabled: Boolean,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(56.dp)) {
-            NavGlyph(AppIcons.Search, "Search", onSearchToggle, onSearchToggle, ink, 48.dp)
+            NavGlyph(AppIcons.Search, "Search", onSearchToggle, onSearchToggle, ink, 48.dp, enabled = enabled)
         }
         Box(Modifier.size(56.dp)) {
-            NavGlyph(AppIcons.Add, "Add link", onAdd, onAddLong, ink, 48.dp)
+            NavGlyph(AppIcons.Add, "Add link", onAdd, onAddLong, ink, 48.dp, enabled = enabled)
         }
     }
 }
@@ -178,9 +176,9 @@ private fun SearchFieldRow(
             modifier = Modifier.weight(1f),
         )
         if (enabled && query.isNotEmpty()) {
-            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp, consumeTouches = true)
+            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp)
         }
-        NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp, consumeTouches = true)
+        NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp)
     }
 }
 
@@ -196,7 +194,6 @@ private fun NavGlyph(
     size: androidx.compose.ui.unit.Dp = 48.dp,
     iconSize: androidx.compose.ui.unit.Dp = 22.dp,
     enabled: Boolean = true,
-    consumeTouches: Boolean = false,
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
@@ -221,55 +218,9 @@ private fun NavGlyph(
                 onClick = { haptics?.play(Feel.Tap); onClick() },
                 onLongClick = onLongClick?.let { l -> { haptics?.play(Feel.Bloom); l() } },
             )
-            .then(if (consumeTouches) Modifier.pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) awaitPointerEvent().changes.forEach { it.consume() }
-                }
-            } else Modifier)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         AppIcons.Icon(icon, null, tint = ink, size = iconSize)
-    }
-}
-
-/** The multi-select quick actions, floated just above the Settings circle. */
-@Composable
-fun MultiSelectActionCapsule(
-    count: Int,
-    onDelete: () -> Unit,
-    onRefetch: () -> Unit,
-    onCopy: () -> Unit,
-    onShare: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val ink = clear.onGlass
-    Row(
-        modifier
-            .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
-            .clip(Capsule)
-            .clickable(remember { MutableInteractionSource() }, null) {}
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            "$count selected",
-            color = ink,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 6.dp),
-        )
-        BarGlyphButton(onClick = onDelete, label = "Delete selected", size = 40.dp) {
-            AppIcons.Icon(AppIcons.Delete, null, tint = ink, size = 19.dp)
-        }
-        BarGlyphButton(onClick = onRefetch, label = "Refresh selected", size = 40.dp) {
-            AppIcons.Icon(AppIcons.Refetch, null, tint = ink, size = 19.dp)
-        }
-        BarGlyphButton(onClick = onCopy, label = "Copy selected links", size = 40.dp) {
-            AppIcons.Icon(AppIcons.Copy, null, tint = ink, size = 19.dp)
-        }
-        BarGlyphButton(onClick = onShare, label = "Share selected links", size = 40.dp) {
-            AppIcons.Icon(AppIcons.Share, null, tint = ink, size = 19.dp)
-        }
     }
 }

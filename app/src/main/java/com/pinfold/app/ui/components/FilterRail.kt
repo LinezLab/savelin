@@ -54,6 +54,12 @@ fun FilterRail(
     onImportant: () -> Unit,
     onDue: () -> Unit,
     modifier: Modifier = Modifier,
+    selectionActive: Boolean = false,
+    selectedCount: Int = 0,
+    onDelete: () -> Unit = {},
+    onRefetch: () -> Unit = {},
+    onCopy: () -> Unit = {},
+    onShare: () -> Unit = {},
 ) {
     val slide by animateFloatAsState(if (visible) 0f else 28f, MotionSettings.style.let { androidx.compose.animation.core.spring(0.9f, 420f) }, label = "filterRailSlide")
     val opacity by animateFloatAsState(if (visible) 1f else 0f, androidx.compose.animation.core.tween(220), label = "filterRailFade")
@@ -68,29 +74,64 @@ fun FilterRail(
         Box(
             Modifier
                 .width(60.dp)
-                .height(116.dp)
+                .height(if (selectionActive) 232.dp else 116.dp)
                 .graphicsLayer { alpha = opacity; translationX = slide }
                 .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, GlassCapsule))
                 .clip(GlassCapsule),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                RailSlot(
-                    icon = AppIcons.Important,
-                    name = "Important",
-                    selected = important,
-                    count = 0,
-                    onToggle = onImportant,
-                    onTooltip = { tooltip = it },
-                )
-                RailSlot(
-                    icon = AppIcons.Reminder,
-                    name = "Due",
-                    selected = due,
-                    count = dueCount,
-                    onToggle = onDue,
-                    onTooltip = { tooltip = it },
-                )
+                if (selectionActive) {
+                    RailSlot(
+                        icon = AppIcons.Delete,
+                        name = "Delete ($selectedCount)",
+                        selected = false,
+                        count = 0,
+                        onToggle = onDelete,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.Refetch,
+                        name = "Refresh",
+                        selected = false,
+                        count = 0,
+                        onToggle = onRefetch,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.Copy,
+                        name = "Copy",
+                        selected = false,
+                        count = 0,
+                        onToggle = onCopy,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.Share,
+                        name = "Share",
+                        selected = false,
+                        count = 0,
+                        onToggle = onShare,
+                        onTooltip = { tooltip = it },
+                    )
+                } else {
+                    RailSlot(
+                        icon = AppIcons.Important,
+                        name = "Important",
+                        selected = important,
+                        count = 0,
+                        onToggle = onImportant,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.Reminder,
+                        name = "Due",
+                        selected = due,
+                        count = dueCount,
+                        onToggle = onDue,
+                        onTooltip = { tooltip = it },
+                    )
+                }
             }
             val tip = tooltip
             if (tip != null) {
