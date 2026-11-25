@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.pinfold.app.ui.glass.IosMotion
+import com.pinfold.app.ui.liquidglass.glassBackdrop
 
 internal const val MESH_SEAM_ANIM_MS = 320
 
@@ -71,7 +72,7 @@ internal fun AmbientBackdrop(
         }
     }
 
-    Canvas(modifier.fillMaxSize().background(floor)) {
+    Canvas(modifier.fillMaxSize().background(floor).glassBackdrop()) {
         val split = seam.value.coerceIn(0f, size.height)
         fun drawMeshLayer(mesh: ImageBitmap?, alpha: Float) {
             if (mesh == null || alpha <= 0f) return
