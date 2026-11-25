@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
@@ -18,10 +19,23 @@ import com.pinfold.app.R
 import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.ReminderStatus
 import com.pinfold.app.data.settings.SettingsRepository
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+internal fun sampleSizeFor(maxDim: Int, targetPx: Int): Int {
+    if (maxDim <= 0 || targetPx <= 0) return 1
+    var sample = 1
+    while (sample * 2 <= maxDim && maxDim / (sample * 2) >= targetPx) {
+        sample *= 2
+    }
+    return sample.coerceAtLeast(1)
+}
+
+internal fun shouldShowUrlImage(showImage: Boolean, path: String?): Boolean =
+    showImage && !path.isNullOrBlank()
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -37,7 +51,14 @@ class ReminderReceiver : BroadcastReceiver() {
                 val config = SettingsRepository(context.applicationContext).settings.first()
                 if (config.notifications) {
                     val title = if (config.hideDetailsOnLockScreen) "" else bookmark?.title.orEmpty()
-                    showNotification(context, title, bookmarkId, bookmark?.url)
+                    showNotification(
+                        context,
+                        title,
+                        bookmarkId,
+                        bookmark?.url,
+                        bookmark?.imagePath,
+                        !config.hideDetailsOnLockScreen,
+                    )
                 }
                 db.reminderDao().setStatus(reminderId, ReminderStatus.FIRED)
             } finally {
@@ -46,7 +67,14 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, title: String, bookmarkId: Long, url: String?) {
+    private fun showNotification(
+        context: Context,
+        title: String,
+        bookmarkId: Long,
+        url: String?,
+        imagePath: String?,
+        showImage: Boolean,
+    ) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "Sonil reminders", NotificationManager.IMPORTANCE_HIGH)
@@ -62,16 +90,41 @@ class ReminderReceiver : BroadcastReceiver() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_savelin)
+        val urlBitmap = if (shouldShowUrlImage(showImage, imagePath)) {
+            decodeLargeIconBitmap(imagePath.orEmpty())
+        } else {
+            null
+        }
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_savelin_color)
             .setContentTitle("Sonil reminder")
             .setContentText(title.ifBlank { "A saved link is waiting for you" })
             .setContentIntent(open)
-            .setLargeIcon(launcherBitmap(context))
+            .setLargeIcon(urlBitmap ?: launcherBitmap(context))
             .setColor(Color.parseColor("#8401F2"))
             .setAutoCancel(true)
-            .build()
-        manager.notify(bookmarkId.toInt(), notification)
+        if (urlBitmap != null) {
+            builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(urlBitmap))
+        }
+        manager.notify(bookmarkId.toInt(), builder.build())
+    }
+
+    private fun decodeLargeIconBitmap(path: String): Bitmap? {
+        val file = File(path)
+        if (!file.exists() || !file.isFile) return null
+        return runCatching {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(path, bounds)
+            val maxDim = maxOf(bounds.outWidth, bounds.outHeight)
+            if (maxDim <= 0) {
+                null
+            } else {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSizeFor(maxDim, LARGE_ICON_TARGET_PX)
+                }
+                BitmapFactory.decodeFile(path, options)
+            }
+        }.getOrNull()
     }
 
     private fun launcherBitmap(context: Context): Bitmap? {
@@ -87,5 +140,6 @@ class ReminderReceiver : BroadcastReceiver() {
 
     private companion object {
         const val CHANNEL_ID = "pinfold_reminders"
+        const val LARGE_ICON_TARGET_PX = 256
     }
 }
