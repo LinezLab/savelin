@@ -14,6 +14,7 @@ import com.pinfold.app.network.MetadataCleaner
 import com.pinfold.app.network.PreviewFetcher
 import com.pinfold.app.network.PlatformDetector
 import com.pinfold.app.network.UrlNormalizer
+import com.pinfold.app.network.image.FaviconStore
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.image.StoredImage
 import com.pinfold.app.network.resolvers.HttpClientFactory
@@ -70,6 +71,10 @@ class LinkFetchWorker(
             ),
         )
         if (id <= 0) return@withContext Result.success()
+
+        runCatching {
+            FaviconStore(applicationContext, client, logHost).store(preview.url, preview.faviconUrls)
+        }
 
         val store = ImageStore(applicationContext, client)
         val tryStore: (List<String>) -> Pair<StoredImage, String>? = { candidates ->

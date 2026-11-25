@@ -56,6 +56,7 @@ import coil3.request.ImageRequest
 import com.pinfold.app.R
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.network.image.FaviconPaths
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
@@ -243,6 +244,13 @@ private fun BookmarkCard(
     val appear = remember { Animatable(if (scrolling) 1f else 0f) }
     LaunchedEffect(Unit) { if (!scrolling) appear.animateTo(1f, SpringMotion.listFade()) }
     val bookmark = item.bookmark
+    val context = LocalContext.current
+    val faviconPath = remember(bookmark.url) {
+        val host = runCatching {
+            java.net.URI.create(bookmark.url).host?.lowercase()?.removePrefix("www.")
+        }.getOrNull().orEmpty()
+        if (host.isBlank()) "" else FaviconPaths.pathFor(context, host)
+    }.takeIf { it.isNotBlank() && File(it).exists() }
     val model = remember(bookmark.imagePath) { imageModel() }
     val previewResult = rememberPhotoPreviewWithLuminance(bookmark.imagePath, bookmark.blurhash)
     val preview = previewResult.bitmap
@@ -304,16 +312,24 @@ private fun BookmarkCard(
                     photo = preview,
                     photoInk = photoInk,
                     icon = {
-                        Box(
-                            Modifier.size(14.dp).clip(CircleShape)
-                                .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                sourceName.take(1).uppercase(),
-                                color = photoInk ?: clear.ink,
-                                style = MaterialTheme.typography.labelSmall,
+                        if (faviconPath != null) {
+                            AsyncImage(
+                                model = faviconPath,
+                                contentDescription = sourceName,
+                                modifier = Modifier.size(14.dp).clip(CircleShape),
                             )
+                        } else {
+                            Box(
+                                Modifier.size(14.dp).clip(CircleShape)
+                                    .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    sourceName.take(1).uppercase(),
+                                    color = photoInk ?: clear.ink,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
                         }
                     },
                 )
