@@ -134,7 +134,12 @@ fun App(
         return
     }
     if (locked) {
-        BiometricGate(onUnlock = { locked = false })
+        Box(Modifier.fillMaxSize()) {
+            SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, keepOnScreen = true, onDone = {})
+            Box(Modifier.fillMaxSize().zIndex(1f)) {
+                BiometricGate(onUnlock = { locked = false })
+            }
+        }
         return
     }
     var linkToast by remember { mutableStateOf<String?>(null) }

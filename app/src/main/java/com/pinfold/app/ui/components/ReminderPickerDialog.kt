@@ -13,10 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -35,8 +32,10 @@ import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 import kotlin.math.abs
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -59,6 +58,14 @@ internal fun wheelNormalizedIndex(index: Int, baseSize: Int): Int =
 internal fun hourIn24(hour12: Int, pm: Boolean): Int =
     (hour12.coerceIn(1, 12) % 12) + if (pm) 12 else 0
 
+internal fun dateWheelUtcMillis(year: Int, month: Int, day: Int): Long {
+    val safeYear = year.coerceIn(1900, 9999)
+    val safeMonth = month.coerceIn(1, 12)
+    val safeDay = day.coerceIn(1, YearMonth.of(safeYear, safeMonth).lengthOfMonth())
+    return LocalDate.of(safeYear, safeMonth, safeDay)
+        .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
 internal fun reminderTriggerAt(
     selectedDateUtcMillis: Long?,
     hour: Int,
@@ -79,12 +86,22 @@ internal fun ReminderPickerDialog(
     ink: Color? = null,
 ) {
     var step by remember { mutableStateOf(1) }
-    val dateState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis() + 86_400_000L)
+    val initialDate = remember { LocalDate.now().plusDays(1) }
+    var pickedYear by remember { mutableStateOf(initialDate.year) }
+    var pickedMonth by remember { mutableStateOf(initialDate.monthValue) }
+    var pickedDay by remember { mutableStateOf(initialDate.dayOfMonth) }
+    val years = remember(initialDate.year) { ((initialDate.year - 1)..(initialDate.year + 5)).toList() }
+    val months = remember { (1..12).toList() }
+    val days = remember { (1..31).toList() }
     var hour12 by remember { mutableStateOf(9) }
     var minute by remember { mutableStateOf(0) }
     var pm by remember { mutableStateOf(false) }
     val contentInk = ink ?: clear.onGlassSoft
-    val trigger = reminderTriggerAt(dateState.selectedDateMillis, hourIn24(hour12, pm), minute)
+    val trigger = reminderTriggerAt(
+        dateWheelUtcMillis(pickedYear, pickedMonth, pickedDay),
+        hourIn24(hour12, pm),
+        minute,
+    )
     SavelinGlassDialog(
         onDismiss = onDismiss,
         title = if (step == 1) "Reminder date" else "Reminder time",
@@ -101,25 +118,36 @@ internal fun ReminderPickerDialog(
         ink = null,
     ) {
         if (step == 1) {
-            DatePicker(
-                state = dateState,
-                showModeToggle = false,
-                colors = DatePickerDefaults.colors(
-                    containerColor = clear.frost,
-                    titleContentColor = contentInk,
-                    headlineContentColor = contentInk,
-                    weekdayContentColor = contentInk.copy(alpha = 0.72f),
-                    navigationContentColor = contentInk,
-                    yearContentColor = contentInk,
-                    currentYearContentColor = contentInk,
-                    dayContentColor = contentInk,
-                    selectedDayContentColor = contentInk,
-                    selectedDayContainerColor = contentInk.copy(alpha = 0.22f),
-                    todayContentColor = contentInk,
-                    todayDateBorderColor = contentInk.copy(alpha = 0.6f),
-                    dividerColor = contentInk.copy(alpha = 0.2f),
-                ),
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Wheel(
+                    values = years,
+                    selected = pickedYear,
+                    label = { it.toString() },
+                    onSelect = { pickedYear = it },
+                    ink = contentInk,
+                    modifier = Modifier.weight(1f),
+                )
+                Wheel(
+                    values = months,
+                    selected = pickedMonth,
+                    label = { it.toString().padStart(2, '0') },
+                    onSelect = { pickedMonth = it },
+                    ink = contentInk,
+                    modifier = Modifier.weight(1f),
+                )
+                Wheel(
+                    values = days,
+                    selected = pickedDay,
+                    label = { it.toString().padStart(2, '0') },
+                    onSelect = { pickedDay = it },
+                    ink = contentInk,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         } else {
             Row(
                 Modifier.fillMaxWidth(),

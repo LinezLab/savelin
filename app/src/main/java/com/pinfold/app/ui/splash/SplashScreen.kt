@@ -51,6 +51,7 @@ fun SplashScreen(
     item: BookmarkWithTags?,
     reduceMotion: Boolean,
     onDone: () -> Unit,
+    keepOnScreen: Boolean = false,
 ) {
     val themeFloor = MaterialTheme.colorScheme.background
     val path = remember(item) {
@@ -71,10 +72,12 @@ fun SplashScreen(
     }
 
     LaunchedEffect(Unit) {
+        if (keepOnScreen) return@LaunchedEffect
         delay(splashDurationMs(reduceMotion))
         complete()
     }
     LaunchedEffect(Unit) {
+        if (keepOnScreen) return@LaunchedEffect
         delay(SPLASH_MAX_WAIT_MS)
         complete()
     }

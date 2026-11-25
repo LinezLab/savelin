@@ -89,4 +89,56 @@ class ReminderPickerTest {
         assertTrue(WHEEL_REPEAT >= 100)
         assertEquals(WHEEL_REPEAT / 2, WHEEL_CENTER_CYCLE)
     }
+
+    @Test
+    fun dateWheelUtcMillisRoundTripsThroughSystemZone() {
+        val millis = dateWheelUtcMillis(2026, 12, 24)
+        val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(2026, 12, 24), date)
+    }
+
+    @Test
+    fun dateWheelUtcMillisClampsDayToLastOfMonth() {
+        val leap = Instant.ofEpochMilli(dateWheelUtcMillis(2024, 2, 31))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(2024, 2, 29), leap)
+        val common = Instant.ofEpochMilli(dateWheelUtcMillis(2025, 2, 31))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(2025, 2, 28), common)
+    }
+
+    @Test
+    fun dateWheelUtcMillisClampsMonthOutOfRange() {
+        val high = Instant.ofEpochMilli(dateWheelUtcMillis(2026, 15, 5))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(2026, 12, 5), high)
+        val low = Instant.ofEpochMilli(dateWheelUtcMillis(2026, 0, 5))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(2026, 1, 5), low)
+    }
+
+    @Test
+    fun dateWheelUtcMillisClampsYearToSaneRange() {
+        val high = Instant.ofEpochMilli(dateWheelUtcMillis(10_000, 1, 1))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(9999, 1, 1), high)
+        val low = Instant.ofEpochMilli(dateWheelUtcMillis(1800, 1, 1))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        assertEquals(LocalDate.of(1900, 1, 1), low)
+    }
+
+    @Test
+    fun dateWheelMillisCombineWithLocalTimeInSystemZone() {
+        val year = 2026
+        val month = 12
+        val day = 24
+        val hour = 7
+        val minute = 45
+        val expectedTrigger = LocalDateTime.of(year, month, day, hour, minute)
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        assertEquals(
+            expectedTrigger,
+            reminderTriggerAt(dateWheelUtcMillis(year, month, day), hour, minute, expectedTrigger + 1),
+        )
+    }
 }
