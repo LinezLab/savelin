@@ -87,6 +87,8 @@ data class AppSettings(
     val topShadeHeight: Int = 28,
     val topShadeStrength: Float = 0.35f,
     val glassUiEnabled: Boolean = false,
+    val settingsGradientPresetId: String = "ACID_FOREST",
+    val settingsGradientPresetsJson: String = "[]",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -167,6 +169,8 @@ class SettingsRepository(private val context: Context) {
             topShadeHeight = p[Keys.topShadeHeight] ?: 28,
             topShadeStrength = p[Keys.topShadeStrength] ?: 0.35f,
             glassUiEnabled = p[Keys.glassUiEnabled] ?: false,
+            settingsGradientPresetId = p[Keys.settingsGradientPresetId] ?: "ACID_FOREST",
+            settingsGradientPresetsJson = p[Keys.settingsGradientPresetsJson] ?: "[]",
         )
     }
 
@@ -317,5 +321,7 @@ class SettingsRepository(private val context: Context) {
         val topShadeHeight = intPreferencesKey("topShadeHeight")
         val topShadeStrength = floatPreferencesKey("topShadeStrength")
         val glassUiEnabled = booleanPreferencesKey("glass_ui_enabled")
+        val settingsGradientPresetId = stringPreferencesKey("settingsGradientPresetId")
+        val settingsGradientPresetsJson = stringPreferencesKey("settingsGradientPresetsJson")
     }
 }
