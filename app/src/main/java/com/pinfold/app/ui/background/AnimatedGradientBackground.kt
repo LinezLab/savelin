@@ -3,14 +3,15 @@ package com.pinfold.app.ui.background
 import android.os.Build
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import kotlin.math.cos
 import kotlin.math.sin
@@ -82,7 +84,7 @@ fun AnimatedGradientBackground(
         }
     }
     val transition = rememberInfiniteTransition(label = "gradient")
-    val phases = if (reduceMotion) {
+    val phases: List<State<Float>> = if (reduceMotion) {
         emptyList()
     } else {
         blobs.mapIndexed { index, _ ->
@@ -91,7 +93,7 @@ fun AnimatedGradientBackground(
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
-                        durationMillis = BLOB_LOOP_MS[index % BLOB_LOOP_MS.size],
+                        durationMillis = BLOB_LOOP_MS[index % BLOB_LOOP_MS.size].toInt(),
                         easing = LinearEasing,
                     ),
                     repeatMode = RepeatMode.Reverse,
@@ -174,11 +176,11 @@ fun GradientThumbnail(preset: GradientPreset, size: Dp, modifier: Modifier = Mod
 }
 
 private fun hash01(seed: Long, salt: Int): Float {
-    var x = seed xor (salt.toLong() * 0x9E3779B97F4A7C15L)
-    x = (x xor (x ushr 30)) * 0xBF58476D1CE4E5B9L
-    x = (x xor (x ushr 27)) * 0x94D049BB133111EBL
-    x = x xor (x ushr 31)
-    return ((x ushr 40) and 0xFFFFL).toFloat() / 0xFFFFL.toFloat()
+    var x = seed xor (salt.toLong() * 0x9E3779B1L)
+    x = (x xor (x ushr 33)) * 0x85EBCA6BL
+    x = (x xor (x ushr 29)) * 0xC2B2AE35L
+    x = x xor (x ushr 32)
+    return ((x ushr 32) and 0xFFFFL).toFloat() / 0xFFFFL.toFloat()
 }
 
 private fun darkenArgb(argb: Int, factor: Float = 0.45f): Int {
