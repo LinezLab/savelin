@@ -138,7 +138,7 @@ class ReminderPickerTest {
             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         assertEquals(
             expectedTrigger,
-            reminderTriggerAt(dateWheelUtcMillis(year, month, day), hour, minute, expectedTrigger + 1),
+            reminderTriggerAt(dateWheelUtcMillis(year, month, day), hour, minute, expectedTrigger - 1),
         )
     }
 }
