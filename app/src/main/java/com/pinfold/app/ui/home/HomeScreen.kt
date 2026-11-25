@@ -61,8 +61,6 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
-import com.pinfold.app.ui.components.rememberPhotoInk
-import com.pinfold.app.ui.components.rememberPhotoPreviewWithLuminance
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
@@ -264,9 +262,6 @@ private fun BookmarkCard(
         if (host.isBlank()) "" else FaviconPaths.pathFor(context, host)
     }.takeIf { it.isNotBlank() && File(it).exists() }
     val model = remember(bookmark.imagePath) { imageModel() }
-    val previewResult = rememberPhotoPreviewWithLuminance(bookmark.imagePath, bookmark.blurhash)
-    val preview = previewResult.bitmap
-    val photoInk = rememberPhotoInk(previewResult.luminance)
     val ratio = when {
         bookmark.imageWidth > 0 && bookmark.imageHeight > 0 -> {
             val raw = bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()
@@ -321,8 +316,6 @@ private fun BookmarkCard(
                 LightGlassChip(
                     label = sourceName,
                     shape = RoundedCornerShape(10.dp),
-                    photo = preview,
-                    photoInk = photoInk,
                     icon = {
                         if (faviconPath != null) {
                             AsyncImage(
@@ -333,12 +326,12 @@ private fun BookmarkCard(
                         } else {
                             Box(
                                 Modifier.size(14.dp).clip(CircleShape)
-                                    .background((photoInk ?: clear.ink).copy(alpha = 0.28f)),
+                                    .background(clear.onGlass.copy(alpha = 0.28f)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     sourceName.take(1).uppercase(),
-                                    color = photoInk ?: clear.ink,
+                                    color = clear.onGlass,
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             }
@@ -349,22 +342,18 @@ private fun BookmarkCard(
                     if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
                         LightGlassChip(
                             shape = CircleShape,
-                            photo = preview,
-                            photoInk = photoInk,
                             contentDescription = "Play video",
                         ) {
-                            AppIcons.Icon(AppIcons.Open, "Play video", tint = photoInk ?: clear.ink, size = 14.dp)
+                            AppIcons.Icon(AppIcons.Open, "Play video", tint = clear.onGlass, size = 14.dp)
                         }
                     }
                     if (bookmark.isImportant || hasReminder) {
                         LightGlassChip(
                             shape = CircleShape,
-                            photo = preview,
-                            photoInk = photoInk,
                             contentDescription = "Bookmark status",
                         ) {
-                            if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = photoInk ?: clear.ink, size = 14.dp)
-                            if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = photoInk ?: clear.ink, size = 14.dp)
+                            if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.onGlass, size = 14.dp)
+                            if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = clear.onGlass, size = 14.dp)
                         }
                     }
                 }

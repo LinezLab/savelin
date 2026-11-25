@@ -29,7 +29,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -168,32 +167,23 @@ fun LightGlassChip(
     label: String? = null,
     contentDescription: String? = null,
     icon: (@Composable () -> Unit)? = null,
-    photo: ImageBitmap? = null,
-    photoInk: Color? = null,
     content: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val desc = contentDescription
-    val style = ComponentGlass.resolve(GlassComponent.CHIPS)
-    val resolvedInk = photoInk ?: SavelinGlass.ink
-    val surface = if (photo != null && style.photoThrough) {
-        val photoSurface = Modifier.photoThrough(photo, shape, clear.dark)
-        if (style.chipEffect == "FULL") photoSurface.then(SavelinGlass.modifierFor(GlassComponent.CHIPS, shape)) else photoSurface
-    } else {
-        SavelinGlass.modifierFor(GlassComponent.CHIPS, shape)
-    }
+    val ink = SavelinGlass.ink
     Row(
         modifier
-            .then(surface)
+            .then(SavelinGlass.modifierFor(GlassComponent.CHIPS, shape))
             .border(1.dp, clear.rim.copy(alpha = 0.7f), shape)
             .padding(horizontal = 8.dp, vertical = 3.dp)
             .then(if (desc != null) Modifier.semantics { this.contentDescription = desc } else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        CompositionLocalProvider(LocalGlassInk provides resolvedInk) {
+        CompositionLocalProvider(LocalGlassInk provides ink) {
             icon?.invoke()
             if (label != null) {
-                Text(label, color = resolvedInk, style = ClearType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, color = ink, style = ClearType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             content?.invoke(this)
         }
