@@ -4,7 +4,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,12 +38,6 @@ fun BiometricGate(onUnlock: () -> Unit, onCancel: () -> Unit = {}) {
         } else null
     }
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        Text(
-            "Sonil is locked",
-            style = MaterialTheme.typography.headlineMedium,
-            color = clear.onGlass,
-            modifier = Modifier.align(Alignment.Center),
-        )
         GlassPillButton(onClick = {
             val info = BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Unlock Sonil")
