@@ -26,7 +26,6 @@ import com.pinfold.app.work.LinkFetchWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -72,14 +71,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .combine(importantOnly) { reminders, _ -> reminders.map { it.bookmarkId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    private val baseItems = combine(query.debounce(150), settings) { text, config -> text to config.privateVault }
-        .flatMapLatest { (text, vaultOnly) ->
-            when {
-                text.isNotBlank() -> repository.search(text)
-                vaultOnly -> repository.observePrivate()
-                else -> repository.observeAll()
-            }
-        }
+    private val baseItems = query.debounce(150).flatMapLatest { text ->
+        if (text.isNotBlank()) repository.search(text) else repository.observeAll()
+    }
 
     val items: StateFlow<List<BookmarkWithTags>> = combine(
         baseItems,
@@ -93,6 +87,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val privateItems: StateFlow<List<BookmarkWithTags>> = repository.observePrivate()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val currentTab: StateFlow<HomeTab> = tab.asStateFlow()
     val searchQuery: StateFlow<String> = query.asStateFlow()
     val networkLog = db.networkLogDao().observeRecent()
@@ -102,6 +99,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         query.value = value
     }
 
+    fun openVault() { settingsPageState.value = "VAULT" }
     fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
     fun closeSettingsPage() { settingsPageState.value = "HOME" }
 
@@ -185,8 +183,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun togglePrivate(item: Bookmark) = viewModelScope.launch {
         repository.setPrivate(item.id, !item.isPrivate)
     }
-
-    fun observePrivate(): Flow<List<BookmarkWithTags>> = repository.observePrivate()
 
     fun delete(item: Bookmark) = viewModelScope.launch {
         ImageStore(getApplication(), HttpClientFactory.create()).remove(item.id)

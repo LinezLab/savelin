@@ -59,7 +59,6 @@ data class AppSettings(
     val imageQuality: String = "BALANCED",
     val notifications: Boolean = true,
     val defaultSnoozeMinutes: Int = 60,
-    val privateVault: Boolean = false,
     val blockScreenshots: Boolean = false,
     val iconLabels: String = "ICONS_ONLY",
     val rememberFilters: Boolean = false,
@@ -134,7 +133,6 @@ class SettingsRepository(private val context: Context) {
             imageQuality = p[Keys.imageQuality] ?: "BALANCED",
             notifications = p[Keys.notifications] ?: true,
             defaultSnoozeMinutes = p[Keys.defaultSnoozeMinutes] ?: 60,
-            privateVault = p[Keys.privateVault] ?: false,
             blockScreenshots = p[Keys.blockScreenshots] ?: false,
             iconLabels = p[Keys.iconLabels] ?: "ICONS_ONLY",
             rememberFilters = p[Keys.rememberFilters] ?: false,
@@ -283,7 +281,6 @@ class SettingsRepository(private val context: Context) {
         val imageQuality = stringPreferencesKey("imageQuality")
         val notifications = booleanPreferencesKey("notifications")
         val defaultSnoozeMinutes = intPreferencesKey("defaultSnoozeMinutes")
-        val privateVault = booleanPreferencesKey("privateVault")
         val blockScreenshots = booleanPreferencesKey("blockScreenshots")
         val iconLabels = stringPreferencesKey("iconLabels")
         val rememberFilters = booleanPreferencesKey("rememberFilters")

@@ -78,6 +78,7 @@ fun App(
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     var consumedOpen by remember { mutableStateOf<Long?>(null) }
     var locked by remember { mutableStateOf(false) }
+    var pendingVault by remember { mutableStateOf(false) }
     var showSplash by remember { mutableStateOf(true) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
@@ -101,9 +102,6 @@ fun App(
     }
     LaunchedEffect(Unit) {
         locked = viewModel.settings.first().biometricLock
-    }
-    LaunchedEffect(appearance.privateVault) {
-        if (appearance.privateVault) locked = true
     }
     LaunchedEffect(Unit) {
         splashItem = viewModel.randomWithImage()
@@ -137,7 +135,13 @@ fun App(
         Box(Modifier.fillMaxSize()) {
             SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, keepOnScreen = true, onDone = {})
             Box(Modifier.fillMaxSize().zIndex(1f)) {
-                BiometricGate(onUnlock = { locked = false })
+                BiometricGate(
+                    onUnlock = {
+                        if (pendingVault) { viewModel.openVault(); pendingVault = false }
+                        locked = false
+                    },
+                    onCancel = { pendingVault = false; locked = false },
+                )
             }
         }
         return
@@ -194,10 +198,17 @@ fun App(
                     Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
                 ) {
                     if (tab == HomeTab.SETTINGS) {
-                        if (settingsPage == "GLASS_MOTION") {
-                            com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
-                        } else {
-                            SettingsScreen(viewModel)
+                        when {
+                            settingsPage == "GLASS_MOTION" -> com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
+                            settingsPage == "VAULT" -> HomeScreen(
+                                viewModel,
+                                privateOnly = true,
+                                onOpen = { detail = it; selectedIds = emptySet() },
+                                selectedIds = selectedIds,
+                                onStartSelection = { id -> selectedIds = setOf(id) },
+                                onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
+                            )
+                            else -> SettingsScreen(viewModel, onOpenVault = { pendingVault = true; locked = true })
                         }
                     } else {
                         HomeScreen(

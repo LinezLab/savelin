@@ -89,15 +89,19 @@ fun HomeScreen(
     selectedIds: Set<Long> = emptySet(),
     onStartSelection: (Long) -> Unit = {},
     onToggleSelected: (Long) -> Unit = {},
+    privateOnly: Boolean = false,
 ) {
-    val items by viewModel.items.collectAsState()
+    val allItems by viewModel.items.collectAsState()
+    val privateItems by viewModel.privateItems.collectAsState()
+    val items = if (privateOnly) privateItems else allItems
     val distinctItems = remember(items) { items.distinctBy { it.bookmark.id } }
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
-    val gridState = viewModel.gridState
+    val vaultGridState = remember { LazyStaggeredGridState() }
+    val gridState = if (privateOnly) vaultGridState else viewModel.gridState
     val scrolling = rememberGridScrolling(gridState)
     val selectionMode = selectedIds.isNotEmpty()
     val spacing = when (settings.cardSpacing) {
@@ -131,6 +135,14 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
+        }
+        if (privateOnly && distinctItems.isEmpty()) {
+            Text(
+                "No private bookmarks",
+                style = MaterialTheme.typography.bodyMedium,
+                color = clear.onGlass,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
         LazyVerticalStaggeredGrid(
             state = gridState,
