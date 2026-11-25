@@ -9,10 +9,10 @@ package com.kyant.backdrop.highlight
 import android.graphics.BlurMaskFilter
 import android.os.Build
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastCoerceAtMost
 import com.kyant.backdrop.RuntimeShaderCacheImpl
 import com.kyant.backdrop.ShapeProvider
-import com.kyant.backdrop.clipOutline
 import kotlin.math.ceil
 
 internal class HighlightElement(
@@ -85,7 +84,6 @@ internal class HighlightNode(
         Paint().apply {
             style = PaintingStyle.Stroke
         }
-    private var clipPath: Path? = null
 
     private val runtimeShaderCache = RuntimeShaderCacheImpl()
 
@@ -122,12 +120,7 @@ internal class HighlightNode(
                 )
 
             val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
-            val clipPath =
-                if (outline is Outline.Rounded) {
-                    clipPath ?: Path().also { clipPath = it }
-                } else {
-                    null
-                }
+            val clipShape = FixedOutlineShape(outline)
 
             val shape = shapeProvider.shape
             val widthPx = highlight.width.toPx()
@@ -146,11 +139,9 @@ internal class HighlightNode(
                 configurePaint(highlight)
                 highlightLayer.record(safeSize) {
                     translate(1f, 1f) {
-                        val canvas = drawContext.canvas
-                        canvas.save()
-                        canvas.clipOutline(outline, clipPath)
-                        canvas.drawOutline(outline, paint)
-                        canvas.restore()
+                        clip(clipShape) {
+                            drawContext.canvas.drawOutline(outline, paint)
+                        }
                     }
                 }
                 recordedSize = safeSize
@@ -179,7 +170,6 @@ internal class HighlightNode(
             graphicsContext.releaseGraphicsLayer(layer)
             highlightLayer = null
         }
-        clipPath = null
         prevStyle = null
         recordedStyle = null
     }
@@ -204,4 +194,12 @@ internal class HighlightNode(
             }
         }
     }
+}
+
+private class FixedOutlineShape(private val outline: Outline) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline = outline
 }

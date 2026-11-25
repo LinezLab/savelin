@@ -376,7 +376,7 @@ fun GlassStage(
             // glass control it passes over on every frame
             Box(
                 Modifier.fillMaxSize().graphicsLayer {
-                    compositingStrategy = if (host.entries.isEmpty() && host.stillHolds == 0) CompositingStrategy.Auto else CompositingStrategy.Offscreen
+                    compositingStrategy = CompositingStrategy.Offscreen
                 },
             ) {
                 Box(Modifier.fillMaxSize().layerBackdrop(wall), content = wallpaper)
@@ -386,7 +386,7 @@ fun GlassStage(
             }
             Box(
                 Modifier.fillMaxSize().graphicsLayer {
-                    compositingStrategy = if (host.entries.isEmpty()) CompositingStrategy.Auto else CompositingStrategy.Offscreen
+                    compositingStrategy = CompositingStrategy.Offscreen
                 },
             ) {
                 CompositionLocalProvider(LocalBackdrop provides underChrome) {
