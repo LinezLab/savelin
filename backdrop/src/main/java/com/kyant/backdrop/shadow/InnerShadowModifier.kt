@@ -8,16 +8,14 @@ package com.kyant.backdrop.shadow
 
 import android.os.Build
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.clip
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -28,8 +26,8 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import com.kyant.backdrop.ShapeProvider
+import com.kyant.backdrop.clipOutline
 
 internal class InnerShadowElement(
     val shapeProvider: ShapeProvider,
@@ -79,6 +77,7 @@ internal class InnerShadowNode(
     private var shadowLayer: GraphicsLayer? = null
 
     private val paint = Paint()
+    private var clipPath: Path? = null
 
     private var prevRadius = Float.NaN
 
@@ -100,7 +99,12 @@ internal class InnerShadowNode(
             val offsetY = shadow.offset.y.toPx()
 
             val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
-            val shape = FixedOutlineShape(outline)
+            val clipPath =
+                if (outline is Outline.Rounded) {
+                    clipPath ?: Path().also { clipPath = it }
+                } else {
+                    null
+                }
 
             configurePaint(shadow)
 
@@ -116,17 +120,26 @@ internal class InnerShadowNode(
                 prevRadius = radius
             }
             shadowLayer.record {
-                clip(shape) {
-                    val canvas = drawContext.canvas
+                val canvas = drawContext.canvas
+                canvas.save()
+                try {
+                    canvas.clipOutline(outline, clipPath)
                     canvas.drawOutline(outline, paint)
                     canvas.translate(offsetX, offsetY)
                     canvas.drawOutline(outline, ShadowMaskPaint)
                     canvas.translate(-offsetX, -offsetY)
+                } finally {
+                    canvas.restore()
                 }
             }
 
-            clip(shape) {
+            val canvas = drawContext.canvas
+            canvas.save()
+            try {
+                canvas.clipOutline(outline, clipPath)
                 drawLayer(shadowLayer)
+            } finally {
+                canvas.restore()
             }
         }
     }
@@ -150,14 +163,6 @@ internal class InnerShadowNode(
     private fun DrawScope.configurePaint(shadow: InnerShadow) {
         paint.color = shadow.color
     }
-}
-
-private class FixedOutlineShape(private val outline: Outline) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline = outline
 }
 
 private val ShadowMaskPaint = Paint().apply {
