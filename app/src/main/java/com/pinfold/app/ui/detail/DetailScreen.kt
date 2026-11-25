@@ -98,7 +98,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
-import com.pinfold.app.ui.liquidglass.glassBackdrop
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.theme.ClearType
 import com.pinfold.app.ui.glass.theme.clear
@@ -740,7 +739,6 @@ private fun BoxScope.SharpHero(
                 contentDescription = null,
                 contentScale = heroScale,
                 modifier = Modifier.fillMaxSize()
-                    .glassBackdrop()
                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                     .drawWithContent {
                         drawContent()

@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pinfold.app.ui.glass.ComponentGlass
 import com.pinfold.app.ui.glass.GlassSettings
-import com.pinfold.app.ui.liquidglass.GlassProvider
-import com.pinfold.app.ui.liquidglass.GlassSettings as LiquidGlassSettings
 import com.pinfold.app.ui.glass.GlassToast
 import com.pinfold.app.ui.glass.GlassTextField
 import androidx.compose.material3.Text
@@ -70,19 +68,6 @@ internal val HOME_BACKGROUND_DARK: Color = Color.Black
 
 @Composable
 fun App(
-    sharedText: String? = null,
-    clipboardShare: Pair<String, Long>? = null,
-    openBookmark: Pair<Long, Long>? = null,
-) {
-    val hostVm: HomeViewModel = viewModel()
-    val appearance by hostVm.settings.collectAsState()
-    val liquidSettings = remember { LiquidGlassSettings(appearance.glassUiEnabled) }
-    LaunchedEffect(appearance.glassUiEnabled) { liquidSettings.enabled = appearance.glassUiEnabled }
-    GlassProvider(liquidSettings) { AppContent(sharedText, clipboardShare, openBookmark) }
-}
-
-@Composable
-fun AppContent(
     sharedText: String? = null,
     clipboardShare: Pair<String, Long>? = null,
     openBookmark: Pair<Long, Long>? = null,

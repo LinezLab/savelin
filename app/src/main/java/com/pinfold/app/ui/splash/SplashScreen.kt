@@ -40,7 +40,6 @@ import com.pinfold.app.ui.detail.AmbientBackdrop
 import com.pinfold.app.ui.detail.rememberAmbience
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
-import com.pinfold.app.ui.liquidglass.glassBackdrop
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -102,7 +101,7 @@ fun SplashScreen(
 @Composable
 private fun BlurredHero(preview: ImageBitmap?) {
     if (preview == null || preview.width < 1 || preview.height < 1) return
-    Canvas(Modifier.fillMaxSize().glassBackdrop()) {
+    Canvas(Modifier.fillMaxSize()) {
         drawImage(
             image = preview,
             srcSize = IntSize(preview.width, preview.height),
