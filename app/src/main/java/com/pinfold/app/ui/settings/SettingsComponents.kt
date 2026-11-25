@@ -49,9 +49,14 @@ internal fun displayOption(raw: String): String =
     raw.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
 @Composable
-fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+fun SettingsScaffold(
+    title: String,
+    onBack: () -> Unit,
+    topInsets: WindowInsets = WindowInsets.statusBars.union(WindowInsets.displayCutout),
+    content: @Composable () -> Unit,
+) {
     Column(
-        Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+        Modifier.fillMaxWidth().windowInsetsPadding(topInsets)
             .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

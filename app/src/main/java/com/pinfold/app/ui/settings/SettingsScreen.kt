@@ -5,7 +5,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,7 +45,11 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
     val glass = GlassSettings.style
     val motion = MotionSettings.style
 
-    SettingsScaffold("Settings", onBack = { viewModel.selectTab(HomeTab.HOME) }) {
+    SettingsScaffold(
+        "Settings",
+        onBack = { viewModel.selectTab(HomeTab.HOME) },
+        topInsets = if (settings.immersiveMode) WindowInsets(0) else WindowInsets.statusBars.union(WindowInsets.displayCutout),
+    ) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
                 Text("Theme", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = com.pinfold.app.ui.glass.theme.clear.ink)

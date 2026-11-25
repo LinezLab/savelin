@@ -32,10 +32,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class MainActivity : FragmentActivity() {
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private var activeTheme: String? = null
+    private var immersiveEnabled = false
     private val incomingShare = MutableStateFlow<String?>(null)
     private val clipboardShare = MutableStateFlow<Pair<String, Long>?>(null)
     private val openBookmark = MutableStateFlow<Pair<Long, Long>?>(null)
@@ -97,15 +99,7 @@ class MainActivity : FragmentActivity() {
             repository.settings
                 .map { it.immersiveMode }
                 .distinctUntilChanged()
-                .collect { immersive ->
-                    val controller = WindowInsetsControllerCompat(window, window.decorView)
-                    if (immersive) {
-                        controller.hide(WindowInsetsCompat.Type.systemBars())
-                        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    } else {
-                        controller.show(WindowInsetsCompat.Type.systemBars())
-                    }
-                }
+                .collect { immersive -> applyImmersive(immersive) }
         }
 
         incomingShare.value = sharedText(intent)
@@ -123,6 +117,17 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    private fun applyImmersive(immersive: Boolean) {
+        immersiveEnabled = immersive
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (immersive) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -133,6 +138,10 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         if (!::repository.isInitialized) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val immersive = repository.settings.first().immersiveMode
+            withContext(Dispatchers.Main) { applyImmersive(immersive) }
+        }
         lifecycleScope.launch {
             if (!repository.settings.first().enableClipboardChip) return@launch
             val clip = (getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.primaryClip
@@ -143,6 +152,11 @@ class MainActivity : FragmentActivity() {
             lastClipUrl = url
             clipboardShare.value = url to ++clipSequence
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyImmersive(immersiveEnabled)
     }
 
     private fun readOpenIntent(source: Intent?) {

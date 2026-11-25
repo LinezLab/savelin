@@ -195,7 +195,9 @@ fun App(
             }
             Box(Modifier.fillMaxSize()) {
                 Box(
-                    Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
+                    Modifier.fillMaxSize().windowInsetsPadding(
+                        if (appearance.immersiveMode) WindowInsets(0) else WindowInsets.statusBars.union(WindowInsets.displayCutout),
+                    ),
                 ) {
                     if (tab == HomeTab.SETTINGS) {
                         when {
