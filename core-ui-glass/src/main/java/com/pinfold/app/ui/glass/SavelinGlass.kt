@@ -170,12 +170,15 @@ fun LightGlassChip(
     icon: (@Composable () -> Unit)? = null,
     photo: ImageBitmap? = null,
     photoInk: Color? = null,
+    flat: Boolean = false,
     content: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val desc = contentDescription
     val style = ComponentGlass.resolve(GlassComponent.CHIPS)
     val resolvedInk = photoInk ?: SavelinGlass.ink
-    val surface = if (photo != null && style.photoThrough) {
+    val surface = if (flat) {
+        Modifier.wash(shape, clear.glass)
+    } else if (photo != null && style.photoThrough) {
         val photoSurface = Modifier.photoThrough(photo, shape, clear.dark)
         if (style.chipEffect == "FULL") photoSurface.then(SavelinGlass.modifierFor(GlassComponent.CHIPS, shape)) else photoSurface
     } else {

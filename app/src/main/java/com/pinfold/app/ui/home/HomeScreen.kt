@@ -24,6 +24,10 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +60,9 @@ import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.rememberPhotoInk
-import com.pinfold.app.ui.components.rememberPhotoPreview
+import com.pinfold.app.ui.components.rememberPhotoPreviewWithLuminance
 import com.pinfold.app.ui.glass.GlassChip
+import com.pinfold.app.ui.glass.BarGlyphButton
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
@@ -79,6 +84,9 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     modifier: Modifier = Modifier,
     onOpen: (BookmarkWithTags) -> Unit = {},
+    selectedIds: Set<Long> = emptySet(),
+    onStartSelection: (Long) -> Unit = {},
+    onToggleSelected: (Long) -> Unit = {},
 ) {
     val items by viewModel.items.collectAsState()
     val distinctItems = remember(items) { items.distinctBy { it.bookmark.id } }
@@ -88,6 +96,8 @@ fun HomeScreen(
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val gridState = viewModel.gridState
+    val scrolling by rememberGridScrolling(gridState)
+    val selectionMode = selectedIds.isNotEmpty()
     val spacing = when (settings.cardSpacing) {
         "NORMAL" -> 8.dp
         "ROOMY" -> 12.dp
@@ -150,6 +160,11 @@ fun HomeScreen(
                         fadeOutSpec = SpringMotion.listFade(),
                     ),
                     item = item,
+                    scrolling = scrolling,
+                    selected = item.bookmark.id in selectedIds,
+                    selectionMode = selectionMode,
+                    onStartSelection = { onStartSelection(item.bookmark.id) },
+                    onToggleSelected = { onToggleSelected(item.bookmark.id) },
                     hasReminder = item.bookmark.id in reminderIds,
                     titleLines = settings.cardTitleLines,
                     showAuthorLine = settings.cardShowAuthorLine,
@@ -214,6 +229,11 @@ fun HomeScreen(
 private fun BookmarkCard(
     modifier: Modifier = Modifier,
     item: BookmarkWithTags,
+    scrolling: Boolean,
+    selected: Boolean,
+    selectionMode: Boolean,
+    onStartSelection: () -> Unit,
+    onToggleSelected: () -> Unit,
     hasReminder: Boolean,
     titleLines: Int,
     showAuthorLine: Boolean,
@@ -223,12 +243,13 @@ private fun BookmarkCard(
     onClick: () -> Unit,
     imageModel: () -> Any?,
 ) {
-    val appear = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { appear.animateTo(1f, SpringMotion.listFade()) }
+    val appear = remember { Animatable(if (scrolling) 1f else 0f) }
+    LaunchedEffect(Unit) { if (!scrolling) appear.animateTo(1f, SpringMotion.listFade()) }
     val bookmark = item.bookmark
-    val model = imageModel()
-    val preview = rememberPhotoPreview(bookmark.imagePath, bookmark.blurhash)
-    val photoInk = rememberPhotoInk(preview)
+    val model = remember(bookmark.imagePath) { imageModel() }
+    val previewResult = rememberPhotoPreviewWithLuminance(bookmark.imagePath, bookmark.blurhash)
+    val preview = previewResult.bitmap
+    val photoInk = rememberPhotoInk(previewResult.luminance)
     val ratio = when {
         bookmark.imageWidth > 0 && bookmark.imageHeight > 0 -> {
             val raw = bookmark.imageWidth.toFloat() / bookmark.imageHeight.toFloat()
@@ -238,17 +259,30 @@ private fun BookmarkCard(
     }
     Column(
         modifier.fillMaxWidth()
+            .then(
+                if (selected) Modifier
+                    .background(clear.rim.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+                    .border(2.dp, clear.rim, RoundedCornerShape(20.dp))
+                else Modifier
+            )
             .graphicsLayer {
                 val p = appear.value.coerceIn(0f, 1f)
                 alpha = p
-                if (!MotionSettings.reduceMotion) {
+                if (!scrolling && !MotionSettings.reduceMotion) {
                     val s = 0.94f + 0.06f * p
                     scaleX = s
                     scaleY = s
                     transformOrigin = TransformOrigin(0.5f, 0.2f)
+                } else {
+                    scaleX = 1f
+                    scaleY = 1f
                 }
             }
-            .pressable(onClick = onClick, pressedRim = RoundedCornerShape(20.dp)),
+            .pressable(
+                onClick = { if (selectionMode) onToggleSelected() else onClick() },
+                onLongClick = onStartSelection,
+                pressedRim = RoundedCornerShape(20.dp),
+            ),
     ) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
             if (model != null) {
@@ -272,6 +306,7 @@ private fun BookmarkCard(
                     shape = RoundedCornerShape(10.dp),
                     photo = preview,
                     photoInk = photoInk,
+                    flat = scrolling,
                     icon = {
                         Box(
                             Modifier.size(14.dp).clip(CircleShape)
@@ -292,6 +327,7 @@ private fun BookmarkCard(
                             shape = CircleShape,
                             photo = preview,
                             photoInk = photoInk,
+                            flat = scrolling,
                             contentDescription = "Play video",
                         ) {
                             AppIcons.Icon(AppIcons.Open, "Play video", tint = photoInk ?: clear.ink, size = 14.dp)
@@ -302,6 +338,7 @@ private fun BookmarkCard(
                             shape = CircleShape,
                             photo = preview,
                             photoInk = photoInk,
+                            flat = scrolling,
                             contentDescription = "Bookmark status",
                         ) {
                             if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = photoInk ?: clear.ink, size = 14.dp)
@@ -328,13 +365,19 @@ private fun BookmarkCard(
                         Text(subtitle, color = clear.onGlassSoft, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
-                GlassCircle(
-                    onClick = onMore,
-                    size = 40.dp,
-                    label = "More options",
-                    ink = clear.onGlass,
-                ) {
-                    AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
+                if (scrolling) {
+                    BarGlyphButton(onClick = onMore, label = "More options", size = 40.dp) {
+                        AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
+                    }
+                } else {
+                    GlassCircle(
+                        onClick = onMore,
+                        size = 40.dp,
+                        label = "More options",
+                        ink = clear.onGlass,
+                    ) {
+                        AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
+                    }
                 }
             }
         }
@@ -343,15 +386,18 @@ private fun BookmarkCard(
 
 @Composable
 private fun FallbackTile(platform: String, title: String) {
-    val colors = when (platform.lowercase()) {
-        "instagram" -> listOf(androidx.compose.ui.graphics.Color(0xFFF9CE34), androidx.compose.ui.graphics.Color(0xFFEE2A7B), androidx.compose.ui.graphics.Color(0xFF6228D7))
-        "youtube" -> listOf(androidx.compose.ui.graphics.Color(0xFFFF0000), androidx.compose.ui.graphics.Color(0xFF7F0000))
-        "tiktok" -> listOf(androidx.compose.ui.graphics.Color(0xFF25F4EE), androidx.compose.ui.graphics.Color(0xFFFE2C55))
-        else -> listOf(androidx.compose.ui.graphics.Color(0xFF5E5CE6), androidx.compose.ui.graphics.Color(0xFF0A84FF))
+    val colors = remember(platform) {
+        when (platform.lowercase()) {
+            "instagram" -> listOf(androidx.compose.ui.graphics.Color(0xFFF9CE34), androidx.compose.ui.graphics.Color(0xFFEE2A7B), androidx.compose.ui.graphics.Color(0xFF6228D7))
+            "youtube" -> listOf(androidx.compose.ui.graphics.Color(0xFFFF0000), androidx.compose.ui.graphics.Color(0xFF7F0000))
+            "tiktok" -> listOf(androidx.compose.ui.graphics.Color(0xFF25F4EE), androidx.compose.ui.graphics.Color(0xFFFE2C55))
+            else -> listOf(androidx.compose.ui.graphics.Color(0xFF5E5CE6), androidx.compose.ui.graphics.Color(0xFF0A84FF))
+        }
     }
+    val gradient = remember(colors) { androidx.compose.ui.graphics.Brush.verticalGradient(colors) }
     Box(
         Modifier.fillMaxWidth().aspectRatio(4f / 5f)
-            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors)),
+            .background(gradient),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -367,4 +413,27 @@ private fun FallbackTile(platform: String, title: String) {
             Text("No preview. Add image", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+/** True while the grid's first visible row is moving, plus a short settle window after it stops. */
+@Composable
+private fun rememberGridScrolling(state: LazyStaggeredGridState): Boolean {
+    var scrolling by remember { mutableStateOf(false) }
+    LaunchedEffect(state) {
+        var previous = state.firstVisibleItemIndex to state.firstVisibleItemScrollOffset
+        var settle: Job? = null
+        snapshotFlow { state.firstVisibleItemIndex to state.firstVisibleItemScrollOffset }
+            .collect { current ->
+                if (current != previous) {
+                    previous = current
+                    scrolling = true
+                    settle?.cancel()
+                    settle = launch {
+                        delay(120)
+                        scrolling = false
+                    }
+                }
+            }
+    }
+    return scrolling
 }
