@@ -32,6 +32,11 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.awaitEachGesture
+import androidx.compose.ui.input.pointer.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.waitForUpOrCancellation
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -74,7 +79,7 @@ fun FloatingPillNav(
     BoxWithConstraints(modifier.fillMaxWidth().wrapContentHeight().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
         val shape = RoundedCornerShape(lerp(30.dp, 20.dp, morph))
         Box(
-            Modifier.align(Alignment.BottomStart).alpha(pillAlpha)
+            Modifier.align(Alignment.BottomStart).alpha(pillAlpha).zIndex(10f)
                 .width(lerp(124.dp, maxWidth, morph))
                 .height(60.dp)
                 .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, shape))
@@ -126,7 +131,7 @@ fun FloatingPillNav(
                 .clip(Capsule),
             contentAlignment = Alignment.Center,
         ) {
-            NavGlyph(AppIcons.Settings, "Settings", onSettings, onSettingsLong, colors.onGlass, 60.dp)
+            NavGlyph(AppIcons.Settings, "Settings", onSettings, onSettingsLong, colors.onGlass, 60.dp, enabled = !searchActive)
         }
     }
 }
@@ -174,9 +179,9 @@ private fun SearchFieldRow(
             modifier = Modifier.weight(1f),
         )
         if (enabled && query.isNotEmpty()) {
-            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp)
+            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp, consumeTouches = true)
         }
-        NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp)
+        NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp, consumeTouches = true)
     }
 }
 
@@ -191,6 +196,8 @@ private fun NavGlyph(
     ink: Color,
     size: androidx.compose.ui.unit.Dp = 48.dp,
     iconSize: androidx.compose.ui.unit.Dp = 22.dp,
+    enabled: Boolean = true,
+    consumeTouches: Boolean = false,
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
@@ -210,10 +217,18 @@ private fun NavGlyph(
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
+                enabled = enabled,
                 role = Role.Button,
                 onClick = { haptics?.play(Feel.Tap); onClick() },
                 onLongClick = onLongClick?.let { l -> { haptics?.play(Feel.Bloom); l() } },
             )
+            .then(if (consumeTouches) Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    down.consume()
+                    waitForUpOrCancellation()?.consume()
+                }
+            } else Modifier)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {

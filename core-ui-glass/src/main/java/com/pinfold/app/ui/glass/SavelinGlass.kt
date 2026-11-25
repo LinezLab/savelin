@@ -130,12 +130,16 @@ object SavelinGlass {
             TintChoice.BLACK -> Color.Black
             TintChoice.AUTOMATIC -> base
         }
+        val pill = component == GlassComponent.CHIPS ||
+            component == GlassComponent.NAVIGATION ||
+            component == GlassComponent.BUTTONS ||
+            component == GlassComponent.SNACKBARS_TOOLTIPS
         return Modifier.glass(
             shape = shape,
             wash = neutral.copy(alpha = (base.alpha * s.tintOpacity * s.opacity).coerceIn(0f, 1f)),
-            blur = 8.dp * s.blur,
-            lensHeight = 16.dp * s.refractionHeight,
-            lensAmount = 24.dp * s.refractionAmount,
+            blur = if (pill) 12.dp else 8.dp * s.blur,
+            lensHeight = if (pill) 12.dp else 16.dp * s.refractionHeight,
+            lensAmount = if (pill) 24.dp else 24.dp * s.refractionAmount,
             scaleByStyle = false,
         )
     }

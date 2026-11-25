@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pinfold.app.diagnostics.CrashReporter
@@ -157,7 +158,7 @@ fun App(
     GlassStage(
         wallpaper = {
             val dark = clear.dark
-            Box(Modifier.fillMaxSize().background(if (dark) HOME_BACKGROUND_DARK else HOME_BACKGROUND_LIGHT))
+            Box(Modifier.fillMaxSize().background(if (dark) HOME_BACKGROUND_DARK else HOME_BACKGROUND_LIGHT).zIndex(-9999f))
         },
         screens = {
             val overlaysOpen = LocalGlassOverlayHost.current?.hasOverlays == true
