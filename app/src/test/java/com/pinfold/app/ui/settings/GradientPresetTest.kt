@@ -16,7 +16,7 @@ class GradientPresetTest {
         assertEquals(first, gradientBlobSeeds(1234L, GRADIENT_BLOB_COUNT))
         assertEquals(GRADIENT_BLOB_COUNT, first.size)
         assertEquals(emptyList<Pair<Float, Float>>(), gradientBlobSeeds(1234L, 0))
-        assertEquals(-1, gradientBlobSeeds(1234L, -1).size)
+        assertEquals(0, gradientBlobSeeds(1234L, -1).size)
         assertTrue(first.all { (x, y) -> x in 0f..1f && y in 0f..1f })
         assertTrue(first != gradientBlobSeeds(9876L, GRADIENT_BLOB_COUNT))
     }
