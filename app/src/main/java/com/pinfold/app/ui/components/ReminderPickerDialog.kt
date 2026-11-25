@@ -2,6 +2,7 @@ package com.pinfold.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DatePicker
@@ -29,7 +29,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.SavelinGlassDialog
@@ -40,9 +39,22 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+
+internal const val WHEEL_REPEAT = 1000
+internal const val WHEEL_CENTER_CYCLE = WHEEL_REPEAT / 2
+
+internal fun <T> wheelValueAt(base: List<T>, index: Int): T {
+    val normalized = ((index % base.size) + base.size) % base.size
+    return base[normalized]
+}
+
+internal fun <T> wheelStartIndex(base: List<T>, value: T): Int =
+    WHEEL_CENTER_CYCLE * base.size + base.indexOf(value)
+
+internal fun wheelNormalizedIndex(index: Int, baseSize: Int): Int =
+    WHEEL_CENTER_CYCLE * baseSize + ((index % baseSize) + baseSize) % baseSize
 
 internal fun hourIn24(hour12: Int, pm: Boolean): Int =
     (hour12.coerceIn(1, 12) % 12) + if (pm) 12 else 0
@@ -64,14 +76,14 @@ internal fun reminderTriggerAt(
 internal fun ReminderPickerDialog(
     onDismiss: () -> Unit,
     onPick: (Long) -> Unit,
-    ink: Color? = clear.hero,
+    ink: Color? = null,
 ) {
     var step by remember { mutableStateOf(1) }
     val dateState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis() + 86_400_000L)
     var hour12 by remember { mutableStateOf(9) }
     var minute by remember { mutableStateOf(0) }
     var pm by remember { mutableStateOf(false) }
-    val contentInk = ink ?: clear.hero
+    val contentInk = ink ?: clear.onGlassSoft
     val trigger = reminderTriggerAt(dateState.selectedDateMillis, hourIn24(hour12, pm), minute)
     SavelinGlassDialog(
         onDismiss = onDismiss,
@@ -86,14 +98,14 @@ internal fun ReminderPickerDialog(
         },
         confirmEnabled = step == 1 || trigger != null,
         dismiss = "Cancel",
-        ink = ink,
+        ink = null,
     ) {
         if (step == 1) {
             DatePicker(
                 state = dateState,
                 showModeToggle = false,
                 colors = DatePickerDefaults.colors(
-                    containerColor = Color.Transparent,
+                    containerColor = clear.frost,
                     titleContentColor = contentInk,
                     headlineContentColor = contentInk,
                     weekdayContentColor = contentInk.copy(alpha = 0.72f),
@@ -155,21 +167,25 @@ private fun <T> Wheel(
     rowHeight: Dp = 44.dp,
 ) {
     val state = rememberLazyListState()
+    val flingBehavior = rememberSnapFlingBehavior(state)
     val scope = rememberCoroutineScope()
-    val rowPx = with(LocalDensity.current) { rowHeight.toPx() }
-    val centerOffset = (rowPx * 2f).toInt()
-    val centered by remember(values, rowPx) {
+    val count = values.size * WHEEL_REPEAT
+    val startIndex = wheelStartIndex(values, selected)
+    val centeredIndex by remember(values, startIndex) {
         derivedStateOf {
-            (state.firstVisibleItemIndex + (state.firstVisibleItemScrollOffset / rowPx).roundToInt())
-                .coerceIn(0, values.lastIndex)
+            val layoutInfo = state.layoutInfo
+            val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2f
+            layoutInfo.visibleItemsInfo
+                .minByOrNull { abs(it.offset + it.size / 2f - viewportCenter) }
+                ?.index ?: startIndex
         }
     }
-    LaunchedEffect(Unit) {
-        state.scrollToItem(values.indexOf(selected).coerceAtLeast(0), -centerOffset)
+    val centeredValue = wheelValueAt(values, centeredIndex)
+    LaunchedEffect(startIndex) {
+        state.scrollToItem(startIndex)
     }
-    LaunchedEffect(centered) {
-        val value = values[centered]
-        if (value != selected) onSelect(value)
+    LaunchedEffect(centeredValue) {
+        if (centeredValue != selected) onSelect(centeredValue)
     }
     LaunchedEffect(Unit) {
         var wasScrolling = false
@@ -177,15 +193,8 @@ private fun <T> Wheel(
             .distinctUntilChanged()
             .collect { scrolling ->
                 if (wasScrolling && !scrolling) {
-                    val index = (state.firstVisibleItemIndex +
-                        (state.firstVisibleItemScrollOffset / rowPx).roundToInt())
-                        .coerceIn(0, values.lastIndex)
-                    val aligned = if (index == 0) {
-                        state.firstVisibleItemScrollOffset == 0
-                    } else {
-                        abs(state.firstVisibleItemScrollOffset - rowPx) <= 2f
-                    }
-                    if (!aligned) state.animateScrollToItem(index, -centerOffset)
+                    val want = wheelNormalizedIndex(centeredIndex, values.size)
+                    if (centeredIndex != want) state.scrollToItem(want)
                 }
                 wasScrolling = scrolling
             }
@@ -200,15 +209,16 @@ private fun <T> Wheel(
         LazyColumn(
             state = state,
             modifier = Modifier.fillMaxSize(),
+            flingBehavior = flingBehavior,
             contentPadding = PaddingValues(vertical = rowHeight * 2),
         ) {
-            items(values.size) { index ->
-                val value = values[index]
-                val isSelected = value == selected
+            items(count) { index ->
+                val value = wheelValueAt(values, index)
+                val isSelected = index == centeredIndex
                 Box(
                     Modifier.fillMaxWidth().height(rowHeight).clickable {
                         onSelect(value)
-                        scope.launch { state.animateScrollToItem(index, -centerOffset) }
+                        scope.launch { state.animateScrollToItem(index) }
                     },
                     contentAlignment = Alignment.Center,
                 ) {

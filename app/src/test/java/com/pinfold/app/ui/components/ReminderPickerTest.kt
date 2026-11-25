@@ -2,6 +2,7 @@ package com.pinfold.app.ui.components
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -49,5 +50,43 @@ class ReminderPickerTest {
     fun outOfRangeClockValuesAreClamped() {
         val day = LocalDate.of(2026, 12, 1)
         assertEquals(expected(day, 23, 59), reminderTriggerAt(utcMidnight(day), 99, 99, now))
+    }
+
+    @Test
+    fun wheelValueAtWrapsInBothDirections() {
+        val base = listOf(12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+        assertEquals(12, wheelValueAt(base, 0))
+        assertEquals(11, wheelValueAt(base, 11))
+        assertEquals(12, wheelValueAt(base, 12))
+        assertEquals(11, wheelValueAt(base, -1))
+        assertEquals(12, wheelValueAt(base, -12))
+        assertEquals(11, wheelValueAt(base, -13))
+    }
+
+    @Test
+    fun wheelStartIndexLandsInCenterCycleOnSelectedValue() {
+        val base = listOf(12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+        val index = wheelStartIndex(base, 9)
+        assertEquals(WHEEL_CENTER_CYCLE * base.size + base.indexOf(9), index)
+        assertEquals(9, wheelValueAt(base, index))
+        assertTrue(index in WHEEL_CENTER_CYCLE * base.size until (WHEEL_CENTER_CYCLE + 1) * base.size)
+    }
+
+    @Test
+    fun wheelNormalizedIndexPreservesValueAndReturnsToCenterCycle() {
+        val base = (0..59).toList()
+        val outside = (WHEEL_CENTER_CYCLE - 2) * base.size + 7
+        assertEquals(7, wheelValueAt(base, outside))
+        val normalized = wheelNormalizedIndex(outside, base.size)
+        assertEquals(7, wheelValueAt(base, normalized))
+        assertTrue(normalized in WHEEL_CENTER_CYCLE * base.size until (WHEEL_CENTER_CYCLE + 1) * base.size)
+        assertEquals(59, wheelValueAt(base, wheelNormalizedIndex(-1, base.size)))
+    }
+
+    @Test
+    fun wheelRepeatIsEvenAndLarge() {
+        assertTrue(WHEEL_REPEAT % 2 == 0)
+        assertTrue(WHEEL_REPEAT >= 100)
+        assertEquals(WHEEL_REPEAT / 2, WHEEL_CENTER_CYCLE)
     }
 }
