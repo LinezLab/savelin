@@ -38,6 +38,14 @@ class ReminderPickerTest {
     }
 
     @Test
+    fun twelveHourWheelConvertsToTwentyFourHourClock() {
+        assertEquals(0, hourIn24(12, false))
+        assertEquals(9, hourIn24(9, false))
+        assertEquals(12, hourIn24(12, true))
+        assertEquals(21, hourIn24(9, true))
+    }
+
+    @Test
     fun outOfRangeClockValuesAreClamped() {
         val day = LocalDate.of(2026, 12, 1)
         assertEquals(expected(day, 23, 59), reminderTriggerAt(utcMidnight(day), 99, 99, now))
