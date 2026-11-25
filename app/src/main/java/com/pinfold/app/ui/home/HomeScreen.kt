@@ -67,10 +67,10 @@ import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassPill
+import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.SavelinGlassDialog
-import com.pinfold.app.ui.glass.SpringMotion
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
@@ -169,9 +169,9 @@ fun HomeScreen(
             items(distinctItems, key = { "bookmark-${it.bookmark.id}" }, contentType = { "bookmark" }) { item ->
                 BookmarkCard(
                     modifier = Modifier.animateItem(
-                        placementSpec = SpringMotion.listPlace(),
-                        fadeInSpec = SpringMotion.listFade(),
-                        fadeOutSpec = SpringMotion.listFade(),
+                        placementSpec = IosMotion.Place,
+                        fadeInSpec = IosMotion.Layout,
+                        fadeOutSpec = IosMotion.Layout,
                     ),
                     item = item,
                     scrolling = scrolling,
@@ -254,7 +254,7 @@ private fun BookmarkCard(
     imageModel: () -> Any?,
 ) {
     val appear = remember { Animatable(if (scrolling) 1f else 0f) }
-    LaunchedEffect(Unit) { if (!scrolling) appear.animateTo(1f, SpringMotion.listFade()) }
+    LaunchedEffect(Unit) { if (!scrolling) appear.animateTo(1f, IosMotion.Layout) }
     val bookmark = item.bookmark
     val context = LocalContext.current
     val faviconPath = remember(bookmark.url) {

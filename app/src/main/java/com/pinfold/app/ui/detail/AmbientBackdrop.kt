@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.pinfold.app.ui.glass.IosMotion
 
 internal const val MESH_SEAM_ANIM_MS = 320
 
@@ -55,10 +56,7 @@ internal fun AmbientBackdrop(
         } else {
             fade.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = crossfadeDurationMs(reduceMotion),
-                    easing = FastOutSlowInEasing,
-                ),
+                animationSpec = IosMotion.alpha(IosMotion.LayoutStiffness),
             )
         }
     }
@@ -69,7 +67,7 @@ internal fun AmbientBackdrop(
         } else if (seam.value <= 0f || reduceMotion) {
             seam.snapTo(seamPx)
         } else {
-            seam.animateTo(seamPx, tween(durationMillis = MESH_SEAM_ANIM_MS, easing = FastOutSlowInEasing))
+            seam.animateTo(seamPx, IosMotion.spec(IosMotion.LayoutDamping, IosMotion.LayoutStiffness))
         }
     }
 

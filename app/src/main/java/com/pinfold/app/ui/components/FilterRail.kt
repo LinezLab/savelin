@@ -39,7 +39,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule as GlassCapsule
 import com.pinfold.app.ui.glass.GlassComponent
-import com.pinfold.app.ui.glass.MotionSettings
+import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.theme.clear
 import kotlinx.coroutines.delay
@@ -61,8 +61,8 @@ fun FilterRail(
     onCopy: () -> Unit = {},
     onShare: () -> Unit = {},
 ) {
-    val slide by animateFloatAsState(if (visible) 0f else 28f, MotionSettings.style.let { androidx.compose.animation.core.spring(0.9f, 420f) }, label = "filterRailSlide")
-    val opacity by animateFloatAsState(if (visible) 1f else 0f, androidx.compose.animation.core.tween(220), label = "filterRailFade")
+    val slide by animateFloatAsState(if (visible) 0f else 28f, IosMotion.spec(IosMotion.MenuDamping, IosMotion.PressStiffness), label = "filterRailSlide")
+    val opacity by animateFloatAsState(if (visible) 1f else 0f, IosMotion.alpha(IosMotion.PressStiffness), label = "filterRailFade")
     var tooltip by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(tooltip) {
         if (tooltip != null) { delay(1400); tooltip = null }

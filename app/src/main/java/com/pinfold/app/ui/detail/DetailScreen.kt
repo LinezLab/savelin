@@ -94,6 +94,8 @@ import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.Feel
+import androidx.compose.animation.core.animateFloatAsState
+import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.GlassTextField
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.SavelinGlassDialog
@@ -552,13 +554,17 @@ private fun OverlayOpenText(
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
     val textHeight = with(density) { textLayout.size.height.toDp() }
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (pressed) 0.9f else 1f, IosMotion.Press, label = "openTextPress")
     val haptics = LocalHaptics.current
     Box(
         Modifier
             .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
             .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = source,
                 indication = null,
                 role = Role.Button,
                 onClick = { haptics?.play(Feel.Tap); onClick() },
@@ -685,6 +691,7 @@ private fun BareGlyph(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (pressed) 0.9f else 1f, IosMotion.Press, label = "detailGlyphPress")
     val haptics = LocalHaptics.current
     val dark = clear.dark
     Box(
@@ -697,7 +704,7 @@ private fun BareGlyph(
                     cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
                 )
             }
-            .graphicsLayer { val s = if (pressed) 0.9f else 1f; scaleX = s; scaleY = s }
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .combinedClickable(
                 interactionSource = source,
                 indication = null,

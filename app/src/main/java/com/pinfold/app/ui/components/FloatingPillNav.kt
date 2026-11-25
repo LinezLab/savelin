@@ -41,10 +41,8 @@ import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.LocalHaptics
 import com.pinfold.app.ui.glass.GlassComponent
-import com.pinfold.app.ui.glass.MotionSettings
+import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.SavelinGlass
-import com.pinfold.app.ui.glass.SpringMotion
-import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.clear
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -67,9 +65,9 @@ fun FloatingPillNav(
     modifier: Modifier = Modifier,
 ) {
     val colors = clear
-    val morph by animateFloatAsState(if (searchActive) 1f else 0f, SpringMotion.searchMorph(), label = "searchMorph")
-    val pillAlpha by animateFloatAsState(if (visible) 1f else 0f, SpringMotion.popOpen(), label = "pillAlpha")
-    val settingsAlpha by animateFloatAsState(if (visible && !searchActive) 1f else 0f, SpringMotion.popOpen(), label = "settingsAlpha")
+    val morph by animateFloatAsState(if (searchActive) 1f else 0f, IosMotion.Menu, label = "searchMorph")
+    val pillAlpha by animateFloatAsState(if (visible) 1f else 0f, IosMotion.alpha(IosMotion.PressStiffness), label = "pillAlpha")
+    val settingsAlpha by animateFloatAsState(if (visible && !searchActive) 1f else 0f, IosMotion.alpha(IosMotion.PressStiffness), label = "settingsAlpha")
 
     BoxWithConstraints(modifier.fillMaxWidth().wrapContentHeight().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 14.dp)) {
         val shape = RoundedCornerShape(lerp(30.dp, 20.dp, morph))
@@ -197,6 +195,7 @@ private fun NavGlyph(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (pressed) 0.9f else 1f, IosMotion.Press, label = "navGlyphPress")
     val haptics = LocalHaptics.current
     val dark = clear.dark
     Box(
@@ -209,7 +208,7 @@ private fun NavGlyph(
                     cornerRadius = CornerRadius(minOf(this.size.width, this.size.height) / 2),
                 )
             }
-            .graphicsLayer { val s = if (pressed) 0.9f else 1f; scaleX = s; scaleY = s }
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
