@@ -64,7 +64,6 @@ import com.pinfold.app.ui.components.rememberPhotoInk
 import com.pinfold.app.ui.components.rememberPhotoPreviewWithLuminance
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
-import com.pinfold.app.ui.glass.BarGlyphButton
 import com.pinfold.app.ui.glass.GlassCircle
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.LightGlassChip
@@ -304,7 +303,6 @@ private fun BookmarkCard(
                     shape = RoundedCornerShape(10.dp),
                     photo = preview,
                     photoInk = photoInk,
-                    flat = scrolling,
                     icon = {
                         Box(
                             Modifier.size(14.dp).clip(CircleShape)
@@ -325,7 +323,6 @@ private fun BookmarkCard(
                             shape = CircleShape,
                             photo = preview,
                             photoInk = photoInk,
-                            flat = scrolling,
                             contentDescription = "Play video",
                         ) {
                             AppIcons.Icon(AppIcons.Open, "Play video", tint = photoInk ?: clear.ink, size = 14.dp)
@@ -336,7 +333,6 @@ private fun BookmarkCard(
                             shape = CircleShape,
                             photo = preview,
                             photoInk = photoInk,
-                            flat = scrolling,
                             contentDescription = "Bookmark status",
                         ) {
                             if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = photoInk ?: clear.ink, size = 14.dp)
@@ -363,19 +359,13 @@ private fun BookmarkCard(
                         Text(subtitle, color = clear.onGlassSoft, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
-                if (scrolling) {
-                    BarGlyphButton(onClick = onMore, label = "More options", size = 40.dp) {
-                        AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
-                    }
-                } else {
-                    GlassCircle(
-                        onClick = onMore,
-                        size = 40.dp,
-                        label = "More options",
-                        ink = clear.onGlass,
-                    ) {
-                        AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
-                    }
+                GlassCircle(
+                    onClick = onMore,
+                    size = 40.dp,
+                    label = "More options",
+                    ink = clear.onGlass,
+                ) {
+                    AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
                 }
             }
         }
