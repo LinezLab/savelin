@@ -387,6 +387,7 @@ fun DetailScreen(
                 onClick = onBack,
             )
             OverlayOpenText(
+                reduceMotion = reduceMotion,
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
@@ -539,6 +540,7 @@ private fun StickySonilLogo() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OverlayOpenText(
+    reduceMotion: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -554,6 +556,7 @@ private fun OverlayOpenText(
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
     val textHeight = with(density) { textLayout.size.height.toDp() }
+    val shimmerBrush = rememberTextShimmerBrush(OPEN_TEXT_COLOR, textLayout.size.width.toFloat(), reduceMotion)
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val pressScale by animateFloatAsState(if (pressed) 0.9f else 1f, IosMotion.Press, label = "openTextPress")
@@ -579,7 +582,7 @@ private fun OverlayOpenText(
                 blendMode = OPEN_TEXT_BLEND_MODE
             },
         ) {
-            drawText(textLayout, color = OPEN_TEXT_COLOR)
+            drawText(textLayout, brush = shimmerBrush)
         }
     }
 }

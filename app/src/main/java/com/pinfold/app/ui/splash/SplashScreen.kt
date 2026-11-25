@@ -38,6 +38,7 @@ import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.ui.components.rememberPhotoPreview
 import com.pinfold.app.ui.detail.AmbientBackdrop
 import com.pinfold.app.ui.detail.rememberAmbience
+import com.pinfold.app.ui.detail.rememberTextShimmerBrush
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
 import kotlinx.coroutines.delay
@@ -93,7 +94,7 @@ fun SplashScreen(
         )
         BlurredHero(preview)
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            SplashSonilLogo()
+            SplashSonilLogo(reduceMotion)
         }
     }
 }
@@ -116,7 +117,7 @@ private fun BlurredHero(preview: ImageBitmap?) {
 }
 
 @Composable
-private fun SplashSonilLogo() {
+private fun SplashSonilLogo(reduceMotion: Boolean) {
     val measurer = rememberTextMeasurer()
     val ink = clear.hero
     val refStyle = TextStyle(
@@ -136,6 +137,7 @@ private fun SplashSonilLogo() {
     val density = LocalDensity.current
     val width = with(density) { layout.size.width.toDp() }
     val height = with(density) { layout.size.height.toDp() }
+    val shimmerBrush = rememberTextShimmerBrush(ink, layout.size.width.toFloat(), reduceMotion)
     Canvas(
         Modifier.size(width, height)
             .graphicsLayer {
@@ -144,6 +146,6 @@ private fun SplashSonilLogo() {
             }
             .semantics { contentDescription = "Sonil" },
     ) {
-        drawText(layout, color = ink)
+        drawText(layout, brush = shimmerBrush)
     }
 }
