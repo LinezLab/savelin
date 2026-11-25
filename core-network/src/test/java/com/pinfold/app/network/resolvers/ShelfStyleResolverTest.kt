@@ -40,8 +40,9 @@ class ShelfStyleResolverTest {
         val icon = """<html><head><link rel="apple-touch-icon" href="/icon.png"></head></html>"""
         assertEquals(
             "https://example.com/icon.png",
-            ShelfStyleResolver.parse(icon, "https://example.com/a").imageUrls.single(),
+            ShelfStyleResolver.parse(icon, "https://example.com/a").faviconUrls.first(),
         )
+        assertTrue(ShelfStyleResolver.parse(icon, "https://example.com/a").imageUrls.isEmpty())
 
         val bigImg = """<html><body><img src="big.jpg" width="640" height="480"><img src="tiny.jpg" width="32" height="32"></body></html>"""
         assertEquals(
@@ -56,6 +57,23 @@ class ShelfStyleResolverTest {
         assertEquals(
             "https://cdn.example.com/p.png",
             ShelfStyleResolver.parse(html, "https://example.com/a").imageUrls.single(),
+        )
+    }
+
+    @Test
+    fun collectsSameSiteFaviconsInPriorityOrder() {
+        val html = """
+            <html><head>
+            <link rel="apple-touch-icon" sizes="180x180" href="/apple.png">
+            <link rel="icon" sizes="32x32" href="/small.png">
+            <link rel="shortcut" href="/old.ico">
+            <link rel="icon" href="//cdn.other.com/icon.png">
+            </head></html>
+        """.trimIndent()
+        val preview = ShelfStyleResolver.parse(html, "https://example.com/a")
+        assertEquals(
+            listOf("https://example.com/apple.png", "https://example.com/small.png", "https://example.com/old.ico", "https://example.com/favicon.ico"),
+            preview.faviconUrls,
         )
     }
 

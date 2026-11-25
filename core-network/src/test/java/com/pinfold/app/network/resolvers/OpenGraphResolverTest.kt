@@ -39,4 +39,22 @@ class OpenGraphResolverTest {
         val preview = OpenGraphResolver.parse(html, "https://example.com/a", "test")
         assertTrue(preview.imageUrls.contains("https://cdn.example.com/ld.jpg"))
     }
+
+    @Test
+    fun collectsSameSiteFaviconsByPriority() {
+        val html = """
+            <html><head>
+            <link rel="apple-touch-icon" sizes="180x180" href="/apple.png">
+            <link rel="icon" sizes="32x32" href="/small.png">
+            <link rel="shortcut" href="/old.ico">
+            <link rel="icon" href="https://evil.example/x.png">
+            </head></html>
+        """.trimIndent()
+        val preview = OpenGraphResolver.parse(html, "https://example.com/a", "test")
+        assertEquals(
+            listOf("https://example.com/apple.png", "https://example.com/small.png", "https://example.com/old.ico", "https://example.com/favicon.ico"),
+            preview.faviconUrls,
+        )
+        assertTrue(preview.faviconUrls.none { it.contains("evil.example") })
+    }
 }

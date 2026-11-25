@@ -27,6 +27,7 @@ class PreviewFetcherTest {
         title = "Primary title",
         description = "Primary description",
         imageUrls = listOf("https://cdn.example.com/primary.jpg"),
+        faviconUrls = listOf("https://example.com/primary.ico"),
         source = "shelf-primary",
     )
 
@@ -45,15 +46,17 @@ class PreviewFetcherTest {
         assertEquals(listOf("shelf-primary"), calls)
         assertEquals("Primary title", result.title)
         assertEquals(listOf("https://cdn.example.com/primary.jpg"), result.imageUrls)
+        assertEquals(listOf("https://example.com/primary.ico"), result.faviconUrls)
     }
 
     @Test
     fun metadataOnlyPrimaryFallsBackToCurrentChainForImages() = runBlocking {
         val calls = mutableListOf<String>()
-        val metadataOnly = primary.copy(imageUrls = emptyList())
+        val metadataOnly = primary.copy(imageUrls = emptyList(), faviconUrls = listOf("https://example.com/meta.ico"))
         val legacyPreview = primary.copy(
             title = "Legacy title",
             imageUrls = listOf("https://cdn.example.com/legacy.jpg"),
+            faviconUrls = listOf("https://example.com/meta.ico", "https://example.com/legacy.ico"),
             source = "legacy",
         )
         val fetcher = PreviewFetcher(
@@ -67,6 +70,10 @@ class PreviewFetcherTest {
         assertEquals(listOf("shelf-primary", "legacy"), calls)
         assertEquals("Primary title", result.title)
         assertEquals(listOf("https://cdn.example.com/legacy.jpg"), result.imageUrls)
+        assertEquals(
+            listOf("https://example.com/meta.ico", "https://example.com/legacy.ico"),
+            result.faviconUrls,
+        )
     }
 
     @Test
