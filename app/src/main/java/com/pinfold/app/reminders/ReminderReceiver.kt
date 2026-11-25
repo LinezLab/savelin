@@ -7,9 +7,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapDrawable
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -71,7 +71,6 @@ class ReminderReceiver : BroadcastReceiver() {
             .setColor(Color.parseColor("#8401F2"))
             .setAutoCancel(true)
             .build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) notification.colorized = true
         manager.notify(bookmarkId.toInt(), notification)
     }
 
