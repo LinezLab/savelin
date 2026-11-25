@@ -25,11 +25,35 @@ import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.clip
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pinfold.app.ui.background.AnimatedGradientBackground
+import com.pinfold.app.ui.background.BuiltInGradients
+import com.pinfold.app.ui.background.GRADIENT_FADE_MS
+import com.pinfold.app.ui.background.GradientThumbnail
+import com.pinfold.app.ui.glass.pressable
+import com.pinfold.app.ui.glass.theme.clear
+import com.pinfold.app.ui.liquidglass.GlassButton
+import com.pinfold.app.ui.liquidglass.VibrantText
 
 @Composable
 fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
+    val gradientVm: GradientViewModel = viewModel()
+    val selectedPreset by gradientVm.selectedPreset.collectAsState()
+    val savedPresets by gradientVm.savedPresets.collectAsState()
     var importResult by remember { mutableStateOf<Int?>(null) }
     var vaultHint by remember { mutableStateOf(false) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
@@ -41,7 +65,15 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
     val glass = GlassSettings.style
     val motion = MotionSettings.style
 
-    SettingsScaffold("Settings", onBack = { viewModel.selectTab(HomeTab.HOME) }) {
+    Box(Modifier.fillMaxSize()) {
+        Crossfade(
+            targetState = selectedPreset,
+            animationSpec = if (settings.reduceMotion) snap<Float>() else tween<Float>(GRADIENT_FADE_MS),
+            label = "settingsGradient",
+        ) { preset ->
+            AnimatedGradientBackground(preset, Modifier.fillMaxSize(), settings.reduceMotion)
+        }
+        SettingsScaffold("Settings", onBack = { viewModel.selectTab(HomeTab.HOME) }) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
                 Text("Theme", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = com.pinfold.app.ui.glass.theme.clear.ink)
@@ -55,6 +87,36 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                     modifier = Modifier.fillMaxWidth(),
                     onEnabledChange = { viewModel.setSetting("glassUiEnabled", it) },
                 )
+                Text("Gradient background", style = MaterialTheme.typography.labelMedium, color = clear.onGlassSoft)
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    (BuiltInGradients + savedPresets).forEach { preset ->
+                        val selected = preset.id == selectedPreset.id
+                        val tile = if (selected) 68.dp else 60.dp
+                        val saved = savedPresets.any { it.id == preset.id }
+                        Box(
+                            Modifier.size(tile)
+                                .clip(RoundedCornerShape(14.dp))
+                                .then(if (selected) Modifier.border(2.dp, clear.onGlass, RoundedCornerShape(14.dp)) else Modifier)
+                                .pressable(
+                                    onClick = { gradientVm.select(preset.id) },
+                                    onLongClick = if (saved) {
+                                        { gradientVm.save(savedPresets.filterNot { it.id == preset.id }) }
+                                    } else null,
+                                ),
+                        ) { GradientThumbnail(preset, tile) }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GlassButton(onClick = { gradientVm.generate() }) {
+                        VibrantText("Generate", style = MaterialTheme.typography.labelMedium)
+                    }
+                    GlassButton(onClick = { gradientVm.save(savedPresets + selectedPreset) }) {
+                        VibrantText("Save as preset", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
                     GlassSwitch(settings.detailAmbientBackground) { viewModel.setSetting("detailAmbientBackground", it) }
@@ -153,6 +215,7 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                 SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context))
             }
         }
+    }
     }
     if (vaultHint) {
         DiagnosticsToast("Long press to open the private vault", onDone = { vaultHint = false })
