@@ -6,7 +6,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -35,6 +34,7 @@ import com.pinfold.app.ui.background.rememberAppInForeground
 import com.pinfold.app.ui.background.rememberPowerSaveMode
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.iosHorizontalScroll
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
@@ -67,7 +67,7 @@ fun BackgroundScreen(viewModel: HomeViewModel) {
 
         SettingsSection("TYPE") {
             SettingsCard {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf("GENERATED" to "Generated", "SOLID" to "Solid colour", "PICTURE" to "Picture").forEach { (value, label) ->
                         ChoiceTile(label, selected = settings.backgroundType == value, onClick = { viewModel.setSetting("backgroundType", value) },
                             preview = {
@@ -82,7 +82,7 @@ fun BackgroundScreen(viewModel: HomeViewModel) {
 
         SettingsSection("STYLE") {
             SettingsCard {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf("PETALS" to "Petals", "AURORA" to "Aurora", "MESH" to "Mesh", "WAVES" to "Waves").forEach { (value, label) ->
                         ChoiceTile(label, selected = settings.backgroundStyle == value, onClick = { viewModel.setSetting("backgroundStyle", value) },
                             preview = {

@@ -1,6 +1,8 @@
 package com.pinfold.app.ui.settings
 
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassChoicePopUp
+import com.pinfold.app.ui.components.rememberIosFlingBehavior
+import com.pinfold.app.ui.components.rememberIosOverscrollEffect
 import com.pinfold.app.ui.glass.GlassBackButton
 import com.pinfold.app.ui.glass.GlassSlider
 import com.pinfold.app.ui.glass.GlassToggle
@@ -54,11 +58,14 @@ fun SettingsScaffold(
     title: String,
     onBack: () -> Unit,
     topInsets: WindowInsets = WindowInsets.statusBars.union(WindowInsets.displayCutout),
+    flingBehavior: FlingBehavior = rememberIosFlingBehavior(),
+    overscrollEffect: OverscrollEffect? = rememberIosOverscrollEffect(),
     content: @Composable () -> Unit,
 ) {
     Column(
         Modifier.fillMaxWidth().windowInsetsPadding(topInsets)
-            .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            .verticalScroll(rememberScrollState(), overscrollEffect = overscrollEffect, flingBehavior = flingBehavior)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             GlassBackButton(onBack = onBack)

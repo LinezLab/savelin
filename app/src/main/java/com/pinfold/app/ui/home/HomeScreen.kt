@@ -62,6 +62,8 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
+import com.pinfold.app.ui.components.rememberIosFlingBehavior
+import com.pinfold.app.ui.components.rememberIosOverscrollEffect
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
@@ -156,6 +158,8 @@ fun HomeScreen(
             ),
             verticalItemSpacing = spacing,
             horizontalArrangement = Arrangement.spacedBy(spacing),
+            flingBehavior = rememberIosFlingBehavior(),
+            overscrollEffect = rememberIosOverscrollEffect(),
         ) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 Text(

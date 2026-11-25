@@ -2,7 +2,6 @@ package com.pinfold.app.ui.settings
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -30,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.iosHorizontalScroll
 import com.pinfold.app.ui.components.GlassDropdown
 import com.pinfold.app.ui.glass.GlassChip
 import com.pinfold.app.ui.glass.GlassCircle
@@ -66,7 +66,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
             }
         }
         SettingsCard {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassChip(onClick = {}, height = 40.dp) { Text("Press me", color = clear.onGlass) }
                 GlassCircle(onClick = {}, size = 40.dp, label = "Preview", ink = clear.onGlass) {
                     AppIcons.Icon(AppIcons.Normal, null, tint = clear.onGlass)
@@ -92,7 +92,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
                     onSelect = { name -> GlassStyle.Named.firstOrNull { it.first == name }?.second?.let { GlassSettings.update(context, it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     GlassStyle.Named.forEach { (name, preset) ->
                         ChoiceTile(
                             label = name,
@@ -126,7 +126,7 @@ fun GlassMotionScreen(viewModel: HomeViewModel) {
                     onSelect = { name -> MotionStyle.Presets.firstOrNull { it.label == name }?.let { MotionSettings.update(context, it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MotionStyle.Presets.forEach { preset ->
                         ChoiceTile(
                             label = preset.label,

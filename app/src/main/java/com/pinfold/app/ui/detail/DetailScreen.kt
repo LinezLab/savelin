@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,6 +91,7 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.image.FaviconPaths
 import com.pinfold.app.network.resolvers.FaviconHostPolicy
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.iosVerticalScroll
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
@@ -669,7 +669,7 @@ private fun ColumnScope.DetailMetadataBody(
                     .pointerInput(Unit) {
                         detectVerticalDragGestures { change, _ -> change.consume() }
                     }
-                    .verticalScroll(descriptionScrollState)
+                    .iosVerticalScroll(descriptionScrollState)
             } else {
                 Modifier
             }

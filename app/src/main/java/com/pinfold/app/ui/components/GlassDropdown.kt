@@ -2,12 +2,14 @@ package com.pinfold.app.ui.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,7 +79,8 @@ fun GlassChoicePopUp(
         Box(Modifier.fillMaxSize().padding(16.dp)) {
             Box(Modifier.fillMaxSize().clickable(onClick = onDismiss))
             Column(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                Modifier.heightIn(max = 420.dp).iosVerticalScroll(rememberScrollState())
+                    .align(Alignment.BottomCenter).fillMaxWidth()
                     .floatingLayer {
                         val p = appear.value.coerceIn(0f, 1f)
                         val s = 0.76f + 0.24f * p
