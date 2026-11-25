@@ -97,7 +97,7 @@ fun HomeScreen(
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val gridState = viewModel.gridState
-    val scrolling by rememberGridScrolling(gridState)
+    val scrolling = rememberGridScrolling(gridState)
     val selectionMode = selectedIds.isNotEmpty()
     val spacing = when (settings.cardSpacing) {
         "NORMAL" -> 8.dp
