@@ -69,7 +69,7 @@ class LayerBackdrop internal constructor(
                 }
             translate(-offset.x, -offset.y)
         }) {
-            drawLayer(graphicsLayer)
+            runCatching { drawLayer(graphicsLayer) }
         }
     }
 

@@ -311,7 +311,7 @@ private class DrawBackdropNode(
             layer.topLeft =
                 if (padding != 0f) IntOffset(-padding.toInt(), -padding.toInt())
                 else IntOffset.Zero
-            drawLayer(layer)
+            runCatching { drawLayer(layer) }
         }
     }
 
@@ -339,7 +339,7 @@ private class DrawBackdropNode(
         exportedBackdrop?.graphicsLayer?.let { layer ->
             recordLayer(layer) {
                 onDrawBehind?.invoke(this)
-                drawBackdropLayer()
+                runCatching { drawBackdropLayer() }
                 onDrawSurface?.invoke(this)
                 onDrawFront?.invoke(this)
             }
