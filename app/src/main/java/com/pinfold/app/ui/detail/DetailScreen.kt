@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -54,6 +55,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -87,6 +89,8 @@ import com.pinfold.app.R
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.network.image.FaviconPaths
+import com.pinfold.app.network.resolvers.FaviconHostPolicy
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
@@ -330,6 +334,10 @@ fun DetailScreen(
             val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             val actionsClearance = DETAIL_ACTIONS_RESERVED_HEIGHT + navInset
             val belowTitleHeight = maxOf(0.dp, bottomOffset - actionsClearance)
+            val websiteHost = remember(bookmark.url) { FaviconHostPolicy.normalizeHost(bookmark.url) }
+            val faviconPath = remember(websiteHost) {
+                if (websiteHost.isBlank()) null else FaviconPaths.pathFor(context, websiteHost).takeIf { File(it).exists() }
+            }
             val title = titleFor(bookmark)
             if (title.isNotBlank()) {
                 Box(
@@ -342,6 +350,9 @@ fun DetailScreen(
                         title = title,
                         titleExpanded = titleExpanded,
                         onToggleTitle = { titleExpanded = !titleExpanded },
+                        siteName = bookmark.siteName,
+                        faviconPath = faviconPath,
+                        context = context,
                         onShare = {
                             context.shareText(bookmark.url)
                         },
@@ -490,27 +501,55 @@ private fun DetailTitleRow(
     titleExpanded: Boolean,
     onToggleTitle: () -> Unit,
     onShare: () -> Unit,
+    siteName: String,
+    faviconPath: String?,
+    context: Context,
 ) {
     val ink = DETAIL_METADATA_INK
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = title,
-            color = ink,
-            style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
-            maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onToggleTitle,
-            ),
-        )
-        Spacer(Modifier.width(12.dp))
-        BareGlyph(
-            icon = AppIcons.Share,
-            label = "Share",
-            onClick = onShare,
-        )
+    val name = siteName.trim()
+    Column {
+        if (name.isNotBlank() || faviconPath != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (faviconPath != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context).data(faviconPath).build(),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp).clip(CircleShape),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
+                if (name.isNotBlank()) {
+                    Text(
+                        text = name,
+                        color = ink,
+                        style = ClearType.Caption,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Spacer(Modifier.height(METADATA_SECTION_GAP))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                color = ink,
+                style = ClearType.Headline.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = if (titleExpanded) Int.MAX_VALUE else COLLAPSED_TITLE_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggleTitle,
+                ),
+            )
+            Spacer(Modifier.width(12.dp))
+            BareGlyph(
+                icon = AppIcons.Share,
+                label = "Share",
+                onClick = onShare,
+            )
+        }
     }
 }
 
