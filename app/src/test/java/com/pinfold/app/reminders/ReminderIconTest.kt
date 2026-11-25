@@ -46,4 +46,10 @@ class ReminderIconTest {
         assertFalse(shouldShowUrlImage(true, ""))
         assertFalse(shouldShowUrlImage(true, "   "))
     }
+
+    @Test
+    fun decoratedAppIconIsUsedOnlyWithoutUrlImage() {
+        assertTrue(useDecoratedAppIcon(false))
+        assertFalse(useDecoratedAppIcon(true))
+    }
 }

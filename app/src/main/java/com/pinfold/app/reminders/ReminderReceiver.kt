@@ -12,6 +12,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.pinfold.app.MainActivity
@@ -36,6 +37,8 @@ internal fun sampleSizeFor(maxDim: Int, targetPx: Int): Int {
 
 internal fun shouldShowUrlImage(showImage: Boolean, path: String?): Boolean =
     showImage && !path.isNullOrBlank()
+
+internal fun useDecoratedAppIcon(urlBitmapPresent: Boolean) = !urlBitmapPresent
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -95,16 +98,30 @@ class ReminderReceiver : BroadcastReceiver() {
         } else {
             null
         }
+        val appIcon = launcherBitmap(context)
+        val contentText = title.ifBlank { "A saved link is waiting for you" }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_savelin_color)
+            .setSmallIcon(R.drawable.ic_stat_savelin)
             .setContentTitle("Sonil reminder")
-            .setContentText(title.ifBlank { "A saved link is waiting for you" })
+            .setContentText(contentText)
             .setContentIntent(open)
-            .setLargeIcon(urlBitmap ?: launcherBitmap(context))
+            .setLargeIcon(urlBitmap ?: appIcon)
             .setColor(Color.parseColor("#8401F2"))
             .setAutoCancel(true)
         if (urlBitmap != null) {
             builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(urlBitmap))
+        } else if (useDecoratedAppIcon(urlBitmap != null) && appIcon != null) {
+            val collapsed = RemoteViews(context.packageName, R.layout.notification_savelin_content)
+            val expanded = RemoteViews(context.packageName, R.layout.notification_savelin_big)
+            listOf(collapsed, expanded).forEach { views ->
+                views.setImageViewBitmap(R.id.notification_app_icon, appIcon)
+                views.setTextViewText(R.id.notification_title, "Sonil reminder")
+                views.setTextViewText(R.id.notification_text, contentText)
+            }
+            builder
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(collapsed)
+                .setCustomBigContentView(expanded)
         }
         manager.notify(bookmarkId.toInt(), builder.build())
     }
