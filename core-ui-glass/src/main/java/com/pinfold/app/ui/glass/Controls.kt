@@ -56,11 +56,12 @@ import com.kyant.backdrop.shadow.InnerShadow
 import kotlin.math.abs
 import kotlinx.coroutines.flow.collectLatest
 
-/** The thumb both controls share: an opaque white capsule at rest, a refracting lens while held. */
+/** The thumb both controls share: an opaque ink/white capsule at rest, a refracting lens while held. */
 @Composable
 private fun Modifier.thumb(drag: DampedDragAnimation, track: com.kyant.backdrop.backdrops.LayerBackdrop, lensHeight: Float, lensAmount: Float, trackScale: Float): Modifier {
     val backdrop = LocalBackdrop.current
     val style = GlassSettings.style
+    val rest = if (clear.dark) Color.White else Color(0xFF172033)
     return drawBackdrop(
         backdrop = rememberCombinedBackdrop(
             backdrop,
@@ -88,13 +89,13 @@ private fun Modifier.thumb(drag: DampedDragAnimation, track: com.kyant.backdrop.
             val p = drag.pressProgress
             if (p <= 0f) null else InnerShadow(radius = 4f.dp * p, alpha = p)
         },
-        // covered by the white surface at rest: don't record or blur what nobody can see
+        // covered by the surface at rest: don't record or blur what nobody can see
         onDrawBackdrop = { draw -> if (drag.pressProgress > 0f) draw() },
         layerBlock = {
             scaleX = drag.scaleX
             scaleY = drag.scaleY
         },
-        onDrawSurface = { drawRect(Color.White.copy(alpha = 1f - drag.pressProgress)) },
+        onDrawSurface = { drawRect(rest.copy(alpha = 1f - drag.pressProgress)) },
     )
 }
 
@@ -102,7 +103,7 @@ private fun Modifier.thumb(drag: DampedDragAnimation, track: com.kyant.backdrop.
 @Composable
 fun GlassToggle(checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier, accent: Color = Candy.Mint) {
     val c = clear
-    val track = if (c.dark) Color(0xFF787880).copy(0.36f) else Color(0xFF787878).copy(0.2f)
+    val track = if (c.dark) Color(0xFF787880).copy(0.36f) else Color(0xFF787878).copy(0.35f)
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val haptics = LocalHaptics.current
@@ -174,7 +175,7 @@ fun GlassSlider(
     accent: Color = Candy.Sky,
 ) {
     val c = clear
-    val track = if (c.dark) Color(0xFF787880).copy(0.36f) else Color(0xFF787878).copy(0.2f)
+    val track = if (c.dark) Color(0xFF787880).copy(0.36f) else Color(0xFF787878).copy(0.35f)
     val trackLayer = rememberLayerBackdrop()
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
         val width = constraints.maxWidth.coerceAtLeast(1)
