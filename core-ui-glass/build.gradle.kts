@@ -40,4 +40,5 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kyant.shapes)
     implementation(project(":backdrop"))
+    testImplementation(libs.junit)
 }

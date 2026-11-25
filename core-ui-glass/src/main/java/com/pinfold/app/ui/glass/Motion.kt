@@ -7,7 +7,6 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -42,6 +41,7 @@ data class MotionStyle(
         get() = when (this) {
             Calm -> "Calm"
             Normal -> "Normal"
+            Ios -> "iOS"
             Bouncy -> "Bouncy"
             Jelly -> "Jelly"
             GlassSpring -> "Glass spring"
@@ -54,8 +54,9 @@ data class MotionStyle(
         val Bouncy = MotionStyle(bounce = 0.75f, speed = 0.92f, press = 1.3f, wobble = 1.6f, stretch = 1.2f, bloom = 1.2f)
         val Jelly = MotionStyle(bounce = 0.95f, speed = 0.82f, press = 1.6f, wobble = 2.2f, stretch = 1.5f, bloom = 1.5f)
         val GlassSpring = MotionStyle(bounce = 0.62f, speed = 1.12f, press = 1.15f, wobble = 1.25f, stretch = 1.1f, bloom = 1.15f)
-        val Presets = listOf(Calm, Normal, Bouncy, Jelly, GlassSpring)
-        val Default = Bouncy
+        val Ios = MotionStyle(bounce = 0.55f, speed = 1f, press = 1.05f, wobble = 0.6f, stretch = 0.8f, bloom = 0.9f)
+        val Presets = listOf(Calm, Normal, Ios, Bouncy, Jelly, GlassSpring)
+        val Default = Ios
     }
 }
 
@@ -260,7 +261,7 @@ object Fluid {
     fun <T> fade(): TweenSpec<T> = tween(ms(200), easing = Soft)
 
     /** Values that follow something (an interrupted drag, a moving target): no overshoot. */
-    fun <T> follow(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = MotionSettings.stiffness(520f))
+    fun <T> follow(): AnimationSpec<T> = SpringMotion.reduceOr(spring(dampingRatio = 1f, stiffness = MotionSettings.stiffness(520f)))
 
     /** A finger on a flat surface (cards, rows): it sinks fast, on the active Motion style. */
     fun pressIn(): AnimationSpec<Float> = SpringMotion.pressIn()
@@ -329,4 +330,42 @@ object GlassMotion {
 
     /** A tap shorter than this still plays the whole press. */
     const val MinPressMillis = 90L
+}
+
+
+/**
+ * The iOS-like spring vocabulary: a small, controlled overshoot with a smooth landing. Every spec
+ * passes through [SpringMotion.reduceOr] or [SpringMotion.reduceOrFinite], so Reduce motion still
+ * snaps or short-fades. Damping 1 is reserved for alpha, colour and luminance; all other values
+ * use a designed damping ratio scaled by the active Motion style.
+ */
+internal object IosMotion {
+    const val PressDamping = 0.55f
+    const val PressStiffness = 420f
+    const val LayoutDamping = 0.8f
+    const val LayoutStiffness = 320f
+    const val MenuDamping = 0.7f
+    const val MenuStiffness = 360f
+
+    private const val Rest = 0.0005f
+
+    private fun resolveDamping(designed: Float): Float =
+        if (designed >= 1f) 1f else MotionSettings.damping(designed)
+
+    fun <T> spec(damping: Float, stiffness: Float, threshold: T? = null): AnimationSpec<T> =
+        SpringMotion.reduceOr(spring<T>(resolveDamping(damping), MotionSettings.stiffness(stiffness), threshold))
+
+    fun <T> finite(damping: Float, stiffness: Float, threshold: T? = null): FiniteAnimationSpec<T> =
+        SpringMotion.reduceOrFinite(spring<T>(resolveDamping(damping), MotionSettings.stiffness(stiffness), threshold))
+
+    /** Alpha, colour and luminance: critically damped, so they never overshoot. */
+    fun <T> alpha(stiffness: Float = LayoutStiffness): AnimationSpec<T> = spec(1f, stiffness)
+
+    /** The finite form of [alpha] for Crossfade and other finite-only APIs. */
+    fun <T> finiteAlpha(stiffness: Float = LayoutStiffness): FiniteAnimationSpec<T> = finite(1f, stiffness)
+
+    val Press: AnimationSpec<Float> get() = spec(PressDamping, PressStiffness, 0.001f)
+    val Layout: FiniteAnimationSpec<Float> get() = finite(LayoutDamping, LayoutStiffness, Rest)
+    val Place: FiniteAnimationSpec<IntOffset> get() = finite(MenuDamping, MenuStiffness)
+    val Menu: AnimationSpec<Float> get() = spec(MenuDamping, MenuStiffness, Rest)
 }
