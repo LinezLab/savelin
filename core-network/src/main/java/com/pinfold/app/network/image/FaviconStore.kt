@@ -3,15 +3,16 @@ package com.pinfold.app.network.image
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.pinfold.app.network.resolvers.FaviconHostPolicy
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.net.URI
-import java.util.Locale
 
 /**
- * Stores icons under the site's own host, downloaded directly from that site. There is no global
- * favicon service, no key and no third-party host in this path — only bytes from pages you saved.
+ * Stores icons under the saved page's own host, downloaded directly from that site. There is no
+ * global favicon service, no key and no third-party host in this path — only bytes from pages you
+ * saved. Instagram icons live on an approved CDN but are still keyed by instagram.com so the UI
+ * finds them with the same normalized host.
  */
 class FaviconStore(
     private val context: Context,
@@ -23,13 +24,13 @@ class FaviconStore(
     fun pathFor(host: String): String = FaviconPaths.pathFor(context, host)
 
     fun store(pageUrl: String, candidates: List<String>): String {
+        val pageHost = FaviconHostPolicy.normalizeHost(pageUrl)
+        if (pageHost.isBlank()) return ""
         for (candidate in candidates) {
-            if (!sameSite(pageUrl, candidate)) continue
-            val host = hostOf(candidate)
-            if (host.isBlank()) continue
-            onHost(host, "favicon")
+            if (!FaviconHostPolicy.allowed(pageUrl, candidate)) continue
+            onHost(FaviconHostPolicy.normalizeHost(candidate), "favicon")
             val bytes = download(candidate) ?: continue
-            val saved = persist(host, bytes) ?: continue
+            val saved = persist(pageHost, bytes) ?: continue
             return saved
         }
         return ""
@@ -52,7 +53,8 @@ class FaviconStore(
     }.getOrNull()
 
     private fun persist(host: String, bytes: ByteArray): String? {
-        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        val decodable = IconBytes.decodeCandidate(bytes)
+        val decoded = BitmapFactory.decodeByteArray(decodable, 0, decodable.size) ?: return null
         val longest = maxOf(decoded.width, decoded.height)
         if (longest <= 0) return null
         val ratio = SIZE.toFloat() / longest
@@ -72,18 +74,6 @@ class FaviconStore(
         }
         return out.absolutePath.takeIf { File(it).exists() }
     }
-
-    private fun sameSite(pageUrl: String, iconUrl: String): Boolean {
-        val pageHost = hostOf(pageUrl)
-        val iconHost = hostOf(iconUrl)
-        if (pageHost.isBlank() || iconHost.isBlank()) return false
-        val scheme = runCatching { URI.create(iconUrl).scheme?.lowercase(Locale.ROOT) }.getOrNull()
-        if (scheme !in setOf("http", "https")) return false
-        return pageHost == iconHost || pageHost.endsWith(".$iconHost") || iconHost.endsWith(".$pageHost")
-    }
-
-    private fun hostOf(url: String): String =
-        runCatching { URI.create(url).host.orEmpty().lowercase(Locale.ROOT).removePrefix("www.") }.getOrDefault("")
 
     private companion object {
         const val SIZE = 64

@@ -4,7 +4,7 @@ import org.jsoup.nodes.Document
 import java.net.URI
 import java.util.Locale
 
-/** Collects directly declared, same-site icon candidates ordered best first. */
+/** Collects directly declared, host-policy-approved icon candidates ordered best first. */
 object FaviconExtractor {
     fun collect(doc: Document, finalUrl: String): List<String> {
         val ranked = linkedMapOf<String, Int>()
@@ -13,7 +13,7 @@ object FaviconExtractor {
             val raw = link.attr("href").trim()
             if (raw.isEmpty()) continue
             val href = ShelfStyleResolver.makeAbsoluteUrl(raw, finalUrl)
-            if (!isHttpUrl(href) || !sameSite(href, finalUrl)) continue
+            if (!FaviconHostPolicy.allowed(finalUrl, href)) continue
             val score = when {
                 rels.any { it.contains("apple-touch-icon") } -> 30
                 rels.any { it == "icon" } -> 20
@@ -27,29 +27,16 @@ object FaviconExtractor {
             ranked[href] = maxOf(ranked[href] ?: 0, score + area)
         }
         val icons = ranked.entries.sortedByDescending { it.value }.map { it.key }.toMutableList()
-        val uri = runCatching { URI.create(finalUrl) }.getOrNull()
-        if (uri != null) {
-            val fallback = "${uri.scheme}://${uri.authority}/favicon.ico"
-            if (isHttpUrl(fallback)) icons += fallback
+        if (FaviconHostPolicy.shouldAddIcoFallback(finalUrl)) {
+            val uri = runCatching { URI.create(finalUrl) }.getOrNull()
+            if (uri != null) {
+                val fallback = "${uri.scheme}://${uri.authority}/favicon.ico"
+                if (FaviconHostPolicy.allowed(finalUrl, fallback)) icons += fallback
+            }
         }
         return icons.distinct().take(6)
     }
 
     private fun relTokens(raw: String): List<String> =
         raw.trim().lowercase(Locale.ROOT).split(Regex("""\s+""")).filter { it.isNotBlank() }
-
-    private fun isHttpUrl(url: String): Boolean {
-        val scheme = runCatching { URI.create(url).scheme?.lowercase(Locale.ROOT) }.getOrNull() ?: return false
-        return scheme == "http" || scheme == "https"
-    }
-
-    private fun hostOf(url: String): String =
-        runCatching { URI.create(url).host.orEmpty().lowercase(Locale.ROOT).removePrefix("www.") }.getOrDefault("")
-
-    private fun sameSite(a: String, b: String): Boolean {
-        val hostA = hostOf(a)
-        val hostB = hostOf(b)
-        return hostA.isNotBlank() && hostB.isNotBlank() &&
-            (hostA == hostB || hostA.endsWith(".$hostB") || hostB.endsWith(".$hostA"))
-    }
 }

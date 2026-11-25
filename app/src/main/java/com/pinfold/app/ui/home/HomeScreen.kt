@@ -57,6 +57,7 @@ import com.pinfold.app.R
 import com.pinfold.app.data.model.BookmarkWithTags
 import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.image.FaviconPaths
+import com.pinfold.app.network.resolvers.FaviconHostPolicy
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
@@ -256,9 +257,7 @@ private fun BookmarkCard(
     val bookmark = item.bookmark
     val context = LocalContext.current
     val faviconPath = remember(bookmark.url) {
-        val host = runCatching {
-            java.net.URI.create(bookmark.url).host?.lowercase()?.removePrefix("www.")
-        }.getOrNull().orEmpty()
+        val host = FaviconHostPolicy.normalizeHost(bookmark.url)
         if (host.isBlank()) "" else FaviconPaths.pathFor(context, host)
     }.takeIf { it.isNotBlank() && File(it).exists() }
     val model = remember(bookmark.imagePath) { imageModel() }
