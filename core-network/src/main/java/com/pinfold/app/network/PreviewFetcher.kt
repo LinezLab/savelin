@@ -1,9 +1,11 @@
 package com.pinfold.app.network
 
 import com.pinfold.app.network.model.Preview
+import com.pinfold.app.network.resolvers.HostAwareDesktopResolver
 import com.pinfold.app.network.resolvers.HtmlFetcher
 import com.pinfold.app.network.resolvers.OpenGraphResolver
 import com.pinfold.app.network.resolvers.PlatformFastPaths
+import com.pinfold.app.network.resolvers.RedlibResolver
 import com.pinfold.app.network.resolvers.Resolver
 import com.pinfold.app.network.resolvers.ResolverContext
 import com.pinfold.app.network.resolvers.ShelfStyleResolver
@@ -16,8 +18,8 @@ import java.net.URI
  * The Shelf-style direct fetch is the FIRST step ([ShelfStyleResolver]) for every host except
  * Instagram, which uses the original resolver chain first and skips Shelf entirely. When the
  * primary step produces a usable image the remaining resolvers are skipped. Otherwise the current
- * chain (platform fast paths, mobile/crawler Open Graph retry and the optional user proxy) runs and
- * its images are appended.
+ * chain (Redlib for Reddit, platform fast paths, desktop-site Open Graph, mobile/crawler Open Graph
+ * retry and the optional user proxy) runs and its images are appended.
  *
  * All callbacks carry a step name, a fixed outcome and a host only — never a URL or a title.
  */
@@ -118,7 +120,7 @@ class PreviewFetcher(
         return merged.copy(url = url, platform = merged.platform.ifBlank { PlatformDetector.platform(url) })
     }
 
-    private fun expandShortener(rawUrl: String, userAgent: String): String {
+    private suspend fun expandShortener(rawUrl: String, userAgent: String): String {
         if (!UrlNormalizer.isShortener(rawUrl)) return rawUrl
         return runCatching {
             val context = ResolverContext(client = client, userAgent = userAgent)
@@ -152,7 +154,9 @@ class PreviewFetcher(
         const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
         fun defaultLegacyResolvers(): List<Resolver> = listOf(
+            RedlibResolver(),
             PlatformFastPaths(),
+            HostAwareDesktopResolver(),
             OpenGraphResolver(userAgentOverride = MOBILE_UA),
             OpenGraphResolver(userAgentOverride = "facebookexternalhit/1.1"),
         )
