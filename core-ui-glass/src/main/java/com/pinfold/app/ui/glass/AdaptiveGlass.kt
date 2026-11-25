@@ -1,6 +1,7 @@
 package com.pinfold.app.ui.glass
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import com.kyant.backdrop.BackdropEffectScope
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.colorControls
 import com.kyant.backdrop.effects.lens
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -45,6 +47,7 @@ import kotlin.math.sign
 class GlassLuminance internal constructor(initial: Float, internal val layer: GraphicsLayer) {
     private val anim = Animatable(initial)
     private var recorded = false
+    private val recording = AtomicBoolean(false)
 
     /** 0 (black behind) … 1 (white behind). Read while drawing. */
     val value: Float get() = anim.value
@@ -62,8 +65,17 @@ class GlassLuminance internal constructor(initial: Float, internal val layer: Gr
         drawBackdrop()
         val w = (size.width / DOWN).toInt().coerceAtLeast(1)
         val h = (size.height / DOWN).toInt().coerceAtLeast(1)
-        layer.record(IntSize(w, h)) {
-            scale(1f / DOWN, 1f / DOWN, pivot = Offset.Zero) { drawBackdrop() }
+        recording.set(true)
+        try {
+            layer.record(IntSize(w, h)) {
+                try {
+                    scale(1f / DOWN, 1f / DOWN, pivot = Offset.Zero) { drawBackdrop() }
+                } catch (t: Throwable) {
+                    Log.e("SavelinBackdrop", "layer record failed", t)
+                }
+            }
+        } finally {
+            recording.set(false)
         }
         recorded = true
     }
@@ -76,6 +88,10 @@ class GlassLuminance internal constructor(initial: Float, internal val layer: Gr
                 // nothing drawn to read yet: don't hold the surface back for ever
                 if (!measured && ++waited > 12) measured = true
                 delay(16)
+                continue
+            }
+            if (recording.get()) {
+                delay(SAMPLE_INTERVAL_MS)
                 continue
             }
             val lum = withContext(Dispatchers.Default) {
