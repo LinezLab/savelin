@@ -86,6 +86,7 @@ data class AppSettings(
     val topShade: Boolean = true,
     val topShadeHeight: Int = 28,
     val topShadeStrength: Float = 0.35f,
+    val glassUiEnabled: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -165,6 +166,7 @@ class SettingsRepository(private val context: Context) {
             topShade = p[Keys.topShade] ?: true,
             topShadeHeight = p[Keys.topShadeHeight] ?: 28,
             topShadeStrength = p[Keys.topShadeStrength] ?: 0.35f,
+            glassUiEnabled = p[Keys.glassUiEnabled] ?: false,
         )
     }
 
@@ -216,6 +218,10 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun set(name: String, value: Any) {
+        if (name == "glassUiEnabled" && value is Boolean) {
+            put(Keys.glassUiEnabled, value)
+            return
+        }
         when (value) {
             is Boolean -> put(booleanPreferencesKey(name), value)
             is String -> put(stringPreferencesKey(name), value)
@@ -310,5 +316,6 @@ class SettingsRepository(private val context: Context) {
         val topShade = booleanPreferencesKey("topShade")
         val topShadeHeight = intPreferencesKey("topShadeHeight")
         val topShadeStrength = floatPreferencesKey("topShadeStrength")
+        val glassUiEnabled = booleanPreferencesKey("glass_ui_enabled")
     }
 }
