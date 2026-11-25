@@ -339,7 +339,7 @@ object GlassMotion {
  * snaps or short-fades. Damping 1 is reserved for alpha, colour and luminance; all other values
  * use a designed damping ratio scaled by the active Motion style.
  */
-internal object IosMotion {
+object IosMotion {
     const val PressDamping = 0.55f
     const val PressStiffness = 420f
     const val LayoutDamping = 0.8f
