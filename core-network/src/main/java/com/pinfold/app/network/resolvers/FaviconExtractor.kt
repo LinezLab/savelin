@@ -44,7 +44,7 @@ object FaviconExtractor {
     }
 
     private fun hostOf(url: String): String =
-        runCatching { URI.create(url).host?.lowercase(Locale.ROOT)?.removePrefix("www.") }.getOrDefault("")
+        runCatching { URI.create(url).host.orEmpty().lowercase(Locale.ROOT).removePrefix("www.") }.getOrDefault("")
 
     private fun sameSite(a: String, b: String): Boolean {
         val hostA = hostOf(a)

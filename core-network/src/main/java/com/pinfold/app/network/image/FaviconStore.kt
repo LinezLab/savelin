@@ -83,7 +83,7 @@ class FaviconStore(
     }
 
     private fun hostOf(url: String): String =
-        runCatching { URI.create(url).host?.lowercase(Locale.ROOT)?.removePrefix("www.") }.getOrDefault("")
+        runCatching { URI.create(url).host.orEmpty().lowercase(Locale.ROOT).removePrefix("www.") }.getOrDefault("")
 
     private companion object {
         const val SIZE = 64
