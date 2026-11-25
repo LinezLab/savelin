@@ -56,11 +56,16 @@ internal val HOME_BACKGROUND_LIGHT: Color = Color.White
 internal val HOME_BACKGROUND_DARK: Color = Color.Black
 
 @Composable
-fun App(sharedText: String? = null, clipboardShare: Pair<String, Long>? = null) {
+fun App(
+    sharedText: String? = null,
+    clipboardShare: Pair<String, Long>? = null,
+    openBookmark: Pair<Long, Long>? = null,
+) {
     val viewModel: HomeViewModel = viewModel()
     var showAdd by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
+    var consumedOpen by remember { mutableStateOf<Long?>(null) }
     var locked by remember { mutableStateOf(false) }
     var showSplash by remember { mutableStateOf(true) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
@@ -127,6 +132,14 @@ fun App(sharedText: String? = null, clipboardShare: Pair<String, Long>? = null) 
             draft = sharedText
             showAdd = true
         }
+    }
+    LaunchedEffect(openBookmark?.second, items) {
+        val request = openBookmark ?: return@LaunchedEffect
+        if (consumedOpen == request.second) return@LaunchedEffect
+        val target = items.firstOrNull { it.bookmark.id == request.first } ?: return@LaunchedEffect
+        consumedOpen = request.second
+        detail = target
+        viewModel.recordOpen(target.bookmark)
     }
     GlassStage(
         wallpaper = {

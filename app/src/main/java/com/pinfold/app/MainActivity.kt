@@ -20,6 +20,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pinfold.app.data.settings.SettingsRepository
+import com.pinfold.app.reminders.ReminderScheduler
 import com.pinfold.app.ui.App
 import com.pinfold.app.ui.glass.ProvideGlassHaptics
 import com.pinfold.app.ui.glass.theme.SavelinTheme
@@ -36,6 +37,8 @@ class MainActivity : FragmentActivity() {
     private var activeTheme: String? = null
     private val incomingShare = MutableStateFlow<String?>(null)
     private val clipboardShare = MutableStateFlow<Pair<String, Long>?>(null)
+    private val openBookmark = MutableStateFlow<Pair<Long, Long>?>(null)
+    private var openSequence = 0L
     private var lastClipUrl: String? = null
     private var clipSequence = 0L
     private lateinit var repository: SettingsRepository
@@ -105,12 +108,14 @@ class MainActivity : FragmentActivity() {
         }
 
         incomingShare.value = sharedText(intent)
+        readOpenIntent(intent)
         setContent {
             SavelinTheme(dark = dark) {
                 ProvideGlassHaptics {
                     App(
                         sharedText = incomingShare.collectAsState().value,
                         clipboardShare = clipboardShare.collectAsState().value,
+                        openBookmark = openBookmark.collectAsState().value,
                     )
                 }
             }
@@ -121,6 +126,7 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == Intent.ACTION_SEND) incomingShare.value = sharedText(intent)
+        readOpenIntent(intent)
     }
 
     override fun onResume() {
@@ -136,6 +142,11 @@ class MainActivity : FragmentActivity() {
             lastClipUrl = url
             clipboardShare.value = url to ++clipSequence
         }
+    }
+
+    private fun readOpenIntent(source: Intent?) {
+        val id = source?.getLongExtra(ReminderScheduler.EXTRA_BOOKMARK_ID, -1L) ?: -1L
+        if (id >= 0) openBookmark.value = id to ++openSequence
     }
 
     private fun sharedText(source: Intent?): String? = source?.takeIf { it.action == Intent.ACTION_SEND }?.let {
