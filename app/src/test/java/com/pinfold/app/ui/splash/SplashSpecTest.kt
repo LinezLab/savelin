@@ -52,4 +52,12 @@ class SplashSpecTest {
         assertNull(usableImagePath("   "))
         assertEquals("/tmp/pic.webp", usableImagePath("/tmp/pic.webp"))
     }
+
+    @Test
+    fun splashDurationsAreFiveSecondsWithSixSecondWatchdog() {
+        assertEquals(5000L, SPLASH_DURATION_MS)
+        assertEquals(0L, SPLASH_DURATION_REDUCED_MS)
+        assertEquals(6000L, SPLASH_MAX_WAIT_MS)
+        assertTrue(SPLASH_MAX_WAIT_MS > SPLASH_DURATION_MS)
+    }
 }

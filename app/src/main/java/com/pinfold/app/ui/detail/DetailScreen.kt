@@ -130,7 +130,6 @@ internal val DESCRIPTION_SCROLL_MAX_HEIGHT: Dp = 200.dp
 internal val DESCRIPTION_INNER_PADDING: Dp = 16.dp
 internal val DESCRIPTION_DISSOLVE_EDGE_DP: Dp = 28.dp
 internal val BOTTOM_BUTTON_VERTICAL_MARGIN: Dp = 4.dp
-internal val OPEN_TEXT_BLEND_MODE: BlendMode = BlendMode.Overlay
 internal val OPEN_TEXT_COLOR: Color = Color.White
 internal val OPEN_TEXT_FONT_SIZE: TextUnit = 30.sp
 internal val OPEN_TEXT_LINE_HEIGHT: TextUnit = 34.sp
@@ -615,12 +614,7 @@ private fun OverlayOpenText(
             .semantics { contentDescription = "Open link, long press to copy" },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(
-            Modifier.size(textWidth, textHeight).graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                blendMode = OPEN_TEXT_BLEND_MODE
-            },
-        ) {
+        Canvas(Modifier.size(textWidth, textHeight)) {
             drawText(textLayout, brush = shimmerBrush)
         }
     }

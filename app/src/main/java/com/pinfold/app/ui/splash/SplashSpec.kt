@@ -1,8 +1,8 @@
 package com.pinfold.app.ui.splash
 
-internal const val SPLASH_DURATION_MS: Long = 1400L
+internal const val SPLASH_DURATION_MS: Long = 5000L
 internal const val SPLASH_DURATION_REDUCED_MS: Long = 0L
-internal const val SPLASH_MAX_WAIT_MS: Long = 2500L
+internal const val SPLASH_MAX_WAIT_MS: Long = 6000L
 internal const val SPLASH_LOGO_WIDTH_FRACTION: Float = 0.8f
 private const val LOGO_REF_SP = 100f
 

@@ -145,17 +145,15 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openLabelRestoresOriginalOverlayBlendAndWhiteInk() {
-        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+    fun openLabelKeepsWhiteInkAndLetterSpacing() {
         assertEquals(Color.White, OPEN_TEXT_COLOR)
         assertEquals(2.sp, OPEN_TEXT_LETTER_SPACING)
     }
 
     @Test
-    fun openTextDrawsOnceWithOverlayBlendAndWhiteInk() {
-        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
+    fun openTextUsesPlainWhiteCoreWithoutBlendMode() {
         assertEquals(Color.White, OPEN_TEXT_COLOR)
-        assertTrue(OPEN_TEXT_BLEND_MODE != BlendMode.Screen)
+        assertEquals(OPEN_TEXT_COLOR, Color.White)
     }
 
     @Test

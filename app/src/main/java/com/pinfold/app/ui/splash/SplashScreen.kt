@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -16,11 +15,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.contentDescription
@@ -30,22 +25,15 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinfold.app.R
 import com.pinfold.app.data.model.BookmarkWithTags
-import com.pinfold.app.ui.components.rememberPhotoPreview
-import com.pinfold.app.ui.detail.AmbientBackdrop
-import com.pinfold.app.ui.detail.rememberAmbience
 import com.pinfold.app.ui.detail.rememberTextShimmerBrush
 import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.SONIL_LOGO_TEXT
 import kotlinx.coroutines.delay
-import java.io.File
 
 private const val SPLASH_REF_SP = 100f
-private const val SPLASH_PREVIEW_ALPHA = 0.85f
 
 @Composable
 fun SplashScreen(
@@ -54,14 +42,7 @@ fun SplashScreen(
     onDone: () -> Unit,
     keepOnScreen: Boolean = false,
 ) {
-    val themeFloor = MaterialTheme.colorScheme.background
-    val path = remember(item) {
-        item?.bookmark?.imagePath
-            ?.takeIf { it.isNotBlank() }
-            ?.let { File(it).takeIf { file -> file.isFile }?.absolutePath }
-    }
-    val ambience = rememberAmbience(item?.bookmark?.id ?: 0L, path)
-    val preview = rememberPhotoPreview(path, item?.bookmark?.blurhash)
+    val bg = if (clear.dark) Color.Black else Color.White
 
     var done by remember { mutableStateOf(false) }
     val finish by rememberUpdatedState(onDone)
@@ -84,15 +65,7 @@ fun SplashScreen(
     }
     BackHandler(enabled = true) {}
 
-    Box(Modifier.fillMaxSize().background(themeFloor)) {
-        AmbientBackdrop(
-            ambience = ambience,
-            seamPx = 0f,
-            reduceMotion = reduceMotion,
-            floor = themeFloor,
-            drawScrim = false,
-        )
-        BlurredHero(preview)
+    Box(Modifier.fillMaxSize().background(bg)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             SplashSonilLogo(reduceMotion)
         }
@@ -100,26 +73,9 @@ fun SplashScreen(
 }
 
 @Composable
-private fun BlurredHero(preview: ImageBitmap?) {
-    if (preview == null || preview.width < 1 || preview.height < 1) return
-    Canvas(Modifier.fillMaxSize()) {
-        drawImage(
-            image = preview,
-            srcSize = IntSize(preview.width, preview.height),
-            dstSize = IntSize(
-                size.width.toInt().coerceAtLeast(1),
-                size.height.toInt().coerceAtLeast(1),
-            ),
-            alpha = SPLASH_PREVIEW_ALPHA,
-            filterQuality = FilterQuality.Low,
-        )
-    }
-}
-
-@Composable
 private fun SplashSonilLogo(reduceMotion: Boolean) {
     val measurer = rememberTextMeasurer()
-    val ink = clear.hero
+    val ink = if (clear.dark) Color.White else Color.Black
     val refStyle = TextStyle(
         fontFamily = FontFamily(Font(R.font.nikea)),
         fontSize = SPLASH_REF_SP.sp,
@@ -140,10 +96,6 @@ private fun SplashSonilLogo(reduceMotion: Boolean) {
     val shimmerBrush = rememberTextShimmerBrush(ink, layout.size.width.toFloat(), reduceMotion)
     Canvas(
         Modifier.size(width, height)
-            .graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                blendMode = BlendMode.Overlay
-            }
             .semantics { contentDescription = "Sonil" },
     ) {
         drawText(layout, brush = shimmerBrush)

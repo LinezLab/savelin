@@ -82,6 +82,7 @@ fun App(
     var showSplash by remember { mutableStateOf(true) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
+    val refreshProgress = remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
@@ -126,6 +127,9 @@ fun App(
             tab == HomeTab.SETTINGS -> settingsPage.ifBlank { "Settings" }
             else -> "Home"
         })
+    }
+    LaunchedEffect(showSplash) {
+        if (showSplash) viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
     }
     if (showSplash) {
         SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, onDone = { showSplash = false })

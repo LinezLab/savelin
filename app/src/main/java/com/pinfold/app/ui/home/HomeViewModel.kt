@@ -37,6 +37,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import com.pinfold.app.data.model.FetchStatus
+import com.pinfold.app.diagnostics.DiagnosticsLog
+import com.pinfold.app.diagnostics.LogLevel
+import com.pinfold.app.ui.detail.invalidateMesh
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -351,6 +357,56 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
         return Regex("https?://\\S+").find(trimmed)?.value
     }
+
+    fun refreshMissingImages(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }) =
+        viewModelScope.launch(Dispatchers.IO) {
+            val config = settings.value
+            if (!config.refetchMissing || config.offlineMode) return@launch
+            val missing = db.bookmarkDao().missingPreviews()
+                .filter { it.imagePath.isNullOrBlank() || !File(it.imagePath).isFile }
+            DiagnosticsLog.log(LogLevel.INFO, "BulkRefresh", "start total=" + missing.size)
+            withTimeoutOrNull(5_000) {
+                val client = HttpClientFactory.create()
+                val store = ImageStore(getApplication(), client)
+                val fetcher = PreviewFetcher(client)
+                val proxyTemplate = if (config.proxiesEnabled) config.proxyTemplate else ""
+                var done = 0
+                for (item in missing) {
+                    runCatching {
+                        val normalized = UrlNormalizer.normalize(item.url)
+                        val preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
+                        val stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
+                            runCatching { store.store(item.id, candidate) }.getOrNull()
+                        }
+                        if (stored != null) {
+                            val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
+                            db.bookmarkDao().update(
+                                current.copy(
+                                    imagePath = stored.path,
+                                    imageWidth = stored.width,
+                                    imageHeight = stored.height,
+                                    blurhash = stored.blurhash,
+                                    remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty(),
+                                    fetchStatus = FetchStatus.OK,
+                                    fetchError = "",
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                            invalidateMesh(item.id)
+                            true
+                        } else {
+                            false
+                        }
+                    }.getOrElse { error ->
+                        DiagnosticsLog.issue("BulkRefresh", "preview", error::class.simpleName ?: "error")
+                        false
+                    }
+                    done++
+                    onProgress(done, missing.size)
+                }
+            }
+            DiagnosticsLog.log(LogLevel.INFO, "BulkRefresh", "finish")
+        }
 
     fun normalized(raw: String): String = UrlNormalizer.normalize(raw)
 }

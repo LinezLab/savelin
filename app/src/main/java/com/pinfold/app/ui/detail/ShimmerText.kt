@@ -13,8 +13,8 @@ import androidx.compose.ui.graphics.Color
 
 internal const val TEXT_SHIMMER_DURATION_MS = 2200
 internal const val TEXT_SHIMMER_BAND_FRACTION = 0.55f
-internal const val TEXT_SHIMMER_EDGE_ALPHA = 0.75f
-internal const val TEXT_SHIMMER_BAND_ALPHA = 0.95f
+internal const val TEXT_SHIMMER_EDGE_ALPHA = 0.9f
+internal const val TEXT_SHIMMER_BAND_ALPHA = 1f
 
 internal fun textShimmerColors(base: Color): List<Color> = listOf(
     base.copy(alpha = TEXT_SHIMMER_EDGE_ALPHA),
