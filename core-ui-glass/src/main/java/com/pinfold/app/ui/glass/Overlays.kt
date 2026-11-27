@@ -527,14 +527,27 @@ fun GlassToast(
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
     actionIcon: (@Composable () -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null,
 ) {
     val c = clear
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, IosMotion.Menu) }
     val luminance = rememberGlassLuminance(enabled = true)
     val ink = adaptiveInk(luminance, c.ink)
+    var dragY by remember { mutableStateOf(0f) }
     Row(
         modifier
+            .graphicsLayer { translationY = dragY }
+            .then(
+                if (onDismiss == null) Modifier else Modifier.draggable(
+                    rememberDraggableState { delta -> dragY = (dragY + delta).coerceAtLeast(0f) },
+                    Orientation.Vertical,
+                    onDragStopped = {
+                        if (dragY > 80f) onDismiss()
+                        dragY = 0f
+                    },
+                ),
+            )
             .floatingLayer {
                 val p = appear.value
                 translationY = (1f - p) * 24.dp.toPx()

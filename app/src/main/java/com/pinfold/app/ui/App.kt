@@ -207,7 +207,7 @@ fun App(
     }
     LaunchedEffect(linkToast) {
         if (linkToast == null) return@LaunchedEffect
-        delay(3600)
+        delay(10_000)
         linkToast = null
     }
     LaunchedEffect(statusToast) {
@@ -362,6 +362,7 @@ fun App(
                             actionIcon = {
                                 AppIcons.Icon(AppIcons.Add, "Save link", tint = clear.onGlass, size = 18.dp)
                             },
+                            onDismiss = { linkToast = null },
                         )
                     }
                 }
