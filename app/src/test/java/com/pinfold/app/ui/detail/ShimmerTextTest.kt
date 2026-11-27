@@ -16,11 +16,11 @@ class ShimmerTextTest {
         val base = Color.White
         val colors = textShimmerColors(base)
         assertEquals(5, colors.size)
-        assertEquals(base.copy(alpha = 0.75f), colors[0])
+        assertEquals(base.copy(alpha = 0.9f), colors[0])
         assertEquals(base, colors[1])
-        assertEquals(Color.White.copy(alpha = 0.95f), colors[2])
+        assertEquals(Color.White.copy(alpha = 1f), colors[2])
         assertEquals(base, colors[3])
-        assertEquals(base.copy(alpha = 0.75f), colors[4])
+        assertEquals(base.copy(alpha = 0.9f), colors[4])
     }
 
     @Test
