@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -27,15 +28,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,12 +49,16 @@ import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.GlassChoicePopUp
 import com.pinfold.app.ui.components.rememberIosFlingBehavior
 import com.pinfold.app.ui.components.rememberIosOverscrollEffect
+import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassBackButton
+import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.GlassSlider
 import com.pinfold.app.ui.glass.GlassToggle
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
 import com.pinfold.app.ui.glass.theme.clear
+import kotlinx.coroutines.launch
 
 internal fun displayOption(raw: String): String =
     raw.replace('_', ' ').replaceFirstChar { it.uppercase() }
@@ -62,19 +72,45 @@ fun SettingsScaffold(
     overscrollEffect: OverscrollEffect? = rememberIosOverscrollEffect(),
     content: @Composable () -> Unit,
 ) {
-    Column(
-        Modifier.fillMaxWidth().windowInsetsPadding(topInsets)
-            .verticalScroll(rememberScrollState(), overscrollEffect = overscrollEffect, flingBehavior = flingBehavior)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            GlassBackButton(onBack = onBack)
-            Spacer(Modifier.size(14.dp))
-            Text(title, style = MaterialTheme.typography.headlineLarge, color = clear.onGlass)
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val showBackToTop by remember { derivedStateOf { scrollState.value > 0 } }
+    Box(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().windowInsetsPadding(topInsets)
+                .verticalScroll(scrollState, overscrollEffect = overscrollEffect, flingBehavior = flingBehavior)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                GlassBackButton(onBack = onBack)
+                Spacer(Modifier.size(14.dp))
+                Text(title, style = MaterialTheme.typography.headlineLarge, color = clear.onGlass)
+            }
+            Spacer(Modifier.heightIn(min = 20.dp))
+            content()
+            Spacer(Modifier.heightIn(min = 160.dp))
         }
-        Spacer(Modifier.heightIn(min = 20.dp))
-        content()
-        Spacer(Modifier.heightIn(min = 120.dp))
+        if (showBackToTop) {
+            Box(
+                Modifier.align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 18.dp, bottom = 28.dp)
+                    .size(56.dp)
+                    .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                    .clip(Capsule)
+                    .pressable(onClick = { scope.launch { scrollState.animateScrollTo(0) } })
+                    .semantics { contentDescription = "Back to top" },
+                contentAlignment = Alignment.Center,
+            ) {
+                AppIcons.Icon(
+                    AppIcons.Expand,
+                    null,
+                    modifier = Modifier.graphicsLayer { rotationZ = 180f },
+                    tint = SavelinGlass.ink,
+                    size = 22.dp,
+                )
+            }
+        }
     }
 }
 
