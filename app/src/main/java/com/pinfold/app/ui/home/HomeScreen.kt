@@ -59,6 +59,7 @@ import com.pinfold.app.diagnostics.DiagnosticsLog
 import com.pinfold.app.network.image.FaviconPaths
 import com.pinfold.app.network.resolvers.FaviconHostPolicy
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.components.GlassMenuItem
 import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
@@ -113,6 +114,7 @@ fun HomeScreen(
     }
     var quickMenu by remember { mutableStateOf<BookmarkWithTags?>(null) }
     var reminderTarget by remember { mutableStateOf<BookmarkWithTags?>(null) }
+    var starToast by remember { mutableStateOf<String?>(null) }
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -214,7 +216,11 @@ fun HomeScreen(
                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(chosen.bookmark.url)))
                     }),
                     GlassMenuItem(AppIcons.Card, "Details", onClick = { onOpen(chosen) }),
-                    GlassMenuItem(AppIcons.Important, "Important", onClick = { viewModel.toggleImportant(chosen.bookmark) }),
+                    GlassMenuItem(AppIcons.Important, "Important", onClick = {
+                        val next = !chosen.bookmark.isImportant
+                        viewModel.setImportant(chosen.bookmark, next)
+                        starToast = if (next) "Starred" else "Unstarred"
+                    }),
                     GlassMenuItem(
                         if (chosen.bookmark.id in reminderIds) AppIcons.ReminderMuted else AppIcons.Reminder,
                         if (chosen.bookmark.id in reminderIds) "Clear reminder" else "Reminder",
@@ -236,6 +242,7 @@ fun HomeScreen(
                 onPick = { trigger -> viewModel.setReminder(target.bookmark, trigger) },
             )
         }
+        starToast?.let { DiagnosticsToast(it) { starToast = null } }
 }
 }
 

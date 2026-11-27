@@ -254,6 +254,7 @@ fun DetailScreen(
     var editOpen by remember { mutableStateOf(false) }
     var copyToast by remember { mutableStateOf(false) }
     var imageToast by remember { mutableStateOf<String?>(null) }
+    var starToast by remember { mutableStateOf<String?>(null) }
     var titleExpanded by remember { mutableStateOf(false) }
     val descriptionExpanded = DESCRIPTION_STARTS_EXPANDED
     var editTitle by remember { mutableStateOf("") }
@@ -306,7 +307,11 @@ fun DetailScreen(
                 }
             }
             .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = { viewModel.toggleImportant(bookmark) })
+                detectTapGestures(onDoubleTap = {
+                    val next = !bookmark.isImportant
+                    viewModel.setImportant(bookmark, next)
+                    starToast = if (next) "Starred" else "Unstarred"
+                })
             },
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -491,6 +496,7 @@ fun DetailScreen(
 
         if (copyToast) DiagnosticsToast("Link copied") { copyToast = false }
         imageToast?.let { DiagnosticsToast(it) { imageToast = null } }
+        starToast?.let { DiagnosticsToast(it) { starToast = null } }
     }
 }
 
