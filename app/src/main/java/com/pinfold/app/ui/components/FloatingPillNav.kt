@@ -173,9 +173,6 @@ private fun SearchFieldRow(
             },
             modifier = Modifier.weight(1f),
         )
-        if (enabled && query.isNotEmpty()) {
-            NavGlyph(AppIcons.Close, "Clear search", { onQueryChange("") }, { onQueryChange("") }, inkSoft, 38.dp, 16.dp)
-        }
         NavGlyph(AppIcons.Close, "Close search", { if (enabled) onSearchToggle() }, { if (enabled) onSearchToggle() }, ink, 46.dp)
     }
 }
