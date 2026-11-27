@@ -49,6 +49,8 @@ data class AppSettings(
     val limitTallImages: Boolean = false,
     val trueBlack: Boolean = false,
     val themeMode: String = "AUTO",
+    val pullCordEnabled: Boolean = true,
+    val pullCordPosition: String = "RIGHT",
     val language: String = "System",
     val defaultView: String = "CARD",
     val tapAction: String = "OPEN",
@@ -126,6 +128,8 @@ class SettingsRepository(private val context: Context) {
             limitTallImages = p[Keys.limitTallImages] ?: false,
             trueBlack = p[Keys.trueBlack] ?: false,
             themeMode = p[Keys.themeMode] ?: "AUTO",
+            pullCordEnabled = p[Keys.pullCordEnabled] ?: true,
+            pullCordPosition = p[Keys.pullCordPosition] ?: "RIGHT",
             language = p[Keys.language] ?: "System",
             defaultView = p[Keys.defaultView] ?: "CARD",
             tapAction = p[Keys.tapAction] ?: "OPEN",
@@ -277,6 +281,8 @@ class SettingsRepository(private val context: Context) {
         val limitTallImages = booleanPreferencesKey("limit_tall_images")
         val trueBlack = booleanPreferencesKey("trueBlack")
         val themeMode = stringPreferencesKey("themeMode")
+        val pullCordEnabled = booleanPreferencesKey("pullCordEnabled")
+        val pullCordPosition = stringPreferencesKey("pullCordPosition")
         val language = stringPreferencesKey("language")
         val defaultView = stringPreferencesKey("defaultView")
         val tapAction = stringPreferencesKey("tapAction")

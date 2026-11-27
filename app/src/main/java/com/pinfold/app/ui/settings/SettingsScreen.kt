@@ -3,12 +3,18 @@ package com.pinfold.app.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,15 +23,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.reminders.repeatMinutesFromSetting
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.PullCord
+import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
+import com.pinfold.app.ui.glass.theme.clear
 import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
 
@@ -50,12 +59,41 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
     ) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
-                PullCord(
-                    mode = settings.themeMode,
-                    onModeChange = { viewModel.setSetting("themeMode", it) },
-                    modifier = Modifier.fillMaxWidth().height(160.dp),
-                    across = 0.62f,
-                )
+                if (settings.pullCordEnabled) {
+                    PullCord(
+                        mode = settings.themeMode,
+                        onModeChange = { viewModel.setSetting("themeMode", it) },
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                        across = pullCordAcross(settings.pullCordPosition),
+                    )
+                    Text(
+                        "Pull the cord or use:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = clear.onGlassSoft,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        QuickTogglePill("Dark", settings.themeMode == "DARK") {
+                            viewModel.setSetting("themeMode", if (settings.themeMode == "DARK") "LIGHT" else "DARK")
+                        }
+                        QuickTogglePill("Notify", settings.notifications) {
+                            viewModel.setSetting("notifications", !settings.notifications)
+                        }
+                        QuickTogglePill("Sound", settings.haptics != "OFF") {
+                            viewModel.setHaptics(if (settings.haptics != "OFF") "OFF" else "LIGHT")
+                        }
+                        QuickTogglePill("Preview", settings.refetchMissing) {
+                            viewModel.setSetting("refetchMissing", !settings.refetchMissing)
+                        }
+                    }
+                }
+                SettingsRow(AppIcons.Appearance, Candy.Lemon, "Pull cord theme switch", trailing = {
+                    GlassSwitch(settings.pullCordEnabled) { viewModel.setSetting("pullCordEnabled", it) }
+                })
+                SettingsChoiceRow(AppIcons.Appearance, Candy.Sky, "Pull cord position", settings.pullCordPosition, listOf("LEFT", "CENTER", "RIGHT")) { viewModel.setSetting("pullCordPosition", it) }
                 SettingsChoiceRow(AppIcons.Appearance, Candy.Grape, "Theme", settings.themeMode, listOf("AUTO", "LIGHT", "DARK")) { viewModel.setSetting("themeMode", it) }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
@@ -161,5 +199,22 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context))
             }
         }
+    }
+}
+
+@Composable
+private fun QuickTogglePill(label: String, active: Boolean, onClick: () -> Unit) {
+    GlassPill(
+        onClick = onClick,
+        height = 36.dp,
+        horizontalPadding = 12.dp,
+        label = "$label settings toggle",
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = clear.ink,
+            modifier = Modifier.alpha(if (active) 1f else 0.45f),
+        )
     }
 }

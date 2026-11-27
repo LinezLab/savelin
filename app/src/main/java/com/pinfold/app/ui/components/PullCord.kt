@@ -109,6 +109,7 @@ fun PullCord(
     }
 
     val state = remember { CordState(toggle) }
+    state.across = across
     LaunchedEffect(state.held) { if (!state.held) state.settle() }
 
     Box(

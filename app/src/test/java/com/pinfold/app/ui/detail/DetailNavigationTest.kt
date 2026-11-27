@@ -168,9 +168,11 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun stickyDetailLogoDrawsOnceWithoutBlend() {
+    fun stickyDetailLogoDrawsOnceWithOverlayBlend() {
         assertEquals(22.sp, DETAIL_LOGO_FONT_SIZE)
         assertTrue(DETAIL_LOGO_FONT_SIZE.value < 64f)
+        assertEquals(BlendMode.Overlay, DETAIL_LOGO_BLEND_MODE)
+        assertTrue(DETAIL_LOGO_BLEND_MODE != BlendMode.Screen)
     }
 
     @Test
