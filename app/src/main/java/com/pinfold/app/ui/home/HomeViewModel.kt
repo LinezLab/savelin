@@ -191,6 +191,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         db.bookmarkDao().setImportant(item.id, !item.isImportant)
     }
 
+    fun setImportant(item: Bookmark, value: Boolean) = viewModelScope.launch {
+        db.bookmarkDao().setImportant(item.id, value)
+    }
+
     fun togglePrivate(item: Bookmark) = viewModelScope.launch {
         repository.setPrivate(item.id, !item.isPrivate)
     }

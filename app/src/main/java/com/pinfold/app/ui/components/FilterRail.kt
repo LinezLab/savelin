@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +61,8 @@ fun FilterRail(
     onRefetch: () -> Unit = {},
     onCopy: () -> Unit = {},
     onShare: () -> Unit = {},
+    onRemoveStar: () -> Unit = {},
+    onClearReminder: () -> Unit = {},
 ) {
     val slide by animateFloatAsState(if (visible) 0f else 28f, IosMotion.spec(IosMotion.MenuDamping, IosMotion.PressStiffness), label = "filterRailSlide")
     val opacity by animateFloatAsState(if (visible) 1f else 0f, IosMotion.alpha(IosMotion.PressStiffness), label = "filterRailFade")
@@ -74,13 +77,16 @@ fun FilterRail(
         Box(
             Modifier
                 .width(60.dp)
-                .height(if (selectionActive) 232.dp else 116.dp)
+                .height(if (selectionActive) 372.dp else 116.dp)
                 .graphicsLayer { alpha = opacity; translationX = slide }
                 .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, GlassCapsule))
                 .clip(GlassCapsule),
             contentAlignment = Alignment.Center,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 if (selectionActive) {
                     RailSlot(
                         icon = AppIcons.Delete,
@@ -112,6 +118,22 @@ fun FilterRail(
                         selected = false,
                         count = 0,
                         onToggle = onShare,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.Important,
+                        name = "Remove star",
+                        selected = false,
+                        count = 0,
+                        onToggle = onRemoveStar,
+                        onTooltip = { tooltip = it },
+                    )
+                    RailSlot(
+                        icon = AppIcons.ReminderMuted,
+                        name = "Clear reminder",
+                        selected = false,
+                        count = 0,
+                        onToggle = onClearReminder,
                         onTooltip = { tooltip = it },
                     )
                 } else {

@@ -95,9 +95,14 @@ fun App(
     val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
     val items by viewModel.items.collectAsState()
+    val privateItems by viewModel.privateItems.collectAsState()
+    val dueCount by viewModel.reminderIds.collectAsState()
+    val importantFilter by viewModel.importantFilter.collectAsState()
+    val reminderFilter by viewModel.reminderFilter.collectAsState()
     val ordered = remember(items) { items.distinctBy { it.bookmark.id } }
     val liveDetail = detail?.let { snap -> items.firstOrNull { it.bookmark.id == snap.bookmark.id } ?: snap }
-    val selectedItems = remember(selectedIds, ordered) { ordered.filter { it.bookmark.id in selectedIds } }
+    val selectionPool = remember(items, privateItems) { (items + privateItems).distinctBy { it.bookmark.id } }
+    val selectedItems = remember(selectedIds, selectionPool) { selectionPool.filter { it.bookmark.id in selectedIds } }
     val context = LocalContext.current
     val foreground = rememberAppInForeground()
     val powerSave = rememberPowerSaveMode()
@@ -158,6 +163,44 @@ fun App(
     }
     var linkToast by remember { mutableStateOf<String?>(null) }
     var statusToast by remember { mutableStateOf<String?>(null) }
+    val onDeleteSelected: () -> Unit = {
+        selectedItems.forEach { viewModel.delete(it.bookmark) }
+        selectedIds = emptySet()
+    }
+    val onRefetchSelected: () -> Unit = {
+        selectedItems.forEach { viewModel.refetch(it.bookmark) }
+        selectedIds = emptySet()
+    }
+    val onCopySelected: () -> Unit = {
+        val links = selectedItems.joinToString("\n") { it.bookmark.url }
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(ClipData.newPlainText("Sonil links", links))
+        statusToast = "Copied " + selectedIds.size + " links"
+        selectedIds = emptySet()
+    }
+    val onShareSelected: () -> Unit = {
+        val links = selectedItems.joinToString("\n") { it.bookmark.url }
+        context.shareText(links, "Share links")
+        selectedIds = emptySet()
+    }
+    val onRemoveStarSelected: () -> Unit = {
+        selectedItems.forEach { viewModel.setImportant(it.bookmark, false) }
+        statusToast = "Removed star from " + selectedIds.size + " links"
+        selectedIds = emptySet()
+    }
+    val onClearReminderSelected: () -> Unit = {
+        selectedItems.forEach { viewModel.clearReminder(it.bookmark) }
+        statusToast = "Cleared reminders for " + selectedIds.size + " links"
+        selectedIds = emptySet()
+    }
+    val onToggleImportantFilter: () -> Unit = {
+        DiagnosticsLog.uiAction("Home", "Filter important")
+        viewModel.toggleImportantFilter()
+    }
+    val onToggleReminderFilter: () -> Unit = {
+        DiagnosticsLog.uiAction("Home", "Filter due")
+        viewModel.toggleReminderFilter()
+    }
     LaunchedEffect(clipboardShare?.second) {
         val url = clipboardShare?.first ?: return@LaunchedEffect
         if (!viewModel.isSaved(url)) linkToast = url
@@ -215,14 +258,35 @@ fun App(
                     if (tab == HomeTab.SETTINGS) {
                         when {
                             settingsPage == "GLASS_MOTION" -> com.pinfold.app.ui.settings.GlassMotionScreen(viewModel)
-                            settingsPage == "VAULT" -> HomeScreen(
-                                viewModel,
-                                privateOnly = true,
-                                onOpen = { detail = it; selectedIds = emptySet() },
-                                selectedIds = selectedIds,
-                                onStartSelection = { id -> selectedIds = setOf(id) },
-                                onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
-                            )
+                            settingsPage == "VAULT" -> Box(Modifier.fillMaxSize()) {
+                                HomeScreen(
+                                    viewModel,
+                                    privateOnly = true,
+                                    onOpen = { detail = it; selectedIds = emptySet() },
+                                    selectedIds = selectedIds,
+                                    onStartSelection = { id -> selectedIds = setOf(id) },
+                                    onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
+                                )
+                                if (selectedIds.isNotEmpty()) {
+                                    FilterRail(
+                                        important = importantFilter,
+                                        due = reminderFilter,
+                                        dueCount = dueCount.size,
+                                        visible = true,
+                                        onImportant = onToggleImportantFilter,
+                                        onDue = onToggleReminderFilter,
+                                        modifier = Modifier.align(Alignment.BottomEnd),
+                                        selectionActive = true,
+                                        selectedCount = selectedIds.size,
+                                        onDelete = onDeleteSelected,
+                                        onRefetch = onRefetchSelected,
+                                        onCopy = onCopySelected,
+                                        onShare = onShareSelected,
+                                        onRemoveStar = onRemoveStarSelected,
+                                        onClearReminder = onClearReminderSelected,
+                                    )
+                                }
+                            }
                             else -> SettingsScreen(viewModel, onOpenVault = { pendingVault = true; locked = true })
                         }
                     } else {
@@ -339,37 +403,22 @@ fun App(
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
-                val dueCount = viewModel.reminderIds.collectAsState().value.size
                 FilterRail(
-                    important = viewModel.importantFilter.collectAsState().value,
-                    due = viewModel.reminderFilter.collectAsState().value,
-                    dueCount = dueCount,
+                    important = importantFilter,
+                    due = reminderFilter,
+                    dueCount = dueCount.size,
                     visible = !searchActive,
-                    onImportant = { DiagnosticsLog.uiAction("Home", "Filter important"); viewModel.toggleImportantFilter() },
-                    onDue = { DiagnosticsLog.uiAction("Home", "Filter due"); viewModel.toggleReminderFilter() },
+                    onImportant = onToggleImportantFilter,
+                    onDue = onToggleReminderFilter,
                     modifier = Modifier.align(Alignment.BottomEnd),
                     selectionActive = selectedIds.isNotEmpty(),
                     selectedCount = selectedIds.size,
-                    onDelete = {
-                        selectedItems.forEach { viewModel.delete(it.bookmark) }
-                        selectedIds = emptySet()
-                    },
-                    onRefetch = {
-                        selectedItems.forEach { viewModel.refetch(it.bookmark) }
-                        selectedIds = emptySet()
-                    },
-                    onCopy = {
-                        val links = selectedItems.joinToString("\n") { it.bookmark.url }
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        clipboard?.setPrimaryClip(ClipData.newPlainText("Sonil links", links))
-                        statusToast = "Copied " + selectedIds.size + " links"
-                        selectedIds = emptySet()
-                    },
-                    onShare = {
-                        val links = selectedItems.joinToString("\n") { it.bookmark.url }
-                        context.shareText(links, "Share links")
-                        selectedIds = emptySet()
-                    },
+                    onDelete = onDeleteSelected,
+                    onRefetch = onRefetchSelected,
+                    onCopy = onCopySelected,
+                    onShare = onShareSelected,
+                    onRemoveStar = onRemoveStarSelected,
+                    onClearReminder = onClearReminderSelected,
                 )
             }
         }
