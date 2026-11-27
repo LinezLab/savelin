@@ -51,6 +51,9 @@ data class AppSettings(
     val themeMode: String = "AUTO",
     val pullCordEnabled: Boolean = true,
     val pullCordPosition: String = "RIGHT",
+    val shimmerEnabled: Boolean = true,
+    val shimmerColor: String = "LEMON",
+    val shimmerSpeed: String = "NORMAL",
     val language: String = "System",
     val defaultView: String = "CARD",
     val tapAction: String = "OPEN",
@@ -130,6 +133,9 @@ class SettingsRepository(private val context: Context) {
             themeMode = p[Keys.themeMode] ?: "AUTO",
             pullCordEnabled = p[Keys.pullCordEnabled] ?: true,
             pullCordPosition = p[Keys.pullCordPosition] ?: "RIGHT",
+            shimmerEnabled = p[Keys.shimmerEnabled] ?: true,
+            shimmerColor = p[Keys.shimmerColor] ?: "LEMON",
+            shimmerSpeed = p[Keys.shimmerSpeed] ?: "NORMAL",
             language = p[Keys.language] ?: "System",
             defaultView = p[Keys.defaultView] ?: "CARD",
             tapAction = p[Keys.tapAction] ?: "OPEN",
@@ -283,6 +289,9 @@ class SettingsRepository(private val context: Context) {
         val themeMode = stringPreferencesKey("themeMode")
         val pullCordEnabled = booleanPreferencesKey("pullCordEnabled")
         val pullCordPosition = stringPreferencesKey("pullCordPosition")
+        val shimmerEnabled = booleanPreferencesKey("shimmerEnabled")
+        val shimmerColor = stringPreferencesKey("shimmerColor")
+        val shimmerSpeed = stringPreferencesKey("shimmerSpeed")
         val language = stringPreferencesKey("language")
         val defaultView = stringPreferencesKey("defaultView")
         val tapAction = stringPreferencesKey("tapAction")
