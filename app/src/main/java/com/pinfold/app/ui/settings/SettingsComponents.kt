@@ -124,10 +124,7 @@ fun SettingsRow(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(36.dp).background(tileColor.copy(alpha = if (clear.dark) 0.2f else 0.14f), RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center,
-        ) { AppIcons.Icon(icon, null, tint = clear.onGlass, size = 18.dp) }
+        AppIcons.Icon(icon, null, tint = clear.onGlassSoft, size = 20.dp)
         Spacer(Modifier.size(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = clear.onGlass, maxLines = 2, overflow = TextOverflow.Ellipsis)

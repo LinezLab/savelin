@@ -3,8 +3,6 @@ package com.pinfold.app.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,13 +50,7 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
     ) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
-                Text("Theme", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = com.pinfold.app.ui.glass.theme.clear.ink)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    listOf("AUTO" to "Auto", "LIGHT" to "Light", "DARK" to "Dark").forEach { (value, label) ->
-                        ChoiceTile(label = label, selected = settings.themeMode == value, onClick = { viewModel.setSetting("themeMode", value) },
-                            preview = { com.pinfold.app.ui.components.AppIcons.Icon(if (value == "DARK") AppIcons.Dark else if (value == "LIGHT") AppIcons.Light else AppIcons.Appearance, null, tint = com.pinfold.app.ui.glass.theme.clear.ink, size = 24.dp) })
-                    }
-                }
+                SettingsChoiceRow(AppIcons.Appearance, Candy.Grape, "Theme", settings.themeMode, listOf("AUTO", "LIGHT", "DARK")) { viewModel.setSetting("themeMode", it) }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
                     GlassSwitch(settings.detailAmbientBackground) { viewModel.setSetting("detailAmbientBackground", it) }
