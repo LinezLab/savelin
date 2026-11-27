@@ -95,12 +95,12 @@ fun HomeScreen(
 ) {
     val allItems by viewModel.items.collectAsState()
     val privateItems by viewModel.privateItems.collectAsState()
-    val items = if (privateOnly) privateItems else allItems
+    val settings by viewModel.settings.collectAsState()
+    val items = if (privateOnly) privateItems else if (settings.privateVault) (allItems + privateItems).distinctBy { it.bookmark.id } else allItems
     val distinctItems = remember(items) { items.distinctBy { it.bookmark.id } }
     val query by viewModel.searchQuery.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val reminderIds by viewModel.reminderIds.collectAsState()
-    val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val vaultGridState = remember { LazyStaggeredGridState() }
     val gridState = if (privateOnly) vaultGridState else viewModel.gridState

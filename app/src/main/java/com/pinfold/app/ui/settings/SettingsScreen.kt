@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.reminders.repeatMinutesFromSetting
 import com.pinfold.app.ui.components.AppIcons
-import com.pinfold.app.ui.components.DiagnosticsToast
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
@@ -33,7 +32,6 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     var importResult by remember { mutableStateOf<Int?>(null) }
-    var vaultHint by remember { mutableStateOf(false) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
         if (uri != null) viewModel.exportBackup(uri)
     }
@@ -105,8 +103,10 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                 SettingsRow(AppIcons.Lock, Candy.Sky, "App lock", trailing = {
                     GlassSwitch(settings.biometricLock) { viewModel.setBiometricLock(it) }
                 })
-                SettingsRow(AppIcons.Hide, Candy.Grape, "Private vault", subtitle = "Long press to open",
-                    onLongClick = onOpenVault, onClick = { vaultHint = true })
+                SettingsRow(AppIcons.Hide, Candy.Grape, "Private vault",
+                    subtitle = "Show private items in Home · long press to open",
+                    trailing = { GlassSwitch(settings.privateVault) { viewModel.setSetting("privateVault", it) } },
+                    onLongClick = onOpenVault, onClick = {})
                 SettingsRow(AppIcons.Warning, Candy.Tomato, "Block screenshots", trailing = {
                     GlassSwitch(settings.blockScreenshots) { viewModel.setSetting("blockScreenshots", it) }
                 })
@@ -149,8 +149,5 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                 SettingsRow(AppIcons.Info, Candy.Grape, "Version", CrashReporter.appVersionLabel(context))
             }
         }
-    }
-    if (vaultHint) {
-        DiagnosticsToast("Long press to open the private vault", onDone = { vaultHint = false })
     }
 }
