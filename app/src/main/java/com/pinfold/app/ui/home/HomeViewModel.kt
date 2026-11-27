@@ -337,10 +337,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearReminder(item: Bookmark) = viewModelScope.launch {
-        val existing = db.reminderDao().observeAll().first().firstOrNull { it.bookmarkId == item.id }
-        if (existing != null) {
-            db.reminderDao().delete(existing.id)
-            ReminderScheduler.cancel(getApplication(), existing.id)
+        // The repeat feature can leave more than one row for a bookmark, so clear them all
+        // instead of only the first one returned by observeAll().
+        db.reminderDao().forBookmark(item.id).forEach { reminder ->
+            db.reminderDao().delete(reminder.id)
+            ReminderScheduler.cancel(getApplication(), reminder.id)
         }
     }
 
