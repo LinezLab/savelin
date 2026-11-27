@@ -169,11 +169,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         withContext(Dispatchers.Main) { onResult(added) }
     }
 
-    fun saveLink(raw: String) {
+    fun saveLink(raw: String, isPrivate: Boolean = settings.value.saveLinksPrivateByDefault) {
         val url = extractUrl(raw) ?: return
         val request = OneTimeWorkRequestBuilder<LinkFetchWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .setInputData(workDataOf(LinkFetchWorker.KEY_URL to url))
+            .setInputData(
+                workDataOf(
+                    LinkFetchWorker.KEY_URL to url,
+                    LinkFetchWorker.KEY_IS_PRIVATE to isPrivate,
+                ),
+            )
             .build()
         WorkManager.getInstance(getApplication<Application>()).enqueue(request)
     }

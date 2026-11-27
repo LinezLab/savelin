@@ -4,7 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.activity.compose.BackHandler
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pinfold.app.ui.glass.ComponentGlass
+import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassToast
 import com.pinfold.app.ui.glass.GlassTextField
@@ -77,6 +80,7 @@ fun App(
     val viewModel: HomeViewModel = viewModel()
     var showAdd by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
+    var draftPrivate by remember { mutableStateOf(false) }
     var detail by remember { mutableStateOf<BookmarkWithTags?>(null) }
     var consumedOpen by remember { mutableStateOf<Long?>(null) }
     var locked by remember { mutableStateOf(false) }
@@ -174,6 +178,9 @@ fun App(
             showAdd = true
         }
     }
+    LaunchedEffect(showAdd) {
+        if (showAdd) draftPrivate = appearance.saveLinksPrivateByDefault
+    }
     LaunchedEffect(openBookmark?.second, items) {
         val request = openBookmark ?: return@LaunchedEffect
         if (consumedOpen == request.second) return@LaunchedEffect
@@ -254,7 +261,7 @@ fun App(
                         title = "Save a link",
                         confirm = "Save",
                         onConfirm = {
-                            if (draft.isNotBlank()) viewModel.saveLink(draft)
+                            if (draft.isNotBlank()) viewModel.saveLink(draft, draftPrivate)
                             draft = ""
                             showAdd = false
                         },
@@ -265,6 +272,14 @@ fun App(
                             onValueChange = { draft = it },
                             placeholder = "Paste a link or shared text",
                         )
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            GlassPill(onClick = { draftPrivate = false }, height = 40.dp) {
+                                Text("Public", color = if (!draftPrivate) clear.ink else clear.onGlassSoft)
+                            }
+                            GlassPill(onClick = { draftPrivate = true }, height = 40.dp) {
+                                Text("Private", color = if (draftPrivate) clear.ink else clear.onGlassSoft)
+                            }
+                        }
                     }
                 }
                 linkToast?.let { url ->

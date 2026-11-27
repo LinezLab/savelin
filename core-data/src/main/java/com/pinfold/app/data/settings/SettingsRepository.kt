@@ -25,6 +25,8 @@ data class AppSettings(
     val biometricLock: Boolean = false,
     val allowHttpLinks: Boolean = false,
     val enableClipboardChip: Boolean = false,
+    val saveLinksPrivateByDefault: Boolean = false,
+    val privateVault: Boolean = false,
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
     val glassPreset: String = "LIQUID",
@@ -100,6 +102,8 @@ class SettingsRepository(private val context: Context) {
             biometricLock = p[Keys.biometricLock] ?: false,
             allowHttpLinks = p[Keys.allowHttpLinks] ?: false,
             enableClipboardChip = p[Keys.enableClipboardChip] ?: false,
+            saveLinksPrivateByDefault = p[Keys.saveLinksPrivateByDefault] ?: false,
+            privateVault = p[Keys.privateVault] ?: false,
             reduceTransparency = p[Keys.reduceTransparency] ?: false,
             reduceMotion = p[Keys.reduceMotion] ?: false,
             glassPreset = p[Keys.glassPreset] ?: "LIQUID",
@@ -249,6 +253,8 @@ class SettingsRepository(private val context: Context) {
         val biometricLock = booleanPreferencesKey("biometric_lock")
         val allowHttpLinks = booleanPreferencesKey("allow_http")
         val enableClipboardChip = booleanPreferencesKey("clipboard_chip")
+        val saveLinksPrivateByDefault = booleanPreferencesKey("saveLinksPrivateByDefault")
+        val privateVault = booleanPreferencesKey("privateVault")
         val reduceTransparency = booleanPreferencesKey("reduce_transparency")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val glassPreset = stringPreferencesKey("glass_preset")

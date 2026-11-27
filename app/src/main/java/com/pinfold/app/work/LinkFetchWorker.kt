@@ -31,6 +31,7 @@ class LinkFetchWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val rawUrl = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
+        val isPrivate = inputData.getBoolean(KEY_IS_PRIVATE, false)
         val db = PinfoldDatabase.get(applicationContext)
         val currentSettings = SettingsRepository(applicationContext).settings.first()
         if (currentSettings.offlineMode) return@withContext Result.success()
@@ -67,6 +68,7 @@ class LinkFetchWorker(
                 url = preview.url.ifBlank { normalized },
                 originalUrl = rawUrl,
                 normalizedUrl = normalized,
+                isPrivate = isPrivate,
                 fetchStatus = FetchStatus.PENDING,
             ),
         )
@@ -123,6 +125,7 @@ class LinkFetchWorker(
                 siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
                 platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
                 author = preview.author,
+                isPrivate = isPrivate,
                 remoteImageUrl = remoteImageUrl,
                 imagePath = stored?.path ?: current.imagePath,
                 imageWidth = stored?.width ?: current.imageWidth,
@@ -142,5 +145,6 @@ class LinkFetchWorker(
 
     companion object {
         const val KEY_URL = "url"
+        const val KEY_IS_PRIVATE = "is_private"
     }
 }
