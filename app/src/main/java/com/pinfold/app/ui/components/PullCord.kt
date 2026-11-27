@@ -39,6 +39,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -182,7 +183,7 @@ fun PullCord(
 }
 
 private class CordState(private val onToggle: () -> Unit) {
-    private val pullAnim = Animatable(0f)
+    private var pull by mutableFloatStateOf(0f)
     var width = 0f
     var density = 1f
     var across = 0.5f
@@ -197,7 +198,7 @@ private class CordState(private val onToggle: () -> Unit) {
     }
 
     fun anchor(): Offset = Offset(width * across, 0f)
-    fun bead(): Offset = anchor() + Offset(0f, Rod.value * density + pullAnim.value)
+    fun bead(): Offset = anchor() + Offset(0f, Rod.value * density + pull)
 
     fun grab(at: Offset): Boolean {
         if (held || (at - bead()).getDistance() > GrabRadius.value * density) return false
@@ -207,11 +208,11 @@ private class CordState(private val onToggle: () -> Unit) {
         return true
     }
 
-    suspend fun dragTo(at: Offset) {
+    fun dragTo(at: Offset) {
         if (!held) return
         val down = at.y - grabbedAt.y
         val along = abs(at.x - grabbedAt.x)
-        pullAnim.snapTo(down.coerceAtLeast(0f))
+        pull = down.coerceAtLeast(0f)
         if (!clicked && down >= ClickPull.value * density && down >= 2f * along) {
             clicked = true
             onToggle()
@@ -223,11 +224,12 @@ private class CordState(private val onToggle: () -> Unit) {
     }
 
     suspend fun settle() {
-        pullAnim.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMedium))
+        Animatable(pull).animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMedium)) { pull = value }
     }
 
     suspend fun pulse() {
-        pullAnim.animateTo(ClickPull.value * density, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
-        pullAnim.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMedium))
+        val anim = Animatable(pull)
+        anim.animateTo(ClickPull.value * density, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium)) { pull = value }
+        anim.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMedium)) { pull = value }
     }
 }
