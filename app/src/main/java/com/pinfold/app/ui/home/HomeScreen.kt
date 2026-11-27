@@ -36,16 +36,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,6 +77,9 @@ import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.LightGlassChip
 import com.pinfold.app.ui.glass.MotionSettings
+import com.pinfold.app.ui.glass.Capsule
+import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.SavelinGlassDialog
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.theme.Candy
@@ -107,6 +114,10 @@ fun HomeScreen(
     val gridState = if (privateOnly) vaultGridState else viewModel.gridState
     val scrolling = rememberGridScrolling(gridState)
     val selectionMode = selectedIds.isNotEmpty()
+    val scope = rememberCoroutineScope()
+    val showBackToTop by remember {
+        derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 }
+    }
     val spacing = when (settings.cardSpacing) {
         "NORMAL" -> 8.dp
         "ROOMY" -> 12.dp
@@ -248,6 +259,27 @@ fun HomeScreen(
             )
         }
         starToast?.let { DiagnosticsToast(it) { starToast = null } }
+        if (!privateOnly && showBackToTop && !selectionMode) {
+            Box(
+                Modifier.align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 18.dp, bottom = 216.dp)
+                    .size(56.dp)
+                    .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                    .clip(Capsule)
+                    .pressable(onClick = { scope.launch { gridState.animateScrollToItem(0) } })
+                    .semantics { contentDescription = "Back to top" },
+                contentAlignment = Alignment.Center,
+            ) {
+                AppIcons.Icon(
+                    AppIcons.Expand,
+                    null,
+                    modifier = Modifier.graphicsLayer { rotationZ = 180f },
+                    tint = SavelinGlass.ink,
+                    size = 22.dp,
+                )
+            }
+        }
 }
 }
 
