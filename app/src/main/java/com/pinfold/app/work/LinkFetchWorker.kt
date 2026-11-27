@@ -31,7 +31,8 @@ class LinkFetchWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val rawUrl = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
-        val isPrivate = inputData.getBoolean(KEY_IS_PRIVATE, false)
+        val hasPrivateFlag = inputData.keyValueMap.containsKey(KEY_IS_PRIVATE)
+        val isPrivateFlag = inputData.getBoolean(KEY_IS_PRIVATE, false)
         val db = PinfoldDatabase.get(applicationContext)
         val currentSettings = SettingsRepository(applicationContext).settings.first()
         if (currentSettings.offlineMode) return@withContext Result.success()
@@ -68,7 +69,7 @@ class LinkFetchWorker(
                 url = preview.url.ifBlank { normalized },
                 originalUrl = rawUrl,
                 normalizedUrl = normalized,
-                isPrivate = isPrivate,
+                isPrivate = if (hasPrivateFlag) isPrivateFlag else false,
                 fetchStatus = FetchStatus.PENDING,
             ),
         )
@@ -111,6 +112,7 @@ class LinkFetchWorker(
             fallbackTitle = PlatformDetector.siteName(normalized),
         )
         val current = db.bookmarkDao().findById(id) ?: return@withContext Result.success()
+        val effectivePrivate = if (hasPrivateFlag) isPrivateFlag else current.isPrivate
         db.bookmarkDao().update(
             current.copy(
                 title = cleaned.displayTitle,
@@ -125,7 +127,7 @@ class LinkFetchWorker(
                 siteName = preview.siteName.ifBlank { PlatformDetector.domain(normalized) },
                 platform = preview.platform.ifBlank { PlatformDetector.platform(normalized) },
                 author = preview.author,
-                isPrivate = isPrivate,
+                isPrivate = effectivePrivate,
                 remoteImageUrl = remoteImageUrl,
                 imagePath = stored?.path ?: current.imagePath,
                 imageWidth = stored?.width ?: current.imageWidth,
