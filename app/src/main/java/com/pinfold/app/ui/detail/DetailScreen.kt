@@ -248,6 +248,7 @@ fun DetailScreen(
     val context = LocalContext.current
     val themeFloor = MaterialTheme.colorScheme.background
     val reminderIds by viewModel.reminderIds.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val hasReminder = bookmark.id in reminderIds
 
     var menuOpen by remember { mutableStateOf(false) }
@@ -404,6 +405,9 @@ fun DetailScreen(
             )
             OverlayOpenText(
                 reduceMotion = reduceMotion,
+                shimmerEnabled = settings.shimmerEnabled,
+                shimmerColor = settings.shimmerColor,
+                shimmerSpeed = settings.shimmerSpeed,
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(bookmark.url)))
@@ -586,6 +590,9 @@ private fun StickySonilLogo() {
 @Composable
 private fun OverlayOpenText(
     reduceMotion: Boolean,
+    shimmerEnabled: Boolean,
+    shimmerColor: String,
+    shimmerSpeed: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -601,7 +608,14 @@ private fun OverlayOpenText(
     val density = LocalDensity.current
     val textWidth = with(density) { textLayout.size.width.toDp() }
     val textHeight = with(density) { textLayout.size.height.toDp() }
-    val shimmerBrush = rememberTextShimmerBrush(OPEN_TEXT_COLOR, textLayout.size.width.toFloat(), reduceMotion)
+    val shimmerBrush = rememberTextShimmerBrush(
+        OPEN_TEXT_COLOR,
+        textLayout.size.width.toFloat(),
+        reduceMotion,
+        enabled = shimmerEnabled,
+        color = shimmerColor,
+        speed = shimmerSpeed,
+    )
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val pressScale by animateFloatAsState(if (pressed) 0.9f else 1f, IosMotion.Press, label = "openTextPress")

@@ -95,6 +95,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 })
                 SettingsChoiceRow(AppIcons.Appearance, Candy.Sky, "Pull cord position", settings.pullCordPosition, listOf("LEFT", "CENTER", "RIGHT")) { viewModel.setSetting("pullCordPosition", it) }
                 SettingsChoiceRow(AppIcons.Appearance, Candy.Grape, "Theme", settings.themeMode, listOf("AUTO", "LIGHT", "DARK")) { viewModel.setSetting("themeMode", it) }
+                SettingsRow(AppIcons.Appearance, Candy.Lemon, "Shimmer effects", trailing = {
+                    GlassSwitch(settings.shimmerEnabled) { viewModel.setSetting("shimmerEnabled", it) }
+                })
+                if (settings.shimmerEnabled) {
+                    SettingsChoiceRow(AppIcons.Appearance, Candy.Mint, "Shimmer colour", settings.shimmerColor, listOf("LEMON", "MINT", "SKY")) { viewModel.setSetting("shimmerColor", it) }
+                    SettingsChoiceRow(AppIcons.Appearance, Candy.Sky, "Shimmer speed", settings.shimmerSpeed, listOf("SLOW", "NORMAL", "FAST")) { viewModel.setSetting("shimmerSpeed", it) }
+                }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
                     GlassSwitch(settings.detailAmbientBackground) { viewModel.setSetting("detailAmbientBackground", it) }

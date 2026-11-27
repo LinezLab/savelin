@@ -141,12 +141,27 @@ fun App(
         if (showSplash) viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
     }
     if (showSplash) {
-        SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, onDone = { showSplash = false })
+        SplashScreen(
+            splashItem,
+            reduceMotion = appearance.reduceMotion,
+            shimmerEnabled = appearance.shimmerEnabled,
+            shimmerColor = appearance.shimmerColor,
+            shimmerSpeed = appearance.shimmerSpeed,
+            onDone = { showSplash = false },
+        )
         return
     }
     if (locked) {
         Box(Modifier.fillMaxSize()) {
-            SplashScreen(splashItem, reduceMotion = appearance.reduceMotion, keepOnScreen = true, onDone = {})
+            SplashScreen(
+                splashItem,
+                reduceMotion = appearance.reduceMotion,
+                shimmerEnabled = appearance.shimmerEnabled,
+                shimmerColor = appearance.shimmerColor,
+                shimmerSpeed = appearance.shimmerSpeed,
+                keepOnScreen = true,
+                onDone = {},
+            )
             Box(Modifier.fillMaxSize().zIndex(1f)) {
                 BiometricGate(
                     onUnlock = {

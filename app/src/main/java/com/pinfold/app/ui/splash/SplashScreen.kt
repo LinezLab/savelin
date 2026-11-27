@@ -41,6 +41,9 @@ fun SplashScreen(
     reduceMotion: Boolean,
     onDone: () -> Unit,
     keepOnScreen: Boolean = false,
+    shimmerEnabled: Boolean = true,
+    shimmerColor: String = "LEMON",
+    shimmerSpeed: String = "NORMAL",
 ) {
     val bg = if (clear.dark) Color.Black else Color.White
 
@@ -67,13 +70,18 @@ fun SplashScreen(
 
     Box(Modifier.fillMaxSize().background(bg)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            SplashSonilLogo(reduceMotion)
+            SplashSonilLogo(reduceMotion, shimmerEnabled, shimmerColor, shimmerSpeed)
         }
     }
 }
 
 @Composable
-private fun SplashSonilLogo(reduceMotion: Boolean) {
+private fun SplashSonilLogo(
+    reduceMotion: Boolean,
+    shimmerEnabled: Boolean,
+    shimmerColor: String,
+    shimmerSpeed: String,
+) {
     val measurer = rememberTextMeasurer()
     val ink = if (clear.dark) Color.White else Color.Black
     val refStyle = TextStyle(
@@ -93,7 +101,14 @@ private fun SplashSonilLogo(reduceMotion: Boolean) {
     val density = LocalDensity.current
     val width = with(density) { layout.size.width.toDp() }
     val height = with(density) { layout.size.height.toDp() }
-    val shimmerBrush = rememberTextShimmerBrush(ink, layout.size.width.toFloat(), reduceMotion)
+    val shimmerBrush = rememberTextShimmerBrush(
+        ink,
+        layout.size.width.toFloat(),
+        reduceMotion,
+        enabled = shimmerEnabled,
+        color = shimmerColor,
+        speed = shimmerSpeed,
+    )
     Canvas(
         Modifier.size(width, height)
             .semantics { contentDescription = "Sonil" },
