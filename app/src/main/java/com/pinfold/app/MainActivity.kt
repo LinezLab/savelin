@@ -142,6 +142,16 @@ class MainActivity : FragmentActivity() {
             val immersive = repository.settings.first().immersiveMode
             withContext(Dispatchers.Main) { applyImmersive(immersive) }
         }
+        checkClipboard()
+    }
+
+    /**
+     * Android only allows the focused app to read the clipboard, so this runs on resume and on
+     * window focus. Without the focus pass a link copied in another app while ours stayed
+     * resumed was never detected until the activity was paused again.
+     */
+    private fun checkClipboard() {
+        if (!::repository.isInitialized) return
         lifecycleScope.launch {
             if (!repository.settings.first().enableClipboardChip) return@launch
             val clip = (getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.primaryClip
@@ -156,7 +166,10 @@ class MainActivity : FragmentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) applyImmersive(immersiveEnabled)
+        if (hasFocus) {
+            applyImmersive(immersiveEnabled)
+            checkClipboard()
+        }
     }
 
     private fun readOpenIntent(source: Intent?) {

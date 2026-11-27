@@ -537,7 +537,6 @@ fun GlassToast(
     var dragY by remember { mutableStateOf(0f) }
     Row(
         modifier
-            .graphicsLayer { translationY = dragY }
             .then(
                 if (onDismiss == null) Modifier else Modifier.draggable(
                     rememberDraggableState { delta -> dragY = (dragY + delta).coerceAtLeast(0f) },
@@ -550,7 +549,9 @@ fun GlassToast(
             )
             .floatingLayer {
                 val p = appear.value
-                translationY = (1f - p) * 24.dp.toPx()
+                // The drag offset lives in the same layer as the appear animation; writing
+                // translationY twice would drop the drag, so combine them here.
+                translationY = (1f - p) * 24.dp.toPx() + dragY
                 alpha = p.coerceIn(0f, 1f)
             }
             .widthIn(max = 520.dp)

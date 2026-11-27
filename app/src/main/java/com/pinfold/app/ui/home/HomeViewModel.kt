@@ -371,7 +371,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val config = settings.value
             if (!config.refetchMissing || config.offlineMode) return@launch
-            val missing = db.bookmarkDao().missingPreviews()
+            // `missingPreviews()` excludes rows whose fetchStatus is OK, so a bookmark whose
+            // image file was deleted after a successful fetch was never retried. Scan every
+            // non-archived row and test the file on disk instead.
+            val missing = db.bookmarkDao().getAll()
+                .filter { !it.isArchived }
                 .filter { it.imagePath.isNullOrBlank() || !File(it.imagePath).isFile }
             DiagnosticsLog.log(LogLevel.INFO, "BulkRefresh", "start total=" + missing.size)
             withTimeoutOrNull(5_000) {

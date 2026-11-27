@@ -199,7 +199,12 @@ fun HomeScreen(
                     imageModel = {
                         item.bookmark.imagePath?.let { path ->
                             if (File(path).exists()) {
-                                ImageRequest.Builder(context).data(File(path)).build()
+                                ImageRequest.Builder(context)
+                                    .data(File(path))
+                                    // The file path is stable across refetches, so include the
+                                    // row version to stop Coil serving the previous image.
+                                    .memoryCacheKey(path + "#" + item.bookmark.updatedAt)
+                                    .build()
                             } else null
                         }
                     },

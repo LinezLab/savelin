@@ -113,6 +113,11 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                 SettingsRow(AppIcons.Paste, Candy.Mint, "Clipboard link suggestion", trailing = {
                     GlassSwitch(settings.enableClipboardChip) { viewModel.setEnableClipboardChip(it) }
                 })
+                SettingsRow(AppIcons.Hide, Candy.Grape, "Save links privately by default", trailing = {
+                    GlassSwitch(settings.saveLinksPrivateByDefault) {
+                        viewModel.setSetting("saveLinksPrivateByDefault", it)
+                    }
+                })
                 SettingsRow(AppIcons.Offline, Candy.Tangerine, "Offline mode", trailing = {
                     GlassSwitch(settings.offlineMode) { viewModel.setOffline(it) }
                 })

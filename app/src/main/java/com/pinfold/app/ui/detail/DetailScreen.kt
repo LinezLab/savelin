@@ -138,7 +138,6 @@ internal val OPEN_TEXT_LETTER_SPACING: TextUnit = 2.sp
 internal val DETAIL_GLYPH_BUTTON_SIZE: Dp = 44.dp
 internal val DETAIL_GLYPH_ICON_SIZE: Dp = 24.dp
 internal val DETAIL_METADATA_INK: Color = Color.White
-internal val DETAIL_LOGO_BLEND_MODE: BlendMode = BlendMode.Overlay
 internal val DETAIL_LOGO_FONT_SIZE: TextUnit = 22.sp
 
 internal fun smootherStep(t: Float): Float {
@@ -571,12 +570,7 @@ private fun StickySonilLogo() {
     val density = LocalDensity.current
     val width = with(density) { textLayout.size.width.toDp() }
     val height = with(density) { textLayout.size.height.toDp() }
-    Canvas(
-        Modifier.size(width, height).graphicsLayer {
-            compositingStrategy = CompositingStrategy.Offscreen
-            blendMode = DETAIL_LOGO_BLEND_MODE
-        },
-    ) {
+    Canvas(Modifier.size(width, height)) {
         drawText(textLayout, color = ink)
     }
 }
