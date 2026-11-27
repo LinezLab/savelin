@@ -17,13 +17,29 @@ internal const val TEXT_SHIMMER_BAND_FRACTION = 0.55f
 internal const val TEXT_SHIMMER_EDGE_ALPHA = 0.9f
 internal const val TEXT_SHIMMER_BAND_ALPHA = 1f
 
-internal fun textShimmerColors(base: Color): List<Color> = listOf(
+internal fun shimmerDurationMs(speed: String): Int = when (speed) {
+    "SLOW" -> 3600
+    "NORMAL" -> TEXT_SHIMMER_DURATION_MS
+    "FAST" -> 1200
+    else -> TEXT_SHIMMER_DURATION_MS
+}
+
+internal fun shimmerBandColor(color: String): Color = when (color) {
+    "MINT" -> Candy.Mint
+    "SKY" -> Candy.Sky
+    else -> Candy.Lemon
+}
+
+internal fun textShimmerColors(base: Color, band: Color = Candy.Lemon): List<Color> = listOf(
     base.copy(alpha = TEXT_SHIMMER_EDGE_ALPHA),
     base,
-    Candy.Lemon.copy(alpha = TEXT_SHIMMER_BAND_ALPHA),
+    band.copy(alpha = TEXT_SHIMMER_BAND_ALPHA),
     base,
     base.copy(alpha = TEXT_SHIMMER_EDGE_ALPHA),
 )
+
+internal fun shimmerBrushColors(base: Color, enabled: Boolean, color: String): List<Color> =
+    if (enabled) textShimmerColors(base, shimmerBandColor(color)) else listOf(base, base)
 
 internal fun textShimmerSpan(fraction: Float, widthPx: Float): Pair<Float, Float> {
     val t = fraction.coerceIn(0f, 1f)
@@ -34,7 +50,15 @@ internal fun textShimmerSpan(fraction: Float, widthPx: Float): Pair<Float, Float
 }
 
 @Composable
-internal fun rememberTextShimmerBrush(base: Color, widthPx: Float, reduceMotion: Boolean): Brush {
+internal fun rememberTextShimmerBrush(
+    base: Color,
+    widthPx: Float,
+    reduceMotion: Boolean,
+    enabled: Boolean = true,
+    color: String = "LEMON",
+    speed: String = "NORMAL",
+): Brush {
+    if (!enabled) return Brush.linearGradient(shimmerBrushColors(base, enabled, color))
     val fraction = if (reduceMotion) {
         0.5f
     } else {
@@ -43,14 +67,14 @@ internal fun rememberTextShimmerBrush(base: Color, widthPx: Float, reduceMotion:
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(TEXT_SHIMMER_DURATION_MS, easing = LinearEasing),
+                animation = tween(shimmerDurationMs(speed), easing = LinearEasing),
                 repeatMode = RepeatMode.Restart,
             ),
         ).value
     }
     val (startX, endX) = textShimmerSpan(fraction, widthPx)
     return Brush.linearGradient(
-        colors = textShimmerColors(base),
+        colors = shimmerBrushColors(base, enabled, color),
         start = Offset(startX, 0f),
         end = Offset(endX, 0f),
     )
