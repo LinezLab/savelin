@@ -1,6 +1,7 @@
 package com.pinfold.app.ui.detail
 
 import androidx.compose.ui.graphics.Color
+import com.pinfold.app.ui.glass.theme.Candy
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -12,13 +13,13 @@ class ShimmerTextTest {
     }
 
     @Test
-    fun shimmerColorsDimEdgesAndCenterABrightBand() {
+    fun shimmerColorsDimEdgesAndCenterALemonBand() {
         val base = Color.White
         val colors = textShimmerColors(base)
         assertEquals(5, colors.size)
         assertEquals(base.copy(alpha = 0.9f), colors[0])
         assertEquals(base, colors[1])
-        assertEquals(Color.White.copy(alpha = 1f), colors[2])
+        assertEquals(Candy.Lemon.copy(alpha = 1f), colors[2])
         assertEquals(base, colors[3])
         assertEquals(base.copy(alpha = 0.9f), colors[4])
     }

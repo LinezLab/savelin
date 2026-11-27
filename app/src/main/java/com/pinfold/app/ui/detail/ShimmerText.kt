@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.pinfold.app.ui.glass.theme.Candy
 
 internal const val TEXT_SHIMMER_DURATION_MS = 2200
 internal const val TEXT_SHIMMER_BAND_FRACTION = 0.55f
@@ -19,7 +20,7 @@ internal const val TEXT_SHIMMER_BAND_ALPHA = 1f
 internal fun textShimmerColors(base: Color): List<Color> = listOf(
     base.copy(alpha = TEXT_SHIMMER_EDGE_ALPHA),
     base,
-    Color.White.copy(alpha = TEXT_SHIMMER_BAND_ALPHA),
+    Candy.Lemon.copy(alpha = TEXT_SHIMMER_BAND_ALPHA),
     base,
     base.copy(alpha = TEXT_SHIMMER_EDGE_ALPHA),
 )

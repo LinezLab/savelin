@@ -151,9 +151,9 @@ class DetailNavigationTest {
     }
 
     @Test
-    fun openTextUsesPlainWhiteCoreWithoutBlendMode() {
+    fun openTextUsesOverlayBlendWithWhiteInk() {
         assertEquals(Color.White, OPEN_TEXT_COLOR)
-        assertEquals(OPEN_TEXT_COLOR, Color.White)
+        assertEquals(BlendMode.Overlay, OPEN_TEXT_BLEND_MODE)
     }
 
     @Test
