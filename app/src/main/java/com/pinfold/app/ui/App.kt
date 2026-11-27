@@ -3,7 +3,6 @@ package com.pinfold.app.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
@@ -287,7 +285,7 @@ fun App(
                                     )
                                 }
                             }
-                            else -> SettingsScreen(viewModel, onOpenVault = { pendingVault = true; locked = true })
+                            else -> SettingsScreen(viewModel)
                         }
                     } else {
                         HomeScreen(
@@ -384,13 +382,6 @@ fun App(
                 settingsPage == "HOME" && !overlaysOpen && CrashReporter.pendingLog.isNullOrBlank()
             if (homeChromeVisible) {
                 Box(Modifier.fillMaxSize().imePadding()) {
-                    if (searchActive) {
-                        Box(
-                            Modifier.fillMaxSize().pointerInput(Unit) {
-                                detectTapGestures(onTap = { viewModel.setSearchActive(false) })
-                            },
-                        )
-                    }
                     FloatingPillNav(
                         searchActive = searchActive,
                         query = query,
@@ -400,7 +391,11 @@ fun App(
                         onAdd = { showAdd = true },
                         onAddLong = { showAdd = true },
                         onSettings = { DiagnosticsLog.uiAction("Nav", "Settings"); viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
-                        onSettingsLong = { viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                        onSettingsLong = {
+                            viewModel.setSearchActive(false)
+                            pendingVault = true
+                            locked = true
+                        },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }

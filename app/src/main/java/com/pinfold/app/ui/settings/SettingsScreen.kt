@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.reminders.repeatMinutesFromSetting
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.PullCord
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.glass.theme.Candy
@@ -28,7 +30,7 @@ import com.pinfold.app.ui.home.HomeTab
 import com.pinfold.app.ui.home.HomeViewModel
 
 @Composable
-fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     var importResult by remember { mutableStateOf<Int?>(null) }
@@ -48,6 +50,12 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
     ) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
+                PullCord(
+                    mode = settings.themeMode,
+                    onModeChange = { viewModel.setSetting("themeMode", it) },
+                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                    across = 0.62f,
+                )
                 SettingsChoiceRow(AppIcons.Appearance, Candy.Grape, "Theme", settings.themeMode, listOf("AUTO", "LIGHT", "DARK")) { viewModel.setSetting("themeMode", it) }
                 SettingsRow(AppIcons.Appearance, Candy.Grape, "Liquid glass and motion", "${glass.blur} · ${motion.label}", onClick = viewModel::openGlassMotion)
                 SettingsRow(AppIcons.CustomImage, Candy.Bubblegum, "Artwork background", trailing = {
@@ -104,9 +112,8 @@ fun SettingsScreen(viewModel: HomeViewModel, onOpenVault: () -> Unit, modifier: 
                     GlassSwitch(settings.biometricLock) { viewModel.setBiometricLock(it) }
                 })
                 SettingsRow(AppIcons.Hide, Candy.Grape, "Private vault",
-                    subtitle = "Show private items in Home · long press to open",
-                    trailing = { GlassSwitch(settings.privateVault) { viewModel.setSetting("privateVault", it) } },
-                    onLongClick = onOpenVault, onClick = {})
+                    subtitle = "Show private items in Home",
+                    trailing = { GlassSwitch(settings.privateVault) { viewModel.setSetting("privateVault", it) } })
                 SettingsRow(AppIcons.Warning, Candy.Tomato, "Block screenshots", trailing = {
                     GlassSwitch(settings.blockScreenshots) { viewModel.setSetting("blockScreenshots", it) }
                 })
