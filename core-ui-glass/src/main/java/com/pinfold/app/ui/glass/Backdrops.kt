@@ -33,7 +33,6 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -371,24 +370,13 @@ fun GlassStage(
     val underOverlay = rememberCombinedBackdrop(underChrome, chromeLayer)
     CompositionLocalProvider(LocalGlassOverlayHost provides host) {
         Box(Modifier.fillMaxSize()) {
-            // While something floats over it, the scene is still: kept as one texture, a sheet or dialog
-            // moving above it composites that texture instead of redrawing (and re-blurring) every
-            // glass control it passes over on every frame
-            Box(
-                Modifier.fillMaxSize().graphicsLayer {
-                    compositingStrategy = CompositingStrategy.Offscreen
-                },
-            ) {
+            Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize().layerBackdrop(wall), content = wallpaper)
                 CompositionLocalProvider(LocalBackdrop provides wall) {
                     Box(Modifier.fillMaxSize().layerBackdrop(screensLayer), content = screens)
                 }
             }
-            Box(
-                Modifier.fillMaxSize().graphicsLayer {
-                    compositingStrategy = CompositingStrategy.Offscreen
-                },
-            ) {
+            Box(Modifier.fillMaxSize()) {
                 CompositionLocalProvider(LocalBackdrop provides underChrome) {
                     Box(Modifier.fillMaxSize().layerBackdrop(chromeLayer), content = chrome)
                 }
