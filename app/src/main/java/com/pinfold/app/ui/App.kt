@@ -14,11 +14,16 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.ComponentGlass
+import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.GlassPill
 import com.pinfold.app.ui.glass.GlassSettings
 import com.pinfold.app.ui.glass.GlassToast
@@ -28,13 +33,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
@@ -65,6 +76,7 @@ import com.pinfold.app.ui.splash.SplashScreen
 import com.pinfold.app.ui.settings.SettingsScreen
 import com.pinfold.app.data.model.BookmarkWithTags
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal val HOME_BACKGROUND_LIGHT: Color = Color.White
 internal val HOME_BACKGROUND_DARK: Color = Color.Black
@@ -87,6 +99,14 @@ fun App(
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
     val refreshProgress = remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var lastBulkRefresh by remember { mutableStateOf(0L) }
+    val chromeScope = rememberCoroutineScope()
+    val showBackToTop by remember {
+        derivedStateOf {
+            viewModel.gridState.firstVisibleItemIndex > 0 ||
+                viewModel.gridState.firstVisibleItemScrollOffset > 0
+        }
+    }
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
@@ -138,7 +158,17 @@ fun App(
         })
     }
     LaunchedEffect(showSplash) {
-        if (showSplash) viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
+        if (showSplash && foreground) {
+            lastBulkRefresh = System.currentTimeMillis()
+            viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
+        }
+    }
+    LaunchedEffect(foreground) {
+        if (!foreground) return@LaunchedEffect
+        val now = System.currentTimeMillis()
+        if (now - lastBulkRefresh < 60_000L) return@LaunchedEffect
+        lastBulkRefresh = now
+        viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
     }
     if (showSplash) {
         SplashScreen(
@@ -224,9 +254,15 @@ fun App(
         linkToast = null
     }
     LaunchedEffect(statusToast) {
-        if (statusToast == null) return@LaunchedEffect
+        if (statusToast == null) return
         delay(2200)
         statusToast = null
+    }
+    LaunchedEffect(refreshProgress.value) {
+        if (refreshProgress.value != null) {
+            delay(1200)
+            refreshProgress.value = null
+        }
     }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
@@ -388,6 +424,15 @@ fun App(
                         GlassToast(text = message, action = null, onAction = {})
                     }
                 }
+                refreshProgress.value?.let { (done, total) ->
+                    Box(
+                        Modifier.align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 160.dp),
+                    ) {
+                        GlassToast(text = "Refreshing covers $done/$total", action = null, onAction = {})
+                    }
+                }
                 CrashReportNotice()
             }
         },
@@ -413,6 +458,27 @@ fun App(
                         },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+                    if (showBackToTop && selectedIds.isEmpty()) {
+                        Box(
+                            Modifier.align(Alignment.BottomEnd)
+                                .navigationBarsPadding()
+                                .padding(end = 18.dp, bottom = 216.dp)
+                                .size(56.dp)
+                                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                                .clip(Capsule)
+                                .pressable(onClick = { chromeScope.launch { viewModel.gridState.animateScrollToItem(0) } })
+                                .semantics { contentDescription = "Back to top" },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            AppIcons.Icon(
+                                AppIcons.Expand,
+                                null,
+                                modifier = Modifier.graphicsLayer { rotationZ = 180f },
+                                tint = SavelinGlass.ink,
+                                size = 22.dp,
+                            )
+                        }
+                    }
                 }
                 FilterRail(
                     important = importantFilter,
