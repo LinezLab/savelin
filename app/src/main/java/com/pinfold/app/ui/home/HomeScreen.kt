@@ -128,6 +128,7 @@ fun HomeScreen(
                 GlassPill(
                     onClick = { viewModel.saveLink(query.trim()); viewModel.onQueryChange("") },
                     modifier = Modifier.padding(horizontal = 16.dp),
+                    flatWash = true,
                 ) { Text("Add this link", color = com.pinfold.app.ui.glass.theme.clear.ink) }
             }
             if (items.isEmpty()) {
@@ -337,6 +338,7 @@ private fun BookmarkCard(
                     LightGlassChip(
                         label = sourceName,
                         shape = RoundedCornerShape(10.dp),
+                        flat = true,
                         icon = {
                             if (faviconPath != null) {
                                 AsyncImage(
@@ -364,6 +366,7 @@ private fun BookmarkCard(
                             LightGlassChip(
                                 shape = CircleShape,
                                 contentDescription = "Play video",
+                                flat = true,
                             ) {
                                 AppIcons.Icon(AppIcons.Open, "Play video", tint = clear.onGlass, size = 14.dp)
                             }
@@ -372,6 +375,7 @@ private fun BookmarkCard(
                             LightGlassChip(
                                 shape = CircleShape,
                                 contentDescription = "Bookmark status",
+                                flat = true,
                             ) {
                                 if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.onGlass, size = 14.dp)
                                 if (hasReminder) AppIcons.Icon(AppIcons.Reminder, "Reminder", tint = clear.onGlass, size = 14.dp)
@@ -403,6 +407,7 @@ private fun BookmarkCard(
                     size = 40.dp,
                     label = "More options",
                     ink = clear.onGlass,
+                    flatWash = true,
                 ) {
                     AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)
                 }

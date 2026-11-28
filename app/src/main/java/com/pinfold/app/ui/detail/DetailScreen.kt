@@ -629,7 +629,7 @@ private fun OverlayOpenText(
         Modifier
             .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
             .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
-            .homeToastGlass(Capsule)
+            .homeToastGlass(Capsule, flat = true)
             .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .combinedClickable(
                 interactionSource = source,
@@ -765,7 +765,7 @@ private fun BareGlyph(
     val dark = clear.dark
     Box(
         Modifier.size(size)
-            .homeToastGlass(Capsule)
+            .homeToastGlass(Capsule, flat = true)
             .drawBehind {
                 drawRoundRect(
                     color = Color.White.copy(alpha = if (pressed) {
