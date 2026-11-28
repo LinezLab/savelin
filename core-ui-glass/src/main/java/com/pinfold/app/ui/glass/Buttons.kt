@@ -78,6 +78,7 @@ private fun Modifier.glassControl(
     adaptWash: Boolean = true,
     /** Told the control's surround reading (the morph that grows out of a round button carries it on). */
     aroundOut: ((SurroundLuminance?) -> Unit)? = null,
+    flatWash: Boolean = false,
 ): Modifier {
     val backdrop = LocalBackdrop.current
     // Adaptive luminance on: the glass reads the screen around it and turns to suit, its frost,
@@ -112,6 +113,22 @@ private fun Modifier.glassControl(
         }
     }
     val style = if (around != null) GlassSettings.style.adaptiveBase else GlassSettings.style
+    if (flatWash) {
+        return this
+            .then(around?.modifier ?: Modifier)
+            .graphicsLayer { liquidPressTransform(highlight) }
+            .wash(shape, if (surface.isSpecified) surface else clear.glass)
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                role = Role.Button,
+                onClick = { if (tap != null && highlight.expandProgress < 0.5f) haptics?.play(tap); onClick() },
+                onLongClick = if (onLongClick != null) ({ armed[0] = true; haptics?.play(Feel.Bloom) }) else null,
+            )
+            .then(highlight.modifier)
+            .then(highlight.gestureModifier)
+            .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier)
+    }
     return this
         .then(around?.modifier ?: Modifier)
         .drawBackdrop(
@@ -242,6 +259,7 @@ fun GlassPill(
     label: String? = null,
     tintAt: (() -> Color)? = null,
     tap: Feel? = Feel.Tap,
+    flatWash: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     val candy = tint.isSpecified || tintAt != null
@@ -250,7 +268,7 @@ fun GlassPill(
         Row(
             modifier
                 .then(probe.modifier)
-                .glassControl(ChromeCapsule, onClick, onLongClick, tint, if (tintAt != null) Color.Unspecified else surface, blur, label, tap = tap, bloom = true, tintAt = tintAt)
+                .glassControl(ChromeCapsule, onClick, onLongClick, tint, if (tintAt != null) Color.Unspecified else surface, blur, label, tap = tap, bloom = true, tintAt = tintAt, flatWash = flatWash)
                 .height(height)
                 .padding(horizontal = horizontalPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -283,12 +301,13 @@ fun GlassChip(
     onLongClick: (() -> Unit)? = null,
     label: String? = null,
     ink: Color = clear.ink,
+    flatWash: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     CompositionLocalProvider(LocalGlassInk provides ink) {
         Row(
             modifier
-                .glassControl(Capsule, onClick, onLongClick, Color.Unspecified, surface, blur, label, fill, tap, bloom, adaptWash = false)
+                .glassControl(Capsule, onClick, onLongClick, Color.Unspecified, surface, blur, label, fill, tap, bloom, adaptWash = false, flatWash = flatWash)
                 .height(height)
                 .padding(contentPadding),
             horizontalArrangement = horizontalArrangement,
@@ -361,6 +380,7 @@ fun GlassCircle(
     label: String? = null,
     ink: Color = Color.Unspecified,
     tap: Feel? = Feel.Tap,
+    flatWash: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     // over a document the glyph takes dark or white ink from the page around it, as the old app's
@@ -387,7 +407,7 @@ fun GlassCircle(
                 // stepped aside while its glass is a menu: not drawn at all (a layer's alpha alone left it in
                 // the copy of the screen the menu's glass bends, where the lens smeared its glyph)
                 .drawWithContent { if (at?.let { MorphAnchors.hides(it) } != true) drawContent() }
-                .size(size).glassControl(CircleShape, onClick, onLongClick, tint, surface, 2.dp, label, tap = tap, bloom = true, candyBase = false, aroundOut = { around[0] = it }),
+                .size(size).glassControl(CircleShape, onClick, onLongClick, tint, surface, 2.dp, label, tap = tap, bloom = true, candyBase = false, aroundOut = { around[0] = it }, flatWash = flatWash),
             contentAlignment = Alignment.Center,
         ) { content() }
     }
