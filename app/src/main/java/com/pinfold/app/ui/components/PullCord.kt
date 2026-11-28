@@ -131,9 +131,11 @@ fun PullCord(
             var lastFrame = 0L
             while (true) {
                 withFrameNanos { frameTime ->
-                    val dt = if (lastFrame == 0L) 0f else (frameTime - lastFrame) / 1_000_000f
-                    lastFrame = frameTime
-                    state.advance(dt)
+                    runCatching {
+                        val dt = if (lastFrame == 0L) 0f else (frameTime - lastFrame) / 1_000_000f
+                        lastFrame = frameTime
+                        state.advance(dt)
+                    }
                 }
             }
         }
@@ -168,21 +170,23 @@ fun PullCord(
     ) {
         Spacer(
             Modifier.fillMaxSize().drawBehind {
-                val anchor = state.anchor()
-                val bead = state.bead()
-                drawRoundRect(
-                    Brass,
-                    topLeft = Offset(anchor.x - 13f, 0f),
-                    size = Size(26f, 6f),
-                    cornerRadius = CornerRadius(3f),
-                )
-                drawLine(RopeInk, anchor, bead, strokeWidth = 2f)
-                drawCircle(Brass, 9f, bead)
-                drawCircle(
-                    if (currentLit) Color(0xFFFFD98A) else Color(0xFF9E9E9E),
-                    6f,
-                    bead,
-                )
+                runCatching {
+                    val anchor = state.anchor()
+                    val bead = state.bead()
+                    drawRoundRect(
+                        Brass,
+                        topLeft = Offset(anchor.x - 13f, 0f),
+                        size = Size(26f, 6f),
+                        cornerRadius = CornerRadius(3f),
+                    )
+                    drawLine(RopeInk, anchor, bead, strokeWidth = 2f)
+                    drawCircle(Brass, 9f, bead)
+                    drawCircle(
+                        if (currentLit) Color(0xFFFFD98A) else Color(0xFF9E9E9E),
+                        6f,
+                        bead,
+                    )
+                }
             },
         )
         Spacer(
