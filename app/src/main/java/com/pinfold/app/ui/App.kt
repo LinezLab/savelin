@@ -98,7 +98,6 @@ fun App(
     var showSplash by remember { mutableStateOf(true) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var splashItem by remember { mutableStateOf<BookmarkWithTags?>(null) }
-    val refreshProgress = remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var lastBulkRefresh by remember { mutableStateOf(0L) }
     val chromeScope = rememberCoroutineScope()
     val settingsPage by viewModel.settingsPage.collectAsState()
@@ -162,7 +161,7 @@ fun App(
     LaunchedEffect(showSplash) {
         if (showSplash && foreground) {
             lastBulkRefresh = System.currentTimeMillis()
-            viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
+            viewModel.refreshMissingImages { _, _ -> }
         }
     }
     LaunchedEffect(foreground) {
@@ -170,7 +169,7 @@ fun App(
         val now = System.currentTimeMillis()
         if (now - lastBulkRefresh < 60_000L) return@LaunchedEffect
         lastBulkRefresh = now
-        viewModel.refreshMissingImages { d, t -> refreshProgress.value = d to t }
+        viewModel.refreshMissingImages { _, _ -> }
     }
     if (showSplash) {
         SplashScreen(
@@ -261,12 +260,6 @@ fun App(
         if (statusToast == null) return@LaunchedEffect
         delay(2200)
         statusToast = null
-    }
-    LaunchedEffect(refreshProgress.value) {
-        if (refreshProgress.value != null) {
-            delay(1200)
-            refreshProgress.value = null
-        }
     }
     LaunchedEffect(sharedText) {
         if (!sharedText.isNullOrBlank()) {
@@ -407,15 +400,6 @@ fun App(
                             .padding(bottom = 96.dp),
                     ) {
                         GlassToast(text = message, action = null, onAction = {})
-                    }
-                }
-                refreshProgress.value?.let { (done, total) ->
-                    Box(
-                        Modifier.align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
-                            .padding(bottom = 160.dp),
-                    ) {
-                        GlassToast(text = "Refreshing covers $done/$total", action = null, onAction = {})
                     }
                 }
                 CrashReportNotice()
