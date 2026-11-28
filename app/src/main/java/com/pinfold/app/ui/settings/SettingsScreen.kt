@@ -3,7 +3,7 @@ package com.pinfold.app.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
+import com.pinfold.app.ui.components.iosHorizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -73,7 +73,7 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                        Modifier.fillMaxWidth().iosHorizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         QuickTogglePill("Dark", settings.themeMode == "DARK") {

@@ -1,6 +1,7 @@
 package com.pinfold.app.ui.components
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -40,5 +41,14 @@ class IosScrollTest {
     fun flingDistanceIsFiniteForExtremeVelocity() {
         assertTrue(iosFlingDistance(Float.MAX_VALUE).isFinite())
         assertTrue(iosFlingDistance(-Float.MAX_VALUE).isFinite())
+    }
+
+    @Test
+    fun flingCancelsOnlyWhenTheContainerLeavesAFrameUnconsumed() {
+        assertFalse(flingHitBound(40f, 40f))
+        assertFalse(flingHitBound(40f, 39.6f))
+        assertTrue(flingHitBound(40f, 39.4f))
+        assertTrue(flingHitBound(-40f, -30f))
+        assertFalse(flingHitBound(0f, 0f))
     }
 }
