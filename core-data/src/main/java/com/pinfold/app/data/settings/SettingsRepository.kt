@@ -54,6 +54,7 @@ data class AppSettings(
     val pullCordPosition: String = "RIGHT",
     val shimmerEnabled: Boolean = true,
     val shimmerColor: String = "LEMON",
+    val shimmerCustomColor: Long = 0xFFFFC21A,
     val shimmerSpeed: String = "NORMAL",
     val language: String = "System",
     val defaultView: String = "CARD",
@@ -137,6 +138,7 @@ class SettingsRepository(private val context: Context) {
             pullCordPosition = p[Keys.pullCordPosition] ?: "RIGHT",
             shimmerEnabled = p[Keys.shimmerEnabled] ?: true,
             shimmerColor = p[Keys.shimmerColor] ?: "LEMON",
+            shimmerCustomColor = p[Keys.shimmerCustomColor] ?: 0xFFFFC21A,
             shimmerSpeed = p[Keys.shimmerSpeed] ?: "NORMAL",
             language = p[Keys.language] ?: "System",
             defaultView = p[Keys.defaultView] ?: "CARD",
@@ -294,6 +296,7 @@ class SettingsRepository(private val context: Context) {
         val pullCordPosition = stringPreferencesKey("pullCordPosition")
         val shimmerEnabled = booleanPreferencesKey("shimmerEnabled")
         val shimmerColor = stringPreferencesKey("shimmerColor")
+        val shimmerCustomColor = longPreferencesKey("shimmerCustomColor")
         val shimmerSpeed = stringPreferencesKey("shimmerSpeed")
         val language = stringPreferencesKey("language")
         val defaultView = stringPreferencesKey("defaultView")
