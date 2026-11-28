@@ -27,6 +27,7 @@ data class AppSettings(
     val enableClipboardChip: Boolean = false,
     val saveLinksPrivateByDefault: Boolean = false,
     val privateVault: Boolean = false,
+    val longPressSettingsVault: Boolean = true,
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
     val glassPreset: String = "LIQUID",
@@ -109,6 +110,7 @@ class SettingsRepository(private val context: Context) {
             enableClipboardChip = p[Keys.enableClipboardChip] ?: false,
             saveLinksPrivateByDefault = p[Keys.saveLinksPrivateByDefault] ?: false,
             privateVault = p[Keys.privateVault] ?: false,
+            longPressSettingsVault = p[Keys.longPressSettingsVault] ?: true,
             reduceTransparency = p[Keys.reduceTransparency] ?: false,
             reduceMotion = p[Keys.reduceMotion] ?: false,
             glassPreset = p[Keys.glassPreset] ?: "LIQUID",
@@ -265,6 +267,7 @@ class SettingsRepository(private val context: Context) {
         val enableClipboardChip = booleanPreferencesKey("clipboard_chip")
         val saveLinksPrivateByDefault = booleanPreferencesKey("saveLinksPrivateByDefault")
         val privateVault = booleanPreferencesKey("privateVault")
+        val longPressSettingsVault = booleanPreferencesKey("longPressSettingsVault")
         val reduceTransparency = booleanPreferencesKey("reduce_transparency")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val glassPreset = stringPreferencesKey("glass_preset")

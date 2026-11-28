@@ -101,16 +101,18 @@ fun App(
     val refreshProgress = remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var lastBulkRefresh by remember { mutableStateOf(0L) }
     val chromeScope = rememberCoroutineScope()
+    val settingsPage by viewModel.settingsPage.collectAsState()
     val showBackToTop by remember {
         derivedStateOf {
-            viewModel.gridState.firstVisibleItemIndex > 0 ||
-                viewModel.gridState.firstVisibleItemScrollOffset > 0
+            settingsPage != "VAULT" && (
+                viewModel.gridState.firstVisibleItemIndex > 0 ||
+                    viewModel.gridState.firstVisibleItemScrollOffset > 0
+                )
         }
     }
     val tab by viewModel.currentTab.collectAsState()
     val searchActive by viewModel.searchActive.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
-    val settingsPage by viewModel.settingsPage.collectAsState()
     val appearance by viewModel.settings.collectAsState()
     val items by viewModel.items.collectAsState()
     val privateItems by viewModel.privateItems.collectAsState()
@@ -316,25 +318,6 @@ fun App(
                                     onStartSelection = { id -> selectedIds = setOf(id) },
                                     onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
                                 )
-                                if (selectedIds.isNotEmpty()) {
-                                    FilterRail(
-                                        important = importantFilter,
-                                        due = reminderFilter,
-                                        dueCount = dueCount.size,
-                                        visible = true,
-                                        onImportant = onToggleImportantFilter,
-                                        onDue = onToggleReminderFilter,
-                                        modifier = Modifier.align(Alignment.BottomEnd),
-                                        selectionActive = true,
-                                        selectedCount = selectedIds.size,
-                                        onDelete = onDeleteSelected,
-                                        onRefetch = onRefetchSelected,
-                                        onCopy = onCopySelected,
-                                        onShare = onShareSelected,
-                                        onRemoveStar = onRemoveStarSelected,
-                                        onClearReminder = onClearReminderSelected,
-                                    )
-                                }
                             }
                             else -> SettingsScreen(viewModel)
                         }
@@ -438,8 +421,10 @@ fun App(
         },
         chrome = {
             val overlaysOpen = LocalGlassOverlayHost.current?.hasOverlays == true
-            val homeChromeVisible = detail == null && !showAdd && tab != HomeTab.SETTINGS &&
-                settingsPage == "HOME" && !overlaysOpen && CrashReporter.pendingLog.isNullOrBlank()
+            val inVault = settingsPage == "VAULT"
+            val homeChromeVisible = detail == null && !showAdd && !overlaysOpen &&
+                CrashReporter.pendingLog.isNullOrBlank() &&
+                ((tab != HomeTab.SETTINGS && settingsPage == "HOME") || inVault)
             if (homeChromeVisible) {
                 Box(Modifier.fillMaxSize().imePadding()) {
                     FloatingPillNav(
@@ -450,11 +435,21 @@ fun App(
                         onQueryChange = viewModel::onQueryChange,
                         onAdd = { showAdd = true },
                         onAddLong = { showAdd = true },
-                        onSettings = { DiagnosticsLog.uiAction("Nav", "Settings"); viewModel.selectTab(HomeTab.SETTINGS); viewModel.setSearchActive(false) },
+                        onSettings = {
+                            DiagnosticsLog.uiAction("Nav", "Settings")
+                            viewModel.closeSettingsPage()
+                            viewModel.selectTab(HomeTab.SETTINGS)
+                            viewModel.setSearchActive(false)
+                        },
                         onSettingsLong = {
                             viewModel.setSearchActive(false)
-                            pendingVault = true
-                            locked = true
+                            if (settingsPage != "VAULT" && appearance.longPressSettingsVault) {
+                                pendingVault = true
+                                locked = true
+                            } else {
+                                viewModel.closeSettingsPage()
+                                viewModel.selectTab(HomeTab.SETTINGS)
+                            }
                         },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )

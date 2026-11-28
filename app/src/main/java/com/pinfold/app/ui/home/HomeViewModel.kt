@@ -107,7 +107,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         query.value = value
     }
 
-    fun openVault() { settingsPageState.value = "VAULT" }
+    fun openVault() {
+        tab.value = HomeTab.SETTINGS
+        settingsPageState.value = "VAULT"
+        setSearchActive(false)
+    }
     fun openGlassMotion() { settingsPageState.value = "GLASS_MOTION" }
     fun closeSettingsPage() { settingsPageState.value = "HOME" }
 

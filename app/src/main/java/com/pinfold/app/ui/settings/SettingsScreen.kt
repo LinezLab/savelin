@@ -159,6 +159,9 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
                 SettingsRow(AppIcons.Hide, Candy.Grape, "Private vault",
                     subtitle = "Show private items in Home",
                     trailing = { GlassSwitch(settings.privateVault) { viewModel.setSetting("privateVault", it) } })
+                SettingsRow(AppIcons.Hide, Candy.Grape, "Long press Settings to open vault",
+                    subtitle = "Off: long press opens Settings",
+                    trailing = { GlassSwitch(settings.longPressSettingsVault) { viewModel.setSetting("longPressSettingsVault", it) } })
                 SettingsRow(AppIcons.Warning, Candy.Tomato, "Block screenshots", trailing = {
                     GlassSwitch(settings.blockScreenshots) { viewModel.setSetting("blockScreenshots", it) }
                 })
