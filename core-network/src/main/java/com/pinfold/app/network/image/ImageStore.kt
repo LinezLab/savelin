@@ -33,8 +33,10 @@ class ImageStore(private val context: Context, private val client: OkHttpClient)
         return StoredImage(file.absolutePath, options.outWidth, options.outHeight, "", blurPreviewPathFor(file.absolutePath))
     }
 
-    fun store(id: Long, imageUrl: String): StoredImage? {
-        val bytes = download(imageUrl) ?: return null
+    fun store(id: Long, imageUrl: String): StoredImage? = store(id, imageUrl, imageUrl)
+
+    fun store(id: Long, pageUrl: String, imageUrl: String): StoredImage? {
+        val bytes = download(imageUrl, pageUrl) ?: return null
         return storeBytes(id, bytes)
     }
 
@@ -68,8 +70,10 @@ class ImageStore(private val context: Context, private val client: OkHttpClient)
         File(blurPreviewPathFor(pathFor(id))).delete()
     }
 
-    private fun download(url: String): ByteArray? = runCatching {
-        val request = Request.Builder().url(url).build()
+    private fun download(url: String, pageUrl: String = url): ByteArray? = runCatching {
+        val request = Request.Builder().url(url).apply {
+            RemoteImageHostPolicy.headers(pageUrl, url).forEach { (name, value) -> header(name, value) }
+        }.build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return null
             val body = response.body ?: return null

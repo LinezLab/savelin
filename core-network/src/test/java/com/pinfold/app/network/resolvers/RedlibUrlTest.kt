@@ -112,4 +112,12 @@ class RedlibUrlTest {
         )
         assertEquals(null, resolver.resolve("https://redd.it/abc", context()))
     }
+
+    @Test
+    fun instagramIsNeverMappedToRedlib() {
+        val url = "https://www.instagram.com/reel/ABC123/?igsh=xyz"
+        assertFalse(isRedditUrl(url))
+        assertFalse(isRedditUrl("https://instagram.com.evil.com/reel/ABC123/"))
+        assertEquals(url, redlibUrl(url, instance))
+    }
 }

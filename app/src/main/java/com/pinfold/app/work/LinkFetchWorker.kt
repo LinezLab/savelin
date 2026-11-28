@@ -80,19 +80,20 @@ class LinkFetchWorker(
         }
 
         val store = ImageStore(applicationContext, client)
-        val tryStore: (List<String>) -> Pair<StoredImage, String>? = { candidates ->
+        val pageUrl = preview.url.ifBlank { normalized }
+        val tryStore: (List<String>, String) -> Pair<StoredImage, String>? = { candidates, sourcePage ->
             candidates.firstNotNullOfOrNull { candidate ->
-                runCatching { store.store(id, candidate) }.getOrNull()?.let { it to candidate }
+                runCatching { store.store(id, sourcePage, candidate) }.getOrNull()?.let { it to candidate }
             }
         }
 
-        var storedWithUrl = tryStore(preview.imageUrls)
+        var storedWithUrl = tryStore(preview.imageUrls, pageUrl)
         var remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty()
         if (storedWithUrl == null && preview.imageUrls.isNotEmpty()) {
             DiagnosticsLog.issue("Preview", "image-primary", "no image decoded host=$host")
             val fallback = runCatching { fetcher.fetchFallback(normalized, userAgent, proxyTemplate) }.getOrNull()
             if (fallback != null) {
-                storedWithUrl = tryStore(fallback.imageUrls)
+                storedWithUrl = tryStore(fallback.imageUrls, fallback.url.ifBlank { pageUrl })
                 if (storedWithUrl != null) {
                     remoteImageUrl = storedWithUrl.second
                     DiagnosticsLog.log(LogLevel.INFO, "Preview/image", "fallback-ok host=$host")

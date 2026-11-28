@@ -57,4 +57,25 @@ class OpenGraphResolverTest {
         )
         assertTrue(preview.faviconUrls.none { it.contains("evil.example") })
     }
+
+    @Test
+    fun parsesInstagramFixtureWithSignedCdnImage() {
+        val signed = "https://scontent-fra1-1.cdninstagram.com/v/t51.2885-15/photo.jpg?stp=dst-jpg&_nc_cat=1&ccb=1-7&_nc_ohc=abc&oh=deadbeef&oe=64a1b2c3"
+        val html = """
+            <html><head>
+            <meta property="og:title" content="Ada Lovelace on Instagram: &quot;Archive upload&quot;">
+            <meta property="og:description" content="Archive upload">
+            <meta property="og:image" content="$signed">
+            <meta property="og:site_name" content="Instagram">
+            </head><body></body></html>
+        """.trimIndent()
+        val page = "https://www.instagram.com/p/ABC123/"
+        val preview = OpenGraphResolver.parse(html, page, "test")
+        assertEquals("Ada Lovelace", preview.author)
+        assertEquals("Archive upload", preview.caption)
+        assertEquals("Instagram", preview.siteName)
+        assertEquals(signed, preview.imageUrls.first())
+        assertTrue(com.pinfold.app.network.image.RemoteImageHostPolicy.allows(page, signed))
+        assertTrue(com.pinfold.app.network.image.RemoteImageHostPolicy.headers(page, signed).isNotEmpty())
+    }
 }

@@ -23,6 +23,7 @@ import com.pinfold.app.network.UrlNormalizer
 import com.pinfold.app.network.image.ImageStore
 import com.pinfold.app.network.resolvers.HttpClientFactory
 import com.pinfold.app.work.LinkFetchWorker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -262,10 +263,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val client = HttpClientFactory.create()
                 val fetcher = PreviewFetcher(client)
                 val proxyTemplate = if (config.proxiesEnabled) config.proxyTemplate else ""
-                val preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
+                val pageUrl = item.url.ifBlank { normalized }
                 val store = ImageStore(getApplication(), client)
-                val stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
-                    runCatching { store.store(item.id, candidate) }.getOrNull()
+                var preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
+                var stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
+                    runCatching { store.store(item.id, pageUrl, candidate) }
+                        .onFailure { if (it is CancellationException) throw it }.getOrNull()
+                }
+                if (stored == null) {
+                    val fallback = runCatching { fetcher.fetchFallback(normalized, config.previewUserAgent, proxyTemplate) }
+                        .onFailure { if (it is CancellationException) throw it }.getOrNull()
+                    if (fallback != null) {
+                        preview = fallback
+                        stored = fallback.imageUrls.firstNotNullOfOrNull { candidate ->
+                            runCatching { store.store(item.id, fallback.url.ifBlank { pageUrl }, candidate) }
+                                .onFailure { if (it is CancellationException) throw it }.getOrNull()
+                        }
+                    }
                 }
                 val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
                 val cleaned = MetadataCleaner.clean(
@@ -390,7 +404,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         val normalized = UrlNormalizer.normalize(item.url)
                         val preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
                         val stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
-                            runCatching { store.store(item.id, candidate) }.getOrNull()
+                            runCatching { store.store(item.id, item.url, candidate) }.getOrNull()
                         }
                         if (stored != null) {
                             val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
