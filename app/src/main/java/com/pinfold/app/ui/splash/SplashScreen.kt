@@ -43,6 +43,7 @@ fun SplashScreen(
     keepOnScreen: Boolean = false,
     shimmerEnabled: Boolean = true,
     shimmerColor: String = "LEMON",
+    shimmerCustomColor: Long = 0xFFFFC21A,
     shimmerSpeed: String = "NORMAL",
 ) {
     val bg = if (clear.dark) Color.Black else Color.White
@@ -70,7 +71,7 @@ fun SplashScreen(
 
     Box(Modifier.fillMaxSize().background(bg)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            SplashSonilLogo(reduceMotion, shimmerEnabled, shimmerColor, shimmerSpeed)
+            SplashSonilLogo(reduceMotion, shimmerEnabled, shimmerColor, shimmerCustomColor, shimmerSpeed)
         }
     }
 }
@@ -80,6 +81,7 @@ private fun SplashSonilLogo(
     reduceMotion: Boolean,
     shimmerEnabled: Boolean,
     shimmerColor: String,
+    shimmerCustomColor: Long,
     shimmerSpeed: String,
 ) {
     val measurer = rememberTextMeasurer()
@@ -107,6 +109,7 @@ private fun SplashSonilLogo(
         reduceMotion,
         enabled = shimmerEnabled,
         color = shimmerColor,
+        customArgb = shimmerCustomColor,
         speed = shimmerSpeed,
     )
     Canvas(

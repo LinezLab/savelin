@@ -407,6 +407,7 @@ fun DetailScreen(
                 reduceMotion = reduceMotion,
                 shimmerEnabled = settings.shimmerEnabled,
                 shimmerColor = settings.shimmerColor,
+                shimmerCustomColor = settings.shimmerCustomColor,
                 shimmerSpeed = settings.shimmerSpeed,
                 onClick = {
                     DiagnosticsLog.uiAction("Detail", "Open link")
@@ -592,6 +593,7 @@ private fun OverlayOpenText(
     reduceMotion: Boolean,
     shimmerEnabled: Boolean,
     shimmerColor: String,
+    shimmerCustomColor: Long,
     shimmerSpeed: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -614,6 +616,7 @@ private fun OverlayOpenText(
         reduceMotion,
         enabled = shimmerEnabled,
         color = shimmerColor,
+        customArgb = shimmerCustomColor,
         speed = shimmerSpeed,
     )
     val source = remember { MutableInteractionSource() }

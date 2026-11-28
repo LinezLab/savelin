@@ -179,6 +179,7 @@ fun App(
             reduceMotion = appearance.reduceMotion,
             shimmerEnabled = appearance.shimmerEnabled,
             shimmerColor = appearance.shimmerColor,
+            shimmerCustomColor = appearance.shimmerCustomColor,
             shimmerSpeed = appearance.shimmerSpeed,
             onDone = { showSplash = false },
         )
@@ -191,6 +192,7 @@ fun App(
                 reduceMotion = appearance.reduceMotion,
                 shimmerEnabled = appearance.shimmerEnabled,
                 shimmerColor = appearance.shimmerColor,
+                shimmerCustomColor = appearance.shimmerCustomColor,
                 shimmerSpeed = appearance.shimmerSpeed,
                 keepOnScreen = true,
                 onDone = {},
