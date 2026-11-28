@@ -174,7 +174,7 @@ fun LightGlassChip(
     val ink = SavelinGlass.ink
     Row(
         modifier
-            .then(if (wash != null) homeToastGlass(shape, wash) else SavelinGlass.modifierFor(GlassComponent.CHIPS, shape))
+            .then(if (wash != null) Modifier.homeToastGlass(shape, wash) else SavelinGlass.modifierFor(GlassComponent.CHIPS, shape))
             .border(1.dp, clear.rim.copy(alpha = 0.7f), shape)
             .padding(horizontal = 8.dp, vertical = 3.dp)
             .then(if (desc != null) Modifier.semantics { this.contentDescription = desc } else Modifier),

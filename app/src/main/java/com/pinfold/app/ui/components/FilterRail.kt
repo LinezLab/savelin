@@ -78,7 +78,7 @@ fun FilterRail(
                 .width(60.dp)
                 .height(if (selectionActive) 372.dp else 116.dp)
                 .graphicsLayer { alpha = opacity; translationX = slide }
-                .then(homeToastGlass(GlassCapsule))
+                .homeToastGlass(GlassCapsule)
                 .clip(GlassCapsule),
             contentAlignment = Alignment.Center,
         ) {

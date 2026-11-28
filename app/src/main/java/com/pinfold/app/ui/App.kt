@@ -445,7 +445,7 @@ fun App(
                                 .navigationBarsPadding()
                                 .padding(end = 18.dp, bottom = 216.dp)
                                 .size(56.dp)
-                                .then(homeToastGlass(Capsule))
+                                .homeToastGlass(Capsule)
                                 .clip(Capsule)
                                 .pressable(onClick = { chromeScope.launch { viewModel.gridState.animateScrollToItem(0) } })
                                 .semantics { contentDescription = "Back to top" },

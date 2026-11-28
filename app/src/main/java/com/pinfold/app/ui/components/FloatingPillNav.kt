@@ -74,7 +74,7 @@ fun FloatingPillNav(
             Modifier.align(Alignment.BottomStart).alpha(pillAlpha).zIndex(10f)
                 .width(lerp(124.dp, maxWidth, morph))
                 .height(60.dp)
-                .then(homeToastGlass(shape))
+                .homeToastGlass(shape)
                 .clip(shape)
                 .padding(6.dp),
             contentAlignment = Alignment.Center,
@@ -120,7 +120,7 @@ fun FloatingPillNav(
         }
         Box(
             Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp)
-                .then(homeToastGlass(Capsule))
+                .homeToastGlass(Capsule)
                 .clip(Capsule),
             contentAlignment = Alignment.Center,
         ) {
