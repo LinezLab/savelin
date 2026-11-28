@@ -40,9 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.Feel
 import com.pinfold.app.ui.glass.LocalHaptics
-import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.IosMotion
-import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.homeToastGlass
 import com.pinfold.app.ui.glass.theme.clear
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -75,7 +74,7 @@ fun FloatingPillNav(
             Modifier.align(Alignment.BottomStart).alpha(pillAlpha).zIndex(10f)
                 .width(lerp(124.dp, maxWidth, morph))
                 .height(60.dp)
-                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, shape))
+                .then(homeToastGlass(shape))
                 .clip(shape)
                 .padding(6.dp),
             contentAlignment = Alignment.Center,
@@ -121,7 +120,7 @@ fun FloatingPillNav(
         }
         Box(
             Modifier.align(Alignment.BottomEnd).alpha(settingsAlpha).size(60.dp)
-                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                .then(homeToastGlass(Capsule))
                 .clip(Capsule),
             contentAlignment = Alignment.Center,
         ) {

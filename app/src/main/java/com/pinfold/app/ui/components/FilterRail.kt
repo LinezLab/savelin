@@ -39,9 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.pinfold.app.ui.glass.Capsule as GlassCapsule
-import com.pinfold.app.ui.glass.GlassComponent
 import com.pinfold.app.ui.glass.IosMotion
-import com.pinfold.app.ui.glass.SavelinGlass
+import com.pinfold.app.ui.glass.homeToastGlass
 import com.pinfold.app.ui.glass.theme.clear
 import kotlinx.coroutines.delay
 
@@ -79,7 +78,7 @@ fun FilterRail(
                 .width(60.dp)
                 .height(if (selectionActive) 372.dp else 116.dp)
                 .graphicsLayer { alpha = opacity; translationX = slide }
-                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, GlassCapsule))
+                .then(homeToastGlass(GlassCapsule))
                 .clip(GlassCapsule),
             contentAlignment = Alignment.Center,
         ) {

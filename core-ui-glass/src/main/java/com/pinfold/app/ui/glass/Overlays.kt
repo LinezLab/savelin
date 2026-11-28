@@ -555,7 +555,7 @@ fun GlassToast(
                 alpha = p.coerceIn(0f, 1f)
             }
             .widthIn(max = 520.dp)
-            .glass(Capsule, c.frost, blur = 12.dp, lensHeight = 12.dp, lensAmount = 24.dp, luminance = luminance)
+            .homeToastGlass(luminance = luminance)
             .padding(start = 20.dp, end = if (action != null) 6.dp else 20.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.ComponentGlass
-import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.homeToastGlass
 import com.pinfold.app.ui.glass.SavelinGlass
 import com.pinfold.app.ui.glass.pressable
 import com.pinfold.app.ui.glass.GlassPill
@@ -445,7 +445,7 @@ fun App(
                                 .navigationBarsPadding()
                                 .padding(end = 18.dp, bottom = 216.dp)
                                 .size(56.dp)
-                                .then(SavelinGlass.modifierFor(GlassComponent.NAVIGATION, Capsule))
+                                .then(homeToastGlass(Capsule))
                                 .clip(Capsule)
                                 .pressable(onClick = { chromeScope.launch { viewModel.gridState.animateScrollToItem(0) } })
                                 .semantics { contentDescription = "Back to top" },

@@ -128,6 +128,7 @@ fun HomeScreen(
                 GlassPill(
                     onClick = { viewModel.saveLink(query.trim()); viewModel.onQueryChange("") },
                     modifier = Modifier.padding(horizontal = 16.dp),
+                    surface = clear.frost,
                 ) { Text("Add this link", color = com.pinfold.app.ui.glass.theme.clear.ink) }
             }
             if (items.isEmpty()) {
@@ -336,6 +337,7 @@ private fun BookmarkCard(
                     val sourceName = bookmark.siteName.ifBlank { bookmark.platform.ifBlank { "Web" } }
                     LightGlassChip(
                         label = sourceName,
+                        wash = clear.frost,
                         shape = RoundedCornerShape(10.dp),
                         icon = {
                             if (faviconPath != null) {
@@ -363,6 +365,7 @@ private fun BookmarkCard(
                         if (bookmark.platform.lowercase() in setOf("youtube", "tiktok", "vimeo")) {
                             LightGlassChip(
                                 shape = CircleShape,
+                                wash = clear.frost,
                                 contentDescription = "Play video",
                             ) {
                                 AppIcons.Icon(AppIcons.Open, "Play video", tint = clear.onGlass, size = 14.dp)
@@ -371,6 +374,7 @@ private fun BookmarkCard(
                         if (bookmark.isImportant || hasReminder) {
                             LightGlassChip(
                                 shape = CircleShape,
+                                wash = clear.frost,
                                 contentDescription = "Bookmark status",
                             ) {
                                 if (bookmark.isImportant) AppIcons.Icon(AppIcons.Important, "Important", tint = clear.onGlass, size = 14.dp)
@@ -402,6 +406,7 @@ private fun BookmarkCard(
                     onClick = onMore,
                     size = 40.dp,
                     label = "More options",
+                    surface = clear.frost,
                     ink = clear.onGlass,
                 ) {
                     AppIcons.Icon(AppIcons.More, null, tint = clear.onGlass, size = 20.dp)

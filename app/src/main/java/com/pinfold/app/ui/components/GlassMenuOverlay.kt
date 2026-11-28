@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.floatingLayer
 import com.pinfold.app.ui.glass.Feel
-import com.pinfold.app.ui.glass.GlassComponent
+import com.pinfold.app.ui.glass.homeToastGlass
 import com.pinfold.app.ui.glass.GlassOverlay
 import com.pinfold.app.ui.glass.RoundedRectangle
 import com.pinfold.app.ui.glass.SavelinGlass
@@ -76,7 +76,7 @@ fun GlassMenuOverlay(
                         alpha = p
                         transformOrigin = TransformOrigin(1f, 1f)
                     }
-                    .then(SavelinGlass.modifierFor(GlassComponent.POPUPS, RoundedRectangle(24.dp)))
+                    .homeToastGlass(RoundedRectangle(24.dp))
                     .padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
