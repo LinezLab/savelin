@@ -10,7 +10,7 @@ import com.pinfold.app.ui.glass.theme.clear
 @Composable
 fun Modifier.homeToastGlass(
     shape: Shape = Capsule,
-    wash: Color = clear.frost,
+    wash: Color = clear.glass,
     luminance: GlassLuminance? = null,
 ): Modifier = this.glass(
     shape = shape,
