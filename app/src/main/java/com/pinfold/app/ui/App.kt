@@ -62,7 +62,6 @@ import com.pinfold.app.ui.glass.MotionSettings
 import com.pinfold.app.ui.components.AppIcons
 import com.pinfold.app.ui.components.CrashReportNotice
 import com.pinfold.app.ui.components.FilterRail
-import com.pinfold.app.ui.components.PullCord
 import com.pinfold.app.ui.components.FloatingPillNav
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.background.effectiveBackgroundFps
@@ -430,15 +429,6 @@ fun App(
                 ((tab != HomeTab.SETTINGS && settingsPage == "HOME") || inVault)
             if (homeChromeVisible) {
                 Box(Modifier.fillMaxSize().imePadding()) {
-                    if (appearance.pullCordEnabled) {
-                        PullCord(
-                            mode = appearance.themeMode,
-                            onModeChange = { viewModel.setSetting("themeMode", it) },
-                            modifier = Modifier.fillMaxSize(),
-                            across = com.pinfold.app.ui.settings.pullCordAcross(appearance.pullCordPosition),
-                            reduceMotion = appearance.reduceMotion,
-                        )
-                    }
                     FloatingPillNav(
                         searchActive = searchActive,
                         query = query,

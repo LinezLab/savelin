@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.pinfold.app.diagnostics.CrashReporter
 import com.pinfold.app.reminders.repeatMinutesFromSetting
 import com.pinfold.app.ui.components.AppIcons
+import com.pinfold.app.ui.components.PullCord
 import com.pinfold.app.ui.detail.rememberTextShimmerBrush
 import com.pinfold.app.ui.glass.Capsule
 import com.pinfold.app.ui.glass.GlassPill
@@ -76,6 +78,13 @@ fun SettingsScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
         SettingsSection("LOOK AND FEEL") {
             SettingsCard {
                 if (settings.pullCordEnabled) {
+                    PullCord(
+                        mode = settings.themeMode,
+                        onModeChange = { viewModel.setSetting("themeMode", it) },
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                        across = pullCordAcross(settings.pullCordPosition),
+                        reduceMotion = settings.reduceMotion,
+                    )
                     Text(
                         "Pull the cord or use:",
                         style = MaterialTheme.typography.labelSmall,
