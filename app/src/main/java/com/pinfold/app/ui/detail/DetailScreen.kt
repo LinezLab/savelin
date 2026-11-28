@@ -98,6 +98,8 @@ import com.pinfold.app.ui.components.GlassMenuOverlay
 import com.pinfold.app.ui.components.ReminderPickerDialog
 import com.pinfold.app.ui.components.shareText
 import com.pinfold.app.ui.glass.Feel
+import com.pinfold.app.ui.glass.Capsule
+import com.pinfold.app.ui.glass.homeToastGlass
 import androidx.compose.animation.core.animateFloatAsState
 import com.pinfold.app.ui.glass.IosMotion
 import com.pinfold.app.ui.glass.GlassTextField
@@ -627,6 +629,7 @@ private fun OverlayOpenText(
         Modifier
             .widthIn(min = DETAIL_GLYPH_BUTTON_SIZE)
             .heightIn(min = DETAIL_GLYPH_BUTTON_SIZE)
+            .homeToastGlass(Capsule)
             .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .combinedClickable(
                 interactionSource = source,
@@ -762,6 +765,7 @@ private fun BareGlyph(
     val dark = clear.dark
     Box(
         Modifier.size(size)
+            .homeToastGlass(Capsule)
             .drawBehind {
                 drawRoundRect(
                     color = Color.White.copy(alpha = if (pressed) {
