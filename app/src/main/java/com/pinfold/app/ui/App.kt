@@ -254,7 +254,7 @@ fun App(
         linkToast = null
     }
     LaunchedEffect(statusToast) {
-        if (statusToast == null) return
+        if (statusToast == null) return@LaunchedEffect
         delay(2200)
         statusToast = null
     }
