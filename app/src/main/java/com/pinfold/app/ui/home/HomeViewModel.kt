@@ -14,6 +14,7 @@ import com.pinfold.app.data.BookmarkRepository
 import com.pinfold.app.data.db.PinfoldDatabase
 import com.pinfold.app.data.model.Bookmark
 import com.pinfold.app.data.model.BookmarkWithTags
+import com.pinfold.app.data.settings.AppSettings
 import com.pinfold.app.data.settings.SettingsRepository
 import com.pinfold.app.reminders.ReminderScheduler
 import com.pinfold.app.network.MetadataCleaner
@@ -384,59 +385,88 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshMissingImages(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }) =
         viewModelScope.launch(Dispatchers.IO) {
-            val config = settings.value
+            val config = settingsRepository.settings.first()
             if (!config.refetchMissing || config.offlineMode) return@launch
-            // `missingPreviews()` excludes rows whose fetchStatus is OK, so a bookmark whose
-            // image file was deleted after a successful fetch was never retried. Scan every
-            // non-archived row and test the file on disk instead.
+            // A row with a stored file but a non-OK status can still be repaired, and a row
+            // with OK status whose file was deleted must be retried, so test the file itself.
             val missing = db.bookmarkDao().getAll()
                 .filter { !it.isArchived }
-                .filter { it.imagePath.isNullOrBlank() || !File(it.imagePath).isFile }
+                .filter { MissingImagePolicy.isMissing(it.imagePath, it.fetchStatus) { path -> File(path).isFile } }
             DiagnosticsLog.log(LogLevel.INFO, "BulkRefresh", "start total=" + missing.size)
-            withTimeoutOrNull(5_000) {
-                val client = HttpClientFactory.create()
-                val store = ImageStore(getApplication(), client)
-                val fetcher = PreviewFetcher(client)
-                val proxyTemplate = if (config.proxiesEnabled) config.proxyTemplate else ""
-                var done = 0
-                for (item in missing) {
-                    runCatching {
-                        val normalized = UrlNormalizer.normalize(item.url)
-                        val preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
-                        val stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
-                            runCatching { store.store(item.id, item.url, candidate) }.getOrNull()
-                        }
-                        if (stored != null) {
-                            val current = db.bookmarkDao().findById(item.id) ?: return@runCatching false
-                            db.bookmarkDao().update(
-                                current.copy(
-                                    imagePath = stored.path,
-                                    imageWidth = stored.width,
-                                    imageHeight = stored.height,
-                                    blurhash = stored.blurhash,
-                                    remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty(),
-                                    fetchStatus = FetchStatus.OK,
-                                    fetchError = "",
-                                    updatedAt = System.currentTimeMillis(),
-                                ),
-                            )
-                            invalidateMesh(item.id)
-                            true
-                        } else {
-                            false
-                        }
-                    }.getOrElse { error ->
-                        DiagnosticsLog.issue("BulkRefresh", "preview", error::class.simpleName ?: "error")
-                        false
-                    }
-                    done++
-                    onProgress(done, missing.size)
-                }
+            val client = HttpClientFactory.create()
+            val store = ImageStore(getApplication(), client)
+            val fetcher = PreviewFetcher(client)
+            var refreshed = 0
+            var done = 0
+            for (item in missing) {
+                val success = runCatching {
+                    withTimeoutOrNull(20_000L) { refreshMissingOne(item, store, fetcher, config) } ?: false
+                }.onFailure { error ->
+                    if (error is CancellationException) throw error
+                    DiagnosticsLog.issue("BulkRefresh", "preview", error::class.simpleName ?: "error")
+                }.getOrDefault(false)
+                if (success) refreshed++
+                done++
+                onProgress(done, missing.size)
             }
-            DiagnosticsLog.log(LogLevel.INFO, "BulkRefresh", "finish")
+            DiagnosticsLog.log(
+                LogLevel.INFO, "BulkRefresh",
+                "finish ok=" + refreshed + " failed=" + (missing.size - refreshed) + " total=" + missing.size,
+            )
         }
 
+    private suspend fun refreshMissingOne(
+        item: Bookmark,
+        store: ImageStore,
+        fetcher: PreviewFetcher,
+        config: AppSettings,
+    ): Boolean {
+        val normalized = UrlNormalizer.normalize(item.url)
+        val pageUrl = item.url.ifBlank { normalized }
+        val proxyTemplate = if (config.proxiesEnabled) config.proxyTemplate else ""
+        var preview = fetcher.fetch(normalized, config.previewUserAgent, proxyTemplate)
+        var stored = preview.imageUrls.firstNotNullOfOrNull { candidate ->
+            runCatching { store.store(item.id, pageUrl, candidate) }
+                .onFailure { if (it is CancellationException) throw it }.getOrNull()
+        }
+        if (stored == null) {
+            val fallback = runCatching { fetcher.fetchFallback(normalized, config.previewUserAgent, proxyTemplate) }
+                .onFailure { if (it is CancellationException) throw it }.getOrNull()
+            if (fallback != null) {
+                preview = fallback
+                stored = fallback.imageUrls.firstNotNullOfOrNull { candidate ->
+                    runCatching { store.store(item.id, fallback.url.ifBlank { pageUrl }, candidate) }
+                        .onFailure { if (it is CancellationException) throw it }.getOrNull()
+                }
+            }
+        }
+        if (stored == null) return false
+        val current = db.bookmarkDao().findById(item.id) ?: return false
+        db.bookmarkDao().update(
+            current.copy(
+                imagePath = stored.path,
+                imageWidth = stored.width,
+                imageHeight = stored.height,
+                blurhash = stored.blurhash,
+                remoteImageUrl = preview.imageUrls.firstOrNull().orEmpty(),
+                fetchStatus = FetchStatus.OK,
+                fetchError = "",
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+        invalidateMesh(item.id)
+        return true
+    }
+
     fun normalized(raw: String): String = UrlNormalizer.normalize(raw)
+}
+
+object MissingImagePolicy {
+    fun isMissing(
+        imagePath: String?,
+        fetchStatus: String,
+        fileExists: (String) -> Boolean,
+    ): Boolean = imagePath.isNullOrBlank() || !fileExists(imagePath) || fetchStatus != FetchStatus.OK
 }
 
 enum class HomeTab { HOME, COLLECTIONS, REMINDERS, IMPORTANT, SETTINGS }
