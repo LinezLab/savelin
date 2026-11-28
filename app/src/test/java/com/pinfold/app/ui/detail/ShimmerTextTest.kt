@@ -54,32 +54,78 @@ class ShimmerTextTest {
     }
 
     @Test
-    fun shimmerBandColorMapsPresetNames() {
-        assertEquals(Candy.Lemon, shimmerBandColor("LEMON"))
-        assertEquals(Candy.Mint, shimmerBandColor("MINT"))
-        assertEquals(Candy.Sky, shimmerBandColor("SKY"))
-        assertEquals(Candy.Lemon, shimmerBandColor(""))
-        assertEquals(Candy.Lemon, shimmerBandColor("UNKNOWN"))
+    fun shimmerBandColorsMapPresetNames() {
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors("LEMON"))
+        assertEquals(listOf(Color(0xFF9E9E9E)), shimmerBandColors("GREY"))
+        assertEquals(listOf(Color.White), shimmerBandColors("WHITE"))
+        assertEquals(listOf(Color.Black), shimmerBandColors("BLACK"))
+        assertEquals(
+            listOf(Color(0xFF1A1A1A), Color.White, Color(0xFF9E9E9E)),
+            shimmerBandColors("DARK_WHITE_GREY"),
+        )
     }
 
     @Test
-    fun shimmerColorsUseSelectedBandAndKeepFiveStops() {
+    fun removedAndUnknownPresetsFallBackToLemon() {
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors("MINT"))
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors("SKY"))
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors(""))
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors("UNKNOWN"))
+    }
+
+    @Test
+    fun customPresetUsesTheSuppliedArgbAndDefaultsToLemon() {
+        assertEquals(listOf(Color(0xFF123456)), shimmerBandColors("CUSTOM", 0xFF123456))
+        assertEquals(listOf(Candy.Lemon), shimmerBandColors("CUSTOM"))
+    }
+
+    @Test
+    fun legacyBandColorReturnsFirstBandColor() {
+        assertEquals(Candy.Lemon, shimmerBandColor("LEMON"))
+        assertEquals(Color(0xFF9E9E9E), shimmerBandColor("GREY"))
+        assertEquals(Color(0xFF1A1A1A), shimmerBandColor("DARK_WHITE_GREY"))
+        assertEquals(Candy.Lemon, shimmerBandColor("MINT"))
+    }
+
+    @Test
+    fun textShimmerColorsUsesSelectedBandAndKeepsFiveStops() {
         val base = Color.White
-        val colors = textShimmerColors(base, shimmerBandColor("MINT"))
+        val colors = textShimmerColors(base, shimmerBandColors("GREY"))
         assertEquals(5, colors.size)
         assertEquals(base.copy(alpha = 0.9f), colors[0])
         assertEquals(base, colors[1])
-        assertEquals(Candy.Mint.copy(alpha = 1f), colors[2])
+        assertEquals(Color(0xFF9E9E9E).copy(alpha = 1f), colors[2])
         assertEquals(base, colors[3])
         assertEquals(base.copy(alpha = 0.9f), colors[4])
+    }
+
+    @Test
+    fun darkWhiteGreySweepBuildsSevenStopsAcrossBandWindow() {
+        val base = Color.White
+        val colors = textShimmerColors(base, shimmerBandColors("DARK_WHITE_GREY"))
+        assertEquals(7, colors.size)
+        assertEquals(base.copy(alpha = 0.9f), colors[0])
+        assertEquals(base, colors[1])
+        assertEquals(Color(0xFF1A1A1A).copy(alpha = 1f), colors[2])
+        assertEquals(Color.White.copy(alpha = 1f), colors[3])
+        assertEquals(Color(0xFF9E9E9E).copy(alpha = 1f), colors[4])
+        assertEquals(base, colors[5])
+        assertEquals(base.copy(alpha = 0.9f), colors[6])
+    }
+
+    @Test
+    fun emptyBandListFallsBackToLemon() {
+        assertEquals(textShimmerColors(Color.White), textShimmerColors(Color.White, emptyList()))
     }
 
     @Test
     fun disabledShimmerReturnsSolidBaseColors() {
         val base = Color.White
         assertEquals(listOf(base, base), shimmerBrushColors(base, false, "LEMON"))
-        assertEquals(listOf(base, base), shimmerBrushColors(base, false, "MINT"))
-        assertEquals(5, shimmerBrushColors(base, true, "SKY").size)
-        assertEquals(Candy.Sky.copy(alpha = 1f), shimmerBrushColors(base, true, "SKY")[2])
+        assertEquals(listOf(base, base), shimmerBrushColors(base, false, "CUSTOM", 0xFF123456))
+        assertEquals(5, shimmerBrushColors(base, true, "GREY").size)
+        assertEquals(Color(0xFF9E9E9E), shimmerBrushColors(base, true, "GREY")[2])
+        assertEquals(7, shimmerBrushColors(base, true, "DARK_WHITE_GREY").size)
+        assertEquals(Color(0xFF123456), shimmerBrushColors(base, true, "CUSTOM", 0xFF123456)[2])
     }
 }
