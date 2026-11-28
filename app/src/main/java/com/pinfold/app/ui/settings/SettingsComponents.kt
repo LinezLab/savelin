@@ -53,12 +53,6 @@ import com.pinfold.app.ui.glass.theme.clear
 internal fun displayOption(raw: String): String =
     raw.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
-internal fun pullCordAcross(position: String): Float = when (position) {
-    "LEFT" -> 0.18f
-    "CENTER" -> 0.5f
-    else -> 0.62f
-}
-
 @Composable
 fun SettingsScaffold(
     title: String,

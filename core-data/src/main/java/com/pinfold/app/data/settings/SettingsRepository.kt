@@ -50,8 +50,6 @@ data class AppSettings(
     val limitTallImages: Boolean = false,
     val trueBlack: Boolean = false,
     val themeMode: String = "AUTO",
-    val pullCordEnabled: Boolean = true,
-    val pullCordPosition: String = "RIGHT",
     val shimmerEnabled: Boolean = true,
     val shimmerColor: String = "LEMON",
     val shimmerCustomColor: Long = 0xFFFFC21A,
@@ -134,8 +132,6 @@ class SettingsRepository(private val context: Context) {
             limitTallImages = p[Keys.limitTallImages] ?: false,
             trueBlack = p[Keys.trueBlack] ?: false,
             themeMode = p[Keys.themeMode] ?: "AUTO",
-            pullCordEnabled = p[Keys.pullCordEnabled] ?: true,
-            pullCordPosition = p[Keys.pullCordPosition] ?: "RIGHT",
             shimmerEnabled = p[Keys.shimmerEnabled] ?: true,
             shimmerColor = p[Keys.shimmerColor] ?: "LEMON",
             shimmerCustomColor = p[Keys.shimmerCustomColor] ?: 0xFFFFC21A,
@@ -292,8 +288,6 @@ class SettingsRepository(private val context: Context) {
         val limitTallImages = booleanPreferencesKey("limit_tall_images")
         val trueBlack = booleanPreferencesKey("trueBlack")
         val themeMode = stringPreferencesKey("themeMode")
-        val pullCordEnabled = booleanPreferencesKey("pullCordEnabled")
-        val pullCordPosition = stringPreferencesKey("pullCordPosition")
         val shimmerEnabled = booleanPreferencesKey("shimmerEnabled")
         val shimmerColor = stringPreferencesKey("shimmerColor")
         val shimmerCustomColor = longPreferencesKey("shimmerCustomColor")
