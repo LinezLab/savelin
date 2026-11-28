@@ -30,12 +30,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -68,18 +69,29 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlinx.coroutines.launch
 
-private val Rod = 52.dp
+private val Rope = 214.dp
 private val GrabRadius = 24.dp
 private val ClickPull = 48.dp
 private val Brass = Color(0xFFB08D57)
+private val RopeInk = Color(0xFF6D4C41)
+private const val SwingOmega = 4.2f
+private const val SwingDamping = 0.32f
+private const val SwingSeedAngle = 0.16f
+private const val SwingStillAngle = 0.01f
+private const val SwingStillSpeed = 0.01f
+private const val MaxDragAngle = 1.1f
+private const val MaxFrameSeconds = 0.05f
 
 /**
- * Minimal pull-cord theme switch. Grab the bead and pull down at least 48 dp (a sideways tug only
- * swings) to cycle AUTO -> LIGHT -> DARK -> AUTO once per pull. Adapted from compose-lab's pullcord
- * (MIT, Copyright (c) 2026 Dimitris Vlachos).
+ * Pull-cord theme switch hanging from the status bar. Grab the bead and pull down at least 48 dp
+ * (a sideways tug only swings) to cycle AUTO -> LIGHT -> DARK -> AUTO once per pull. A damped
+ * pendulum keeps the bead alive so the loop never dies; Reduce Motion stops it and snaps instead.
+ * Adapted from compose-lab's pullcord (MIT, Copyright (c) 2026 Dimitris Vlachos).
  */
 @Composable
 fun PullCord(
@@ -88,6 +100,7 @@ fun PullCord(
     modifier: Modifier = Modifier,
     across: Float = 0.5f,
     label: String = "Theme cord",
+    reduceMotion: Boolean = false,
 ) {
     val systemDark = isSystemInDarkTheme()
     val litNow = mode == "DARK" || (mode == "AUTO" && systemDark)
@@ -110,7 +123,21 @@ fun PullCord(
 
     val state = remember { CordState(toggle) }
     state.across = across
-    LaunchedEffect(state.held) { if (!state.held) state.settle() }
+    LaunchedEffect(state.held, reduceMotion) { if (!state.held) state.settle(reduceMotion) }
+    LaunchedEffect(reduceMotion) {
+        if (reduceMotion) {
+            state.resetSwing()
+        } else {
+            var lastFrame = 0L
+            while (true) {
+                withFrameNanos { frameTime ->
+                    val dt = if (lastFrame == 0L) 0f else (frameTime - lastFrame) / 1_000_000f
+                    lastFrame = frameTime
+                    state.advance(dt)
+                }
+            }
+        }
+    }
 
     Box(
         modifier
@@ -142,7 +169,6 @@ fun PullCord(
         Spacer(
             Modifier.fillMaxSize().drawBehind {
                 val anchor = state.anchor()
-                val rod = Rod.value * density
                 val bead = state.bead()
                 drawRoundRect(
                     Brass,
@@ -150,22 +176,21 @@ fun PullCord(
                     size = Size(26f, 6f),
                     cornerRadius = CornerRadius(3f),
                 )
-                drawLine(Brass, anchor, anchor + Offset(0f, rod), strokeWidth = 2f)
+                drawLine(RopeInk, anchor, bead, strokeWidth = 2f)
+                drawCircle(Brass, 9f, bead)
                 drawCircle(
                     if (currentLit) Color(0xFFFFD98A) else Color(0xFF9E9E9E),
-                    8f,
-                    anchor + Offset(0f, rod),
+                    6f,
+                    bead,
                 )
-                drawLine(Color(0xFF6D4C41), anchor + Offset(0f, rod), bead, strokeWidth = 1.6f)
-                drawCircle(Brass, 7f, bead)
             },
         )
-        val rest = state.anchor() + Offset(0f, Rod.value * density)
         Spacer(
             Modifier.offset {
+                val bead = state.bead()
                 IntOffset(
-                    (rest.x - GrabRadius.value * density).roundToInt(),
-                    (rest.y - GrabRadius.value * density).roundToInt(),
+                    (bead.x - GrabRadius.value * density).roundToInt(),
+                    (bead.y - GrabRadius.value * density).roundToInt(),
                 )
             }
                 .size(GrabRadius * 2)
@@ -175,7 +200,7 @@ fun PullCord(
                     stateDescription = "$mode theme"
                     onClick {
                         toggle()
-                        scope.launch { state.pulse() }
+                        if (!reduceMotion) scope.launch { state.pulse() }
                         true
                     }
                 },
@@ -183,8 +208,10 @@ fun PullCord(
     }
 }
 
-private class CordState(private val onToggle: () -> Unit) {
+internal class CordState(private val onToggle: () -> Unit) {
     private var pull by mutableFloatStateOf(0f)
+    internal val angle = mutableFloatStateOf(0f)
+    private var angularVelocity = 0f
     var width = 0f
     var density = 1f
     var across = 0.5f
@@ -199,7 +226,32 @@ private class CordState(private val onToggle: () -> Unit) {
     }
 
     fun anchor(): Offset = Offset(width * across, 0f)
-    fun bead(): Offset = anchor() + Offset(0f, Rod.value * density + pull)
+
+    private fun ropeLength(): Float = Rope.value * density + pull
+
+    fun bead(): Offset {
+        val length = ropeLength()
+        val a = angle.value
+        return anchor() + Offset(sin(a) * length, cos(a) * length)
+    }
+
+    fun advance(dtSeconds: Float) {
+        if (held || dtSeconds <= 0f) return
+        val dt = dtSeconds.coerceAtMost(MaxFrameSeconds)
+        val current = angle.value
+        val accel = -SwingOmega * SwingOmega * current - SwingDamping * angularVelocity
+        angularVelocity += accel * dt
+        angle.value = current + angularVelocity * dt
+        if (abs(angle.value) < SwingStillAngle && abs(angularVelocity) < SwingStillSpeed) {
+            angle.value = SwingSeedAngle
+            angularVelocity = 0f
+        }
+    }
+
+    fun resetSwing() {
+        angle.value = 0f
+        angularVelocity = 0f
+    }
 
     fun grab(at: Offset): Boolean {
         if (held || (at - bead()).getDistance() > GrabRadius.value * density) return false
@@ -212,8 +264,12 @@ private class CordState(private val onToggle: () -> Unit) {
     fun dragTo(at: Offset) {
         if (!held) return
         val down = at.y - grabbedAt.y
-        val along = abs(at.x - grabbedAt.x)
+        val dx = at.x - grabbedAt.x
+        val along = abs(dx)
         pull = down.coerceAtLeast(0f)
+        val length = ropeLength()
+        angle.value = if (length > 0f) (dx / length).coerceIn(-MaxDragAngle, MaxDragAngle) else 0f
+        angularVelocity = 0f
         if (!clicked && down >= ClickPull.value * density && down >= 2f * along) {
             clicked = true
             onToggle()
@@ -224,7 +280,12 @@ private class CordState(private val onToggle: () -> Unit) {
         held = false
     }
 
-    suspend fun settle() {
+    suspend fun settle(reduceMotion: Boolean) {
+        if (reduceMotion) {
+            pull = 0f
+            resetSwing()
+            return
+        }
         Animatable(pull).animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMedium)) { pull = value }
     }
 
